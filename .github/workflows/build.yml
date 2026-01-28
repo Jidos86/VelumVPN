@@ -6,15 +6,15 @@ on:
       version:
         description: 'Tag version to release'
         required: false
-  push:
-    branches:
-      - master
-    tags:
-      - v*
-    paths-ignore:
-      - 'README.md'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/workflows/issues.yml'
+#  push:
+#    branches:
+#      - master
+#    tags:
+#      - v*
+#    paths-ignore:
+#      - 'README.md'
+#      - '.github/ISSUE_TEMPLATE/**'
+#      - '.github/workflows/issues.yml'
 
 jobs:
   build:
