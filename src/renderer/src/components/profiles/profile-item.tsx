@@ -17,6 +17,7 @@ import { IoMdMore, IoMdRefresh } from 'react-icons/io'
 import dayjs from 'dayjs'
 import React, { Key, useEffect, useMemo, useState } from 'react'
 import EditFileModal from './edit-file-modal'
+import EditRulesModal from './edit-rules-modal'
 import EditInfoModal from './edit-info-modal'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -63,6 +64,7 @@ const ProfileItem: React.FC<Props> = (props) => {
   const [selecting, setSelecting] = useState(false)
   const [openInfoEditor, setOpenInfoEditor] = useState(false)
   const [openFileEditor, setOpenFileEditor] = useState(false)
+  const [openRulesEditor, setOpenRulesEditor] = useState(false)
   const {
     attributes,
     listeners,
@@ -89,6 +91,13 @@ const ProfileItem: React.FC<Props> = (props) => {
       {
         key: 'edit-file',
         label: t('profile.editFile'),
+        showDivider: false,
+        color: 'default',
+        className: ''
+      } as MenuItem,
+      {
+        key: 'edit-rules',
+        label: t('profile.editRules'),
         showDivider: false,
         color: 'default',
         className: ''
@@ -128,6 +137,10 @@ const ProfileItem: React.FC<Props> = (props) => {
       }
       case 'edit-file': {
         setOpenFileEditor(true)
+        break
+      }
+      case 'edit-rules': {
+        setOpenRulesEditor(true)
         break
       }
       case 'open-file': {
@@ -175,6 +188,7 @@ const ProfileItem: React.FC<Props> = (props) => {
           onClose={() => setOpenFileEditor(false)}
         />
       )}
+      {openRulesEditor && <EditRulesModal id={info.id} onClose={() => setOpenRulesEditor(false)} />}
       {openInfoEditor && (
         <EditInfoModal
           item={info}
@@ -278,7 +292,9 @@ const ProfileItem: React.FC<Props> = (props) => {
                       await patchAppConfig({ profileDisplayDate: 'update' })
                     }}
                   >
-                    {extra.expire ? dayjs.unix(extra.expire).format('YYYY-MM-DD') : t('profile.longTermValid')}
+                    {extra.expire
+                      ? dayjs.unix(extra.expire).format('YYYY-MM-DD')
+                      : t('profile.longTermValid')}
                   </Button>
                 ) : (
                   <Button

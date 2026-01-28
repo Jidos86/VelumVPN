@@ -48,7 +48,7 @@ interface MihomoConfig {
   dns: MihomoDNSConfig
   sniffer: MihomoSnifferConfig
   profile: MihomoProfileConfig
-  'rule-providers'?: Record<string, unknown>
+  'rule-providers'?: MihomoRuleProviders
   'proxy-providers'?: Record<string, unknown>
 }
 
@@ -140,4 +140,18 @@ interface MihomoProfileConfig {
 interface ProxyProviderConfig {
   path?: string
   url?: string
+}
+
+interface MihomoRuleProviders {
+  providers: Record<string, MihomoRuleProvider>
+}
+
+interface MihomoRuleProvider {
+  behavior: string
+  format: string
+  name: string
+  ruleCount: number
+  type: string
+  updatedAt: string
+  vehicleType: string
 }

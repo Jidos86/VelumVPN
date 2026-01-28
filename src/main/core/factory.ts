@@ -13,10 +13,10 @@ import {
   mihomoProfileWorkDir,
   mihomoWorkConfigPath,
   mihomoWorkDir,
-  overridePath
+  overridePath, rulePath
 } from '../utils/dirs'
 import { parseYaml, stringifyYaml } from '../utils/yaml'
-import { copyFile, mkdir, writeFile } from 'fs/promises'
+import { copyFile, mkdir, readFile, writeFile } from 'fs/promises'
 import { deepMerge } from '../utils/merge'
 import vm from 'vm'
 import { existsSync, writeFileSync } from 'fs'
@@ -27,6 +27,37 @@ let runtimeConfigStr: string,
   currentProfileStr: string,
   overrideProfileStr: string,
   runtimeConfig: MihomoConfig
+
+// 辅助函数：处理带偏移量的规则
+function processRulesWithOffset(ruleStrings: string[], currentRules: string[], isAppend = false) {
+  const normalRules: string[] = []
+  const rules = [...currentRules]
+
+  ruleStrings.forEach((ruleStr) => {
+    const parts = ruleStr.split(',')
+    const firstPartIsNumber =
+      !isNaN(Number(parts[0])) && parts[0].trim() !== '' && parts.length >= 3
+
+    if (firstPartIsNumber) {
+      const offset = parseInt(parts[0])
+      const rule = parts.slice(1).join(',')
+
+      if (isAppend) {
+        // 后置规则的插入位置计算
+        const insertPosition = Math.max(0, rules.length - Math.min(offset, rules.length))
+        rules.splice(insertPosition, 0, rule)
+      } else {
+        // 前置规则的插入位置计算
+        const insertPosition = Math.min(offset, rules.length)
+        rules.splice(insertPosition, 0, rule)
+      }
+    } else {
+      normalRules.push(ruleStr)
+    }
+  })
+
+  return { normalRules, insertRules: rules }
+}
 
 export async function generateProfile(): Promise<void> {
   const { current } = await getProfileConfig()
@@ -45,6 +76,55 @@ export async function generateProfile(): Promise<void> {
   }
   if (!controlSniff) {
     delete configToMerge.sniffer
+  }
+
+  const ruleFilePath = rulePath(current || 'default')
+  if (existsSync(ruleFilePath)) {
+    const ruleFileContent = await readFile(ruleFilePath, 'utf-8')
+    const ruleData = parseYaml(ruleFileContent) as {
+      prepend?: string[]
+      append?: string[]
+      delete?: string[]
+    } | null
+
+    if (ruleData && typeof ruleData === 'object') {
+      // 确保 rules 数组存在
+      if (!currentProfile.rules) {
+        currentProfile.rules = [] as unknown as []
+      }
+
+      let rules = [...currentProfile.rules] as unknown as string[]
+
+      // 处理前置规则
+      if (ruleData.prepend?.length) {
+        const { normalRules: prependRules, insertRules } = processRulesWithOffset(
+          ruleData.prepend,
+          rules
+        )
+        rules = [...prependRules, ...insertRules]
+      }
+
+      // 处理后置规则
+      if (ruleData.append?.length) {
+        const { normalRules: appendRules, insertRules } = processRulesWithOffset(
+          ruleData.append,
+          rules,
+          true
+        )
+        rules = [...insertRules, ...appendRules]
+      }
+
+      // 处理删除规则
+      if (ruleData.delete?.length) {
+        const deleteSet = new Set(ruleData.delete)
+        rules = rules.filter((rule) => {
+          const ruleStr = Array.isArray(rule) ? rule.join(',') : rule
+          return !deleteSet.has(ruleStr)
+        })
+      }
+
+      currentProfile.rules = rules as unknown as []
+    }
   }
 
   const profile = deepMerge(JSON.parse(JSON.stringify(currentProfile)), configToMerge)

@@ -175,6 +175,20 @@ export async function setFileStr(id: string, str: string): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setFileStr', id, str))
 }
 
+export async function getRuleStr(id: string): Promise<string> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getRuleStr', id))
+}
+
+export async function setRuleStr(id: string, str: string): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setRuleStr', id, str))
+}
+
+export async function convertMrsRuleset(path: string, behavior: string): Promise<string> {
+  return ipcErrorWrapper(
+    await window.electron.ipcRenderer.invoke('convertMrsRuleset', path, behavior)
+  )
+}
+
 export async function setProfileStr(id: string, str: string): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setProfileStr', id, str))
 }

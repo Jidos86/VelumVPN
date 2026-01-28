@@ -1,5 +1,11 @@
 import { getControledMihomoConfig } from './controledMihomo'
-import { mihomoProfileWorkDir, mihomoWorkDir, profileConfigPath, profilePath } from '../utils/dirs'
+import {
+  mihomoProfileWorkDir,
+  mihomoWorkDir,
+  profileConfigPath,
+  profilePath,
+  rulePath
+} from '../utils/dirs'
 import { addProfileUpdater, delProfileUpdater } from '../core/profileUpdater'
 import { readFile, writeFile, rm, mkdir } from 'fs/promises'
 import { restartCore } from '../core/manager'
@@ -364,5 +370,55 @@ export async function setFileStr(path: string, content: string): Promise<void> {
     const target = join(diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), path)
     await mkdir(dirname(target), { recursive: true })
     await writeFile(target, content, 'utf-8')
+  }
+}
+
+export async function getRuleStr(id: string): Promise<string> {
+  return await readFile(rulePath(id), 'utf-8')
+}
+
+export async function setRuleStr(id: string, str: string): Promise<void> {
+  await writeFile(rulePath(id), str, 'utf-8')
+}
+
+export async function convertMrsRuleset(filePath: string, behavior: string): Promise<string> {
+  const { exec } = await import('child_process')
+  const { promisify } = await import('util')
+  const execAsync = promisify(exec)
+  const { mihomoCorePath } = await import('../utils/dirs')
+  const { getAppConfig } = await import('./app')
+  const { tmpdir } = await import('os')
+  const { randomBytes } = await import('crypto')
+  const { unlink } = await import('fs/promises')
+
+  const { core = 'mihomo' } = await getAppConfig()
+  const corePath = mihomoCorePath(core)
+  const { diffWorkDir = false } = await getAppConfig()
+  const { current } = await getProfileConfig()
+  let fullPath: string
+  if (isAbsolutePath(filePath)) {
+    fullPath = filePath
+  } else {
+    fullPath = join(diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), filePath)
+  }
+
+  const tempFileName = `mrs-convert-${randomBytes(8).toString('hex')}.txt`
+  const tempFilePath = join(tmpdir(), tempFileName)
+
+  try {
+    // 使用 mihomo convert-ruleset 命令转换 MRS 文件为 text 格式
+    // 命令格式: mihomo convert-ruleset <behavior> <format> <source>
+    await execAsync(`"${corePath}" convert-ruleset ${behavior} mrs "${fullPath}" "${tempFilePath}"`)
+    const content = await readFile(tempFilePath, 'utf-8')
+    await unlink(tempFilePath)
+
+    return content
+  } catch (error) {
+    try {
+      await unlink(tempFilePath)
+    } catch {
+      // ignore
+    }
+    throw error
   }
 }

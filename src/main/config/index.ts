@@ -7,6 +7,8 @@ export {
   getProfileConfig,
   getFileStr,
   setFileStr,
+  getRuleStr,
+  setRuleStr,
   setProfileConfig,
   addProfileItem,
   removeProfileItem,
@@ -15,7 +17,8 @@ export {
   getProfileParseStr,
   setProfileStr,
   changeCurrentProfile,
-  updateProfileItem
+  updateProfileItem,
+  convertMrsRuleset
 } from './profile'
 export {
   getOverrideConfig,

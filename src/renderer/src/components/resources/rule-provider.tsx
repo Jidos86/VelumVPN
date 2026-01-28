@@ -24,23 +24,25 @@ const RuleProvider: React.FC = () => {
     type: '',
     title: '',
     format: '',
-    privderType: ''
+    privderType: '',
+    behavior: ''
   })
   useEffect(() => {
     if (showDetails.title) {
       const fetchProviderPath = async (name: string): Promise<void> => {
         try {
           const providers = await getRuntimeConfig()
-          const provider = providers?.['rule-providers']?.[name] as ProxyProviderConfig
+          const provider = providers['rule-providers'][name]
           if (provider) {
             setShowDetails((prev) => ({
               ...prev,
               show: true,
-              path: provider?.path || `rules/${getHash(provider?.url || '')}`
+              path: provider?.path || `rules/${getHash(provider?.url)}`,
+              behavior: provider?.behavior || 'domain'
             }))
           }
         } catch {
-          setShowDetails((prev) => ({ ...prev, path: '' }))
+          setShowDetails((prev) => ({ ...prev, path: '', behavior: '' }))
         }
       }
       fetchProviderPath(showDetails.title)
@@ -101,6 +103,7 @@ const RuleProvider: React.FC = () => {
           title={showDetails.title}
           format={showDetails.format}
           privderType={showDetails.privderType}
+          behavior={showDetails.behavior}
           onClose={() =>
             setShowDetails({
               show: false,
@@ -108,7 +111,8 @@ const RuleProvider: React.FC = () => {
               type: '',
               title: '',
               format: '',
-              privderType: ''
+              privderType: '',
+              behavior: ''
             })
           }
         />
@@ -138,32 +142,31 @@ const RuleProvider: React.FC = () => {
           >
             <div className="flex h-[32px] leading-[32px] text-foreground-500">
               <div>{dayjs(provider.updatedAt).fromNow()}</div>
-              {provider.format !== 'MrsRule' && provider.vehicleType !== 'Inline' && (
-                <Button
-                  isIconOnly
-                  title={
-                    provider.vehicleType == 'File' ? t('resources.edit') : t('resources.view')
-                  }
-                  className="ml-2"
-                  size="sm"
-                  onPress={() => {
-                    setShowDetails({
-                      show: false,
-                      privderType: 'rule-providers',
-                      path: provider.name,
-                      type: provider.vehicleType,
-                      title: provider.name,
-                      format: provider.format
-                    })
-                  }}
-                >
-                  {provider.vehicleType == 'File' ? (
-                    <MdEditDocument className={`text-lg`} />
-                  ) : (
-                    <CgLoadbarDoc className={`text-lg`} />
-                  )}
-                </Button>
-              )}
+              <Button
+                isIconOnly
+                title={
+                  provider.vehicleType == 'File' ? t('resources.edit') : t('resources.view')
+                }
+                className="ml-2"
+                size="sm"
+                onPress={() => {
+                  setShowDetails({
+                    show: false,
+                    privderType: 'rule-providers',
+                    path: provider.name,
+                    type: provider.vehicleType,
+                    title: provider.name,
+                    format: provider.format,
+                    behavior: provider.behavior || 'domain'
+                  })
+                }}
+              >
+                {provider.vehicleType == 'File' ? (
+                  <MdEditDocument className={`text-lg`} />
+                ) : (
+                  <CgLoadbarDoc className={`text-lg`} />
+                )}
+              </Button>
               <Button
                 isIconOnly
                 title={t('common.update')}

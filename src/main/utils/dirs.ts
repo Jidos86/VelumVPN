@@ -179,6 +179,14 @@ export function substoreLogPath(): string {
   return path.join(logDir(), `${name}.log`)
 }
 
+export function rulesDir(): string {
+  return path.join(dataDir(), 'rules')
+}
+
+export function rulePath(id: string): string {
+  return path.join(rulesDir(), `${id}.yaml`)
+}
+
 function hasCommand(command: string): boolean {
   try {
     const isWin = process.platform === 'win32'
