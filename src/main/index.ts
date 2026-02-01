@@ -23,6 +23,19 @@ import { getAppConfigSync } from './config/app'
 import { getUserAgent } from './utils/userAgent'
 import { t } from './utils/i18n'
 
+function getOemEncoding(): string {
+  try {
+    const output = execSync('chcp', { encoding: 'ascii' })
+    const match = output.match(/(\d+)/)
+    if (match) {
+      return `cp${match[1]}`
+    }
+  } catch {
+    // ignore
+  }
+  return 'utf-8'
+}
+
 let quitTimeout: NodeJS.Timeout | null = null
 export let mainWindow: BrowserWindow | null = null
 let isCreatingWindow = false
@@ -85,8 +98,9 @@ if (
       let createErrorStr = `${createError}`
       let eStr = `${e}`
       try {
-        createErrorStr = iconv.decode((createError as { stderr: Buffer }).stderr, 'gbk')
-        eStr = iconv.decode((e as { stderr: Buffer }).stderr, 'gbk')
+        const oemEncoding = getOemEncoding()
+        createErrorStr = iconv.decode((createError as { stderr: Buffer }).stderr, oemEncoding)
+        eStr = iconv.decode((e as { stderr: Buffer }).stderr, oemEncoding)
       } catch {
         // ignore
       }
