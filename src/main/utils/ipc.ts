@@ -92,7 +92,7 @@ import {
   testServiceConnection,
   restartService
 } from '../service/manager'
-import { findSystemMihomo } from '../utils/dirs'
+import { findSystemMihomo } from './dirs'
 import {
   getRuntimeConfig,
   getRuntimeConfigStr,
@@ -130,6 +130,7 @@ import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../res
 import { getAppName } from './appName'
 import { getUserAgent } from './userAgent'
 import { setLanguage } from './i18n'
+import { updateApplicationMenu } from '../resolve/menu'
 
 function ipcErrorWrapper<T>( // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fn: (...args: any[]) => Promise<T> // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -342,8 +343,9 @@ export function registerIpcMainHandlers(): void {
     setNotQuitDialog()
     app.quit()
   })
-  ipcMain.handle('setLanguage', (_e, lang: string) => {
+  ipcMain.handle('setLanguage', async (_e, lang: string) => {
     setLanguage(lang)
     ipcMain.emit('updateTrayMenu')
+    await updateApplicationMenu()
   })
 }

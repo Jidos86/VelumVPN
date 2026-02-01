@@ -28,11 +28,13 @@ const getSavedLanguage = (): string => {
   return 'ru-RU' // Default to Chinese
 }
 
+const savedLanguage = getSavedLanguage()
+
 i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: getSavedLanguage(),
+    lng: savedLanguage,
     fallbackLng: 'en-US',
     interpolation: {
       escapeValue: false
@@ -41,5 +43,8 @@ i18n
       useSuspense: false
     }
   })
+
+// Sync language to main process (tray, macOS menu bar)
+window.electron.ipcRenderer.invoke('setLanguage', savedLanguage)
 
 export default i18n

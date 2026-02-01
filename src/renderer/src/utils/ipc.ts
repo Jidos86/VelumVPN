@@ -586,6 +586,10 @@ export async function copyEnv(type: 'bash' | 'cmd' | 'powershell' | 'nushell'): 
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('copyEnv', type))
 }
 
+export async function setMainLanguage(lang: string): Promise<void> {
+  await window.electron.ipcRenderer.invoke('setLanguage', lang)
+}
+
 async function alert<T>(msg: T): Promise<void> {
   const msgStr = typeof msg === 'string' ? msg : JSON.stringify(msg)
   return await window.electron.ipcRenderer.invoke('alert', msgStr)

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useCallback, useMemo } from 'react'
+import { setMainLanguage } from '@renderer/utils/ipc'
 
 export type Language = 'zh-CN' | 'en-US' | 'ru-RU'
 
@@ -16,6 +17,7 @@ export const useLanguage = () => {
     (lang: Language) => {
       i18n.changeLanguage(lang)
       localStorage.setItem('language', lang)
+      setMainLanguage(lang)
     },
     [i18n]
   )
