@@ -4,15 +4,18 @@ import SettingItem from '../base/base-setting-item'
 import {
   checkUpdate,
   createHeapSnapshot,
+  mihomoVersion,
   quitApp,
   quitWithoutCore,
   resetAppConfig,
   cancelUpdate
 } from '@renderer/utils/ipc'
 import { useState, useEffect } from 'react'
+import useSWR from 'swr'
 import UpdaterModal from '../updater/updater-modal'
 import { version } from '@renderer/utils/init'
 import { IoIosHelpCircle } from 'react-icons/io'
+import { IoSettings } from 'react-icons/io5'
 import { startTour } from '@renderer/utils/driver'
 import { useNavigate } from 'react-router-dom'
 import ConfirmModal from '../base/base-confirm'
@@ -21,6 +24,7 @@ import { useTranslation } from 'react-i18next'
 const Actions: React.FC = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { data: coreVersion } = useSWR('mihomoVersion', mihomoVersion)
   const [newVersion, setNewVersion] = useState('')
   const [changelog, setChangelog] = useState('')
   const [openUpdate, setOpenUpdate] = useState(false)
@@ -182,6 +186,19 @@ const Actions: React.FC = () => {
           <Button size="sm" onPress={quitApp}>
             {t('settings.actions.quitApp')}
           </Button>
+        </SettingItem>
+        <SettingItem
+          title={t('settings.actions.mihomoVersion')}
+          actions={
+            <Tooltip content={t('settings.actions.mihomoSettings')}>
+              <Button isIconOnly size="sm" variant="light" onPress={() => navigate('/mihomo')}>
+                <IoSettings className="text-lg" />
+              </Button>
+            </Tooltip>
+          }
+          divider
+        >
+          <div>{coreVersion?.version ? coreVersion.version : '...'}</div>
         </SettingItem>
         <SettingItem title={t('settings.actions.appVersion')}>
           <div>v{version}</div>

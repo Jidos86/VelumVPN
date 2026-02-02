@@ -549,6 +549,8 @@ export default {
       quitKeepCore: '保留内核退出',
       quitKeepCoreHelp: '完全退出软件，只保留内核进程',
       quitApp: '退出应用',
+      mihomoVersion: 'Mihomo 版本',
+      mihomoSettings: '内核设置',
       appVersion: '应用版本'
     },
     sider: {

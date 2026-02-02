@@ -520,6 +520,8 @@ export default {
       quitKeepCore: 'Quit Keep Core',
       quitKeepCoreHelp: 'Completely quit the app, keeping only the core process',
       quitApp: 'Quit Application',
+      mihomoVersion: 'Mihomo Version',
+      mihomoSettings: 'Core settings',
       appVersion: 'App Version'
     },
     sider: {

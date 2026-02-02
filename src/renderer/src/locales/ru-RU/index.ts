@@ -505,6 +505,8 @@ export default {
       quitKeepCore: 'Выйти, сохранив ядро',
       quitKeepCoreHelp: 'Полностью выйти из приложения, сохранив только процесс ядра',
       quitApp: 'Выйти из приложения',
+      mihomoVersion: 'Версия Mihomo',
+      mihomoSettings: 'Настройки ядра',
       appVersion: 'Версия приложения'
     },
     sider: {
