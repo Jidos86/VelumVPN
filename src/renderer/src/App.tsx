@@ -14,7 +14,7 @@ import ConnCard from '@renderer/components/sider/conn-card'
 import LogCard from '@renderer/components/sider/log-card'
 import UpdaterButton from '@renderer/components/updater/updater-button'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { applyTheme, checkUpdate, setNativeTheme, setTitleBarOverlay } from '@renderer/utils/ipc'
+import { applyTheme, checkUpdate, needsFirstRunAdmin, restartAsAdmin, setNativeTheme, setTitleBarOverlay } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
 import { TitleBarOverlayOptions } from 'electron'
 import MihomoIcon from './components/base/mihomo-icon'
@@ -102,6 +102,7 @@ const App: React.FC = () => {
   const [showQuitConfirm, setShowQuitConfirm] = useState(false)
   const [showProfileInstallConfirm, setShowProfileInstallConfirm] = useState(false)
   const [showOverrideInstallConfirm, setShowOverrideInstallConfirm] = useState(false)
+  const [showAdminRequired, setShowAdminRequired] = useState(false)
   const [profileInstallData, setProfileInstallData] = useState<{
     url: string
     name?: string | null
@@ -137,10 +138,22 @@ const App: React.FC = () => {
       handleShowOverrideInstallConfirm
     )
 
+    const handleNeedsAdminSetup = (): void => {
+      setShowAdminRequired(true)
+    }
+    window.electron.ipcRenderer.on('needs-admin-setup', handleNeedsAdminSetup)
+
+    if (platform === 'win32') {
+      needsFirstRunAdmin().then((needs) => {
+        if (needs) setShowAdminRequired(true)
+      })
+    }
+
     return (): void => {
       window.electron.ipcRenderer.removeAllListeners('show-quit-confirm')
       window.electron.ipcRenderer.removeAllListeners('show-profile-install-confirm')
       window.electron.ipcRenderer.removeAllListeners('show-override-install-confirm')
+      window.electron.ipcRenderer.removeAllListeners('needs-admin-setup')
     }
   }, [])
 
@@ -230,6 +243,25 @@ const App: React.FC = () => {
             }
           }}
           onConfirm={() => handleOverrideInstallConfirm(true)}
+        />
+      )}
+      {showAdminRequired && (
+        <ConfirmModal
+          title={t('modal.adminRequired')}
+          description={
+            <div>
+              <p className="text-sm">{t('modal.adminRequiredDesc')}</p>
+            </div>
+          }
+          confirmText={t('modal.restartAsAdmin')}
+          onChange={(open) => {
+            if (!open) {
+              setShowAdminRequired(false)
+            }
+          }}
+          onConfirm={async () => {
+            await restartAsAdmin()
+          }}
         />
       )}
       <div style={{ width: `${narrowWidth}px` }} className="side h-full">

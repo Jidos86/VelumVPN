@@ -259,6 +259,14 @@ export async function checkElevateTask(): Promise<boolean> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('checkElevateTask'))
 }
 
+export async function needsFirstRunAdmin(): Promise<boolean> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('needsFirstRunAdmin'))
+}
+
+export async function restartAsAdmin(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('restartAsAdmin'))
+}
+
 export async function deleteElevateTask(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('deleteElevateTask'))
 }

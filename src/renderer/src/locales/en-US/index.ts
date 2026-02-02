@@ -141,6 +141,12 @@ export default {
   },
 
   pages: {
+    home: {
+      disconnected: 'Disconnected',
+      connecting: 'Connecting...',
+      connected: 'Connected',
+      disconnecting: 'Disconnecting...'
+    },
     settings: {
       title: 'Application Settings',
       githubRepo: 'GitHub Repository',
@@ -384,7 +390,11 @@ export default {
     goToDownload: 'Go to download',
     downloadProgress: 'Download Progress',
     cancelDownload: 'Cancel Download',
-    updateNow: 'Update Now'
+    updateNow: 'Update Now',
+    adminRequired: 'Administrator Rights Required',
+    adminRequiredDesc:
+      'For the application to work correctly, it needs to be run as administrator once to set up the task scheduler. After this, the application will start with elevated privileges automatically.',
+    restartAsAdmin: 'Restart as Administrator'
   },
 
   settings: {
@@ -462,6 +472,9 @@ export default {
       normal: 'Normal',
       belowNormal: 'Below Normal',
       low: 'Low',
+      mainSwitch: 'Main Switch',
+      mainSwitchTun: 'TUN Mode',
+      mainSwitchSysproxy: 'System Proxy',
       takeOverDNS: 'Take over DNS settings',
       takeOverSniffer: 'Take over domain sniffing settings',
       stopCoreOnDisconnect: 'Stop core on disconnect',

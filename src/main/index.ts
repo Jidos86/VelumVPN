@@ -18,26 +18,14 @@ import { existsSync, writeFileSync } from 'fs'
 import { exePath, taskDir } from './utils/dirs'
 import { startMonitor } from './resolve/trafficMonitor'
 import { showFloatingWindow } from './resolve/floatingWindow'
-import iconv from 'iconv-lite'
 import { getAppConfigSync } from './config/app'
 import { getUserAgent } from './utils/userAgent'
 import { t } from './utils/i18n'
 
-function getOemEncoding(): string {
-  try {
-    const output = execSync('chcp', { encoding: 'ascii' })
-    const match = output.match(/(\d+)/)
-    if (match) {
-      return `cp${match[1]}`
-    }
-  } catch {
-    // ignore
-  }
-  return 'utf-8'
-}
 
 let quitTimeout: NodeJS.Timeout | null = null
 export let mainWindow: BrowserWindow | null = null
+export let needsFirstRunAdmin = false
 let isCreatingWindow = false
 let windowShown = false
 let createWindowPromiseResolve: (() => void) | null = null
@@ -94,22 +82,10 @@ if (
       } else {
         execSync('%SystemRoot%\\System32\\schtasks.exe /run /tn sparkle-run')
       }
-    } catch (e) {
-      let createErrorStr = `${createError}`
-      let eStr = `${e}`
-      try {
-        const oemEncoding = getOemEncoding()
-        createErrorStr = iconv.decode((createError as { stderr: Buffer }).stderr, oemEncoding)
-        eStr = iconv.decode((e as { stderr: Buffer }).stderr, oemEncoding)
-      } catch {
-        // ignore
-      }
-      dialog.showErrorBox(
-        t('dialog.firstRunAdmin'),
-        `${t('dialog.firstRunAdmin')}\n${createErrorStr}\n${eStr}`
-      )
-    } finally {
       app.exit()
+    } catch {
+      // First launch without admin — continue startup and show UI notification
+      needsFirstRunAdmin = true
     }
   }
 }
@@ -334,6 +310,10 @@ app.whenReady().then(async () => {
 
   if (coreStarted) {
     mainWindow?.webContents.send('core-started')
+  }
+
+  if (needsFirstRunAdmin) {
+    mainWindow?.webContents.send('needs-admin-setup')
   }
 
   app.on('activate', function () {

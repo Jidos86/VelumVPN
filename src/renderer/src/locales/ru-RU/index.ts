@@ -139,6 +139,12 @@ export default {
   },
 
   pages: {
+    home: {
+      disconnected: 'Отключено',
+      connecting: 'Подключение...',
+      connected: 'Подключено',
+      disconnecting: 'Отключение...'
+    },
     settings: {
       title: 'Настройки приложения',
       githubRepo: 'GitHub репозиторий',
@@ -374,7 +380,11 @@ export default {
     goToDownload: 'Перейти к загрузке',
     downloadProgress: 'Прогресс загрузки',
     cancelDownload: 'Отменить загрузку',
-    updateNow: 'Обновить сейчас'
+    updateNow: 'Обновить сейчас',
+    adminRequired: 'Требуются права администратора',
+    adminRequiredDesc:
+      'Для корректной работы приложения необходимо один раз запустить его от имени администратора для настройки планировщика задач. После этого приложение будет автоматически запускаться с повышенными привилегиями.',
+    restartAsAdmin: 'Перезапустить от администратора'
   },
 
   settings: {
@@ -448,6 +458,9 @@ export default {
       normal: 'Обычный',
       belowNormal: 'Ниже обычного',
       low: 'Низкий',
+      mainSwitch: 'Главный переключатель',
+      mainSwitchTun: 'Режим TUN',
+      mainSwitchSysproxy: 'Системный прокси',
       takeOverDNS: 'Перехватить настройки DNS',
       takeOverSniffer: 'Перехватить настройки сниффинга доменов',
       stopCoreOnDisconnect: 'Остановить ядро при отключении',

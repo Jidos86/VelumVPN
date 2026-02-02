@@ -182,6 +182,12 @@ export default {
   },
 
   pages: {
+    home: {
+      disconnected: '已断开',
+      connecting: '连接中...',
+      connected: '已连接',
+      disconnecting: '断开中...'
+    },
     settings: {
       title: '应用设置',
       githubRepo: 'GitHub 仓库',
@@ -417,7 +423,11 @@ export default {
     goToDownload: '前往下载',
     downloadProgress: '下载进度',
     cancelDownload: '取消下载',
-    updateNow: '立即更新'
+    updateNow: '立即更新',
+    adminRequired: '需要管理员权限',
+    adminRequiredDesc:
+      '应用需要以管理员身份运行一次以设置任务计划。设置完成后，应用将自动以提升的权限启动。',
+    restartAsAdmin: '以管理员身份重启'
   },
 
   settings: {
@@ -491,6 +501,9 @@ export default {
       normal: '正常',
       belowNormal: '低于正常',
       low: '低',
+      mainSwitch: '主开关',
+      mainSwitchTun: 'TUN 模式',
+      mainSwitchSysproxy: '系统代理',
       takeOverDNS: '接管 DNS 设置',
       takeOverSniffer: '接管域名嗅探设置',
       stopCoreOnDisconnect: '断网时停止内核',
