@@ -4,20 +4,14 @@ import { NavigateFunction, useLocation, useNavigate, useRoutes } from 'react-rou
 import './i18n'
 import { useTranslation } from 'react-i18next'
 import OutboundModeSwitcher from '@renderer/components/sider/outbound-mode-switcher'
-import SysproxySwitcher from '@renderer/components/sider/sysproxy-switcher'
-import TunSwitcher from '@renderer/components/sider/tun-switcher'
 import { Button, Divider } from '@heroui/react'
 import { IoSettings } from 'react-icons/io5'
 import routes from '@renderer/routes'
 import ProfileCard from '@renderer/components/sider/profile-card'
 import ProxyCard from '@renderer/components/sider/proxy-card'
 import RuleCard from '@renderer/components/sider/rule-card'
-import DNSCard from '@renderer/components/sider/dns-card'
-import SniffCard from '@renderer/components/sider/sniff-card'
 import ConnCard from '@renderer/components/sider/conn-card'
 import LogCard from '@renderer/components/sider/log-card'
-import MihomoCoreCard from '@renderer/components/sider/mihomo-core-card'
-import ResourceCard from '@renderer/components/sider/resource-card'
 import UpdaterButton from '@renderer/components/updater/updater-button'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { applyTheme, checkUpdate, setNativeTheme, setTitleBarOverlay } from '@renderer/utils/ipc'
@@ -32,16 +26,10 @@ let navigate: NavigateFunction
 
 const defaultSiderOrder = [
   'main',
-  'tun',
-  'sysproxy',
-  'dns',
-  'sniff',
   'proxy',
   'connection',
   'profile',
-  'mihomo',
   'rule',
-  'resource',
   'log'
 ]
 
@@ -104,17 +92,11 @@ const App: React.FC = () => {
 
   const componentMap = {
     main: MainCard,
-    tun: TunSwitcher,
-    sysproxy: SysproxySwitcher,
     profile: ProfileCard,
     proxy: ProxyCard,
-    mihomo: MihomoCoreCard,
     connection: ConnCard,
-    dns: DNSCard,
-    sniff: SniffCard,
     log: LogCard,
-    rule: RuleCard,
-    resource: ResourceCard
+    rule: RuleCard
   }
 
   const [showQuitConfirm, setShowQuitConfirm] = useState(false)

@@ -69,8 +69,6 @@ interface AppConfig {
   originDNS?: string
   useWindowFrame: boolean
   proxyInTray: boolean
-  siderOrder: string[]
-  siderWidth: number
   appTheme: AppTheme
   customTheme?: string
   autoCheckUpdate: boolean
