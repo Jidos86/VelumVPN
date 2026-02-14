@@ -9,7 +9,9 @@ import { useTranslation } from 'react-i18next'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
-import { IoPause, IoPower } from 'react-icons/io5'
+import Power from '@renderer/assets/on_icon.svg'
+import Pause from '@renderer/assets/pause_icon.svg'
+import { InfinityIcon } from 'lucide-react'
 
 function formatBytes(bytes: number): string {
   if (bytes <= 0) return '0 B'
@@ -83,12 +85,6 @@ const Home: React.FC = () => {
       ? t('pages.home.connected')
       : t('pages.home.disconnected')
 
-  const statusColor = loading
-    ? 'text-warning'
-    : isSelected
-      ? 'text-success'
-      : 'text-muted-foreground'
-
   // Current profile & subscription
   const currentProfile = useMemo(() => {
     if (!profileConfig?.current || !profileConfig?.items) return null
@@ -100,7 +96,7 @@ const Home: React.FC = () => {
   const trafficTotal = subscription?.total ?? 0
   const trafficRemaining = trafficTotal > 0 ? trafficTotal - trafficUsed : 0
   const expireTimestamp = subscription?.expire ?? 0
-  const expireDate = expireTimestamp > 0 ? dayjs.unix(expireTimestamp).format('DD.MM.YYYY') : '—'
+  const expireDate = expireTimestamp > 0 ? dayjs.unix(expireTimestamp).format('DD.MM.YYYY') : t('pages.home.unlimited')
   const daysRemaining =
     expireTimestamp > 0 ? Math.max(0, dayjs.unix(expireTimestamp).diff(dayjs(), 'day')) : 0
 
@@ -138,84 +134,81 @@ const Home: React.FC = () => {
       <div className="flex flex-col h-full px-2 pb-2 gap-4">
         {/* Profile card */}
         {currentProfile && (
-          <div className="rounded-xl border border-border bg-card/50 backdrop-blur p-4">
+          <div className="rounded-2xl border border-stroke bg-card/50 backdrop-blur-xl p-4">
             <div className="flex items-center justify-center gap-3 mb-2">
               {currentProfile.home && (
                 <img
                   src={`https://www.google.com/s2/favicons?domain=${new URL(currentProfile.home).hostname}&sz=32`}
                   alt=""
-                  className="w-8 h-8 rounded-full"
+                  className="w-10 h-10 rounded-full"
                   onError={(e) => {
                     ;(e.target as HTMLImageElement).style.display = 'none'
                   }}
                 />
               )}
-              <span className="font-semibold text-lg">{currentProfile.name}</span>
+              <span className="font-medium text-base">{currentProfile.name}</span>
             </div>
-            <div className="text-sm text-center">
-              Эвкалипт 🌿— вечнозелёное дерево с ароматными листьями. Его масло применяют
-              при простуде, а листья используют в чаях и ингаляциях. 🌱 Полезен, красив и незаменим.
+            <div className="text-sm font-medium text-center">
+              Эвкалипт 🌿— вечнозелёное дерево с ароматными листьями. Его масло применяют при
+              простуде, а листья используют в чаях и ингаляциях. 🌱 Полезен, красив и незаменим.
               Ведь природа знает толк в пользе! 🍃
             </div>
             {/* Subscription info */}
           </div>
         )}
         {subscription && (
-          <div className="grid grid-cols-3 divide-x divide-border rounded-xl border border-border bg-card/50 backdrop-blur p-1 bg-background/50">
+          <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center rounded-2xl border border-stroke bg-card/50 backdrop-blur-xl p-1 bg-background/50">
             <div className="flex flex-col items-center py-2 px-1">
-              <span className="text-xs text-muted-foreground">
-                {t('pages.home.trafficRemaining')}
-              </span>
-              <span className="font-bold text-sm mt-0.5">
+              <span className="text-sm text-foreground">{t('pages.home.trafficRemaining')}</span>
+              <span className="font-bold text-base mt-0.5">
                 {trafficTotal > 0 ? formatBytes(trafficRemaining) : t('pages.home.unlimited')}
               </span>
             </div>
+            <div className="h-8 w-px bg-stroke" />
             <div className="flex flex-col items-center py-2 px-1">
-              <span className="text-xs text-muted-foreground">{t('pages.home.daysRemaining')}</span>
-              <span className="font-bold text-sm mt-0.5">
-                {expireTimestamp > 0 ? daysRemaining : '∞'}
+              <span className="text-sm text-foreground">{t('pages.home.daysRemaining')}</span>
+              <span className="text-base font-bold mt-0.5">
+                {expireTimestamp > 0 ? daysRemaining : <InfinityIcon />}
               </span>
             </div>
+            <div className="h-8 w-px bg-stroke" />
             <div className="flex flex-col items-center py-2 px-1">
-              <span className="text-xs text-muted-foreground">{t('pages.home.expires')}</span>
-              <span className="font-bold text-sm mt-0.5">{expireDate}</span>
+              <span className="text-sm text-foreground">{t('pages.home.expires')}</span>
+              <span className="text-base font-bold mt-0.5">{expireDate}</span>
             </div>
           </div>
         )}
 
         {/* Connection button */}
         <div className="flex-1 flex flex-col grow-3 items-center justify-center gap-3 min-h-0">
-          <span className={`text-lg font-semibold uppercase tracking-wider ${statusColor}`}>
-            {status}
-          </span>
+          <span className={`text-foreground font-semibold uppercase tracking-wider`}>{status}</span>
           <button
             disabled={isDisabled}
             onClick={() => onValueChange(!isSelected)}
-            className="relative group transition-transform active:scale-95 disabled:opacity-50"
+            className="relative group transition-transform active:scale-95"
           >
             <div
-              className={`w-28 h-28 rounded-full flex items-center justify-center transition-all duration-300 ${
+              className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 bg-radial-[at_30%_45%] backdrop-blur-xl border-2 ${
                 isSelected
-                  ? 'bg-success text-success-foreground shadow-[0_0_40px_rgba(34,197,94,0.3)]'
-                  : 'bg-muted text-muted-foreground'
-              } ${loading ? 'animate-pulse' : ''}`}
+                  ? 'from-gradient-start-power-on/60 to-gradient-end-power-on/60 border-stroke-power-on'
+                  : 'from-gradient-start-power-off/50 to-gradient-end-power-off/50 border-stroke-power-off'
+              } ${loading ? 'animate-none' : ''}`}
             >
-              {isSelected ? <IoPause className="w-16 h-16" /> : <IoPower className="w-16 h-16" />}
+              {isSelected ? (
+                <img src={Pause} alt="" className="w-20 h-20 fill-foreground" />
+              ) : (
+                <img src={Power} alt="" className="w-20 h-20 fill-foreground" />
+              )}
             </div>
           </button>
-          <span className="text-lg font-mono tabular-nums text-foreground/80">
-            {formatTimer(elapsed)}
-          </span>
+          <span className="text-base font-bold text-foreground">{formatTimer(elapsed)}</span>
         </div>
 
         {/* Group & Proxy selectors */}
         {firstGroup && (
           <div className="flex flex-col grow items-center gap-3 pb-2 mx-auto w-full max-w-48">
-            <div
-              className="w-full cursor-pointer"
-              onClick={() => navigate('/proxies')}
-            >
-              <div className="flex items-center h-9 rounded-xl border border-input px-3 py-1 backdrop-blur-xl bg-background/60 text-sm">
+            <div className="w-full cursor-pointer" onClick={() => navigate('/proxies')}>
+              <div className="flex items-center h-9 rounded-2xl border border-stroke px-3 py-1 backdrop-blur-xl bg-card/50 text-sm">
                 {firstGroup.now || '—'}
               </div>
             </div>
