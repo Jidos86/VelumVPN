@@ -737,7 +737,7 @@ const Connections: React.FC = () => {
                   <SelectItem value="process">{t('pages.connections.processName')}</SelectItem>
                 </SelectContent>
               </Select>
-              <Button className='border-1 flex items-center justify-center' size="icon-sm" variant="secondary" onClick={handleDirectionToggle}>
+              <Button className='border flex items-center justify-center' size="icon-sm" variant="secondary" onClick={handleDirectionToggle}>
                 {connectionDirection === 'asc' ? (
                   <ArrowDownNarrowWide className="text-lg" />
                 ) : (

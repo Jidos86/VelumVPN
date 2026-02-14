@@ -373,7 +373,7 @@ const ConnectionTable: React.FC<Props> = ({
   const visibleColumnsFiltered = columnsWithLabels.filter((col) => col.visible)
 
   return (
-    <div className="h-full flex flex-col border-1 rounded-2xl overflow-hidden mx-2">
+    <div className="h-full flex flex-col border rounded-2xl overflow-hidden mx-2">
       <div ref={tableRef} className="flex-1 overflow-auto">
         <table className="w-full border-collapse">
           <thead className="sticky top-0 z-10 bg-muted">

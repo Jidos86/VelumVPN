@@ -138,7 +138,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
           'sm:max-w-none',
           isNew
             ? 'w-[480px]'
-            : 'w-[600px] md:w-[600px] lg:w-[800px] xl:w-[1024px]'
+            : 'w-[600px] md:w-[600px] lg:w-[800px] xl:w-5xl'
         )}
         showCloseButton={false}
       >
