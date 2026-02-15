@@ -1,4 +1,5 @@
 pkgname=koala-clash
+_pkgname=koala-clash
 pkgver=1.0.0
 pkgrel=1
 pkgdesc="A geeked Mihomo client with features that improve the user experience."
