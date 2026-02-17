@@ -1,5 +1,5 @@
-appId: sparkle.app
-productName: Sparkle
+appId: koala-clash.app
+productName: Koala-Clash
 directories:
   buildResources: build
 files:
@@ -19,11 +19,11 @@ extraResources:
   - from: './extra/'
     to: ''
 protocols:
-  name: 'Sparkle URI Scheme'
+  name: 'Koala-Clash URI Scheme'
   schemes:
     - 'clash'
     - 'mihomo'
-    - 'sparkle'
+    - 'koala-clash'
 win:
   target:
     - nsis
@@ -56,8 +56,8 @@ pkg:
 linux:
   desktop:
     entry:
-      Name: Sparkle
-      MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo;x-scheme-handler/sparkle'
+      Name: Koala-Clash
+      MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo;x-scheme-handler/koala-clash'
   target:
     - deb
     - rpm

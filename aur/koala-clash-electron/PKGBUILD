@@ -1,12 +1,12 @@
-pkgname=sparkle-electron
-_pkgname=sparkle
-pkgver=1.6.2
+pkgname=koala-clash-electron
+_pkgname=koala-clash
+pkgver=1.0.0
 pkgrel=1
-pkgdesc="Another Mihomo GUI."
+pkgdesc="A geeked Mihomo client with features to improved users' experience."
 arch=('x86_64' 'aarch64')
 url="   "
 license=('GPL3')
-conflicts=("$_pkgname" "$_pkgname-git" "$_pkgname-bin" "$_pkgname-electron-bin" "$_pkgname-electron-git")
+conflicts=("sparkle-git" "sparkle" "sparkle-bin" "sparkle-electron" "sparkle-electron-bin" "sparkle-electron-git" "$_pkgname" "$_pkgname-git" "$_pkgname-bin" "$_pkgname-electron-bin" "$_pkgname-electron-git")
 depends=('electron' 'gtk3' 'libnotify' 'nss' 'libxss' 'libxtst' 'xdg-utils' 'at-spi2-core' 'util-linux-libs' 'libsecret')
 optdepends=('libappindicator-gtk3: Allow sparkle to extend a menu via Ayatana indicators in Unity, KDE or Systray (GTK+ 3 library).')
 makedepends=('nodejs' 'pnpm' 'libxcrypt-compat' 'asar')
@@ -24,7 +24,7 @@ options=('!lto')
 
 prepare(){
     cd $srcdir/${_pkgname}-${pkgver}
-    sed -i "s/productName: Sparkle/productName: sparkle/" electron-builder.yml
+    sed -i "s/productName: Koala-Clash/productName: koala-clash/" electron-builder.yml
     pnpm install
 }
 
@@ -34,15 +34,15 @@ build(){
 }
 
 package() {
-    asar extract $srcdir/${_pkgname}-${pkgver}/dist/linux-unpacked/resources/app.asar ${pkgdir}/opt/sparkle
-    cp -r $srcdir/${_pkgname}-${pkgver}/extra/sidecar ${pkgdir}/opt/sparkle/resources/
-    cp -r $srcdir/${_pkgname}-${pkgver}/extra/files ${pkgdir}/opt/sparkle/resources/
-    chmod +x ${pkgdir}/opt/sparkle/resources/files/sparkle-service
-    chmod +sx ${pkgdir}/opt/sparkle/resources/sidecar/mihomo
-    chmod +sx ${pkgdir}/opt/sparkle/resources/sidecar/mihomo-alpha
+    asar extract $srcdir/${_pkgname}-${pkgver}/dist/linux-unpacked/resources/app.asar ${pkgdir}/opt/koala-clash
+    cp -r $srcdir/${_pkgname}-${pkgver}/extra/sidecar ${pkgdir}/opt/koala-clash/resources/
+    cp -r $srcdir/${_pkgname}-${pkgver}/extra/files ${pkgdir}/opt/koala-clash/resources/
+    chmod +x ${pkgdir}/opt/koala-clash/resources/files/koala-clash-service
+    chmod +sx ${pkgdir}/opt/koala-clash/resources/sidecar/mihomo
+    chmod +sx ${pkgdir}/opt/koala-clash/resources/sidecar/mihomo-alpha
     install -Dm755 "${_pkgname}.sh" "${pkgdir}/usr/bin/${_pkgname}"
     install -Dm644 "${_pkgname}.desktop" "${pkgdir}/usr/share/applications/${_pkgname}.desktop"
-    install -Dm644 "${pkgdir}/opt/sparkle/resources/icon.png" "${pkgdir}/usr/share/icons/hicolor/512x512/apps/${_pkgname}.png"
+    install -Dm644 "${pkgdir}/opt/koala-clash/resources/icon.png" "${pkgdir}/usr/share/icons/hicolor/512x512/apps/${_pkgname}.png"
 
     chown -R root:root ${pkgdir}
 }
