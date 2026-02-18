@@ -19,8 +19,30 @@ import EditInfoModal from './edit-info-modal'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { openFile } from '@renderer/utils/ipc'
-import ConfirmModal from '../base/base-confirm'
-import { Check, EllipsisVertical, RefreshCcw } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle
+} from '@renderer/components/ui/alert-dialog'
+import {
+  Check,
+  CircleAlert,
+  EllipsisVertical,
+  ExternalLink,
+  FileText,
+  FolderOpen,
+  HeadsetIcon,
+  ListTree,
+  Pencil,
+  RefreshCcw,
+  Trash2
+} from 'lucide-react'
 
 interface Props {
   info: ProfileItem
@@ -36,6 +58,7 @@ interface Props {
 interface MenuItem {
   key: string
   label: string
+  icon: React.ReactNode
   showDivider: boolean
   variant: 'default' | 'destructive'
 }
@@ -251,53 +274,60 @@ const ProfileItem: React.FC<Props> = (props) => {
     : t('profile.longTermValid')
 
   const menuItems: MenuItem[] = useMemo(() => {
-    const list = [
+    const list: MenuItem[] = [
       {
         key: 'edit-info',
         label: t('profile.editInfo'),
+        icon: <Pencil />,
         showDivider: false,
         variant: 'default'
-      } as MenuItem,
+      },
       {
         key: 'edit-file',
         label: t('profile.editFile'),
+        icon: <FileText />,
         showDivider: false,
         variant: 'default'
-      } as MenuItem,
+      },
       {
         key: 'edit-rules',
         label: t('profile.editRule'),
+        icon: <ListTree />,
         showDivider: false,
         variant: 'default'
-      } as MenuItem,
+      },
       {
         key: 'open-file',
         label: t('profile.openFile'),
+        icon: <FolderOpen />,
         showDivider: true,
         variant: 'default'
-      } as MenuItem,
+      },
       {
         key: 'delete',
         label: t('profile.delete'),
+        icon: <Trash2 />,
         showDivider: false,
         variant: 'destructive'
-      } as MenuItem
+      }
     ]
     if (info.supportUrl) {
       list.unshift({
         key: 'support',
         label: t('profile.support'),
+        icon: <HeadsetIcon />,
         showDivider: false,
         variant: 'default'
-      } as MenuItem)
+      })
     }
     if (info.home) {
       list.unshift({
         key: 'home',
         label: t('profile.homepage'),
+        icon: <ExternalLink />,
         showDivider: false,
         variant: 'default'
-      } as MenuItem)
+      })
     }
     return list
   }, [info, t])
@@ -379,18 +409,31 @@ const ProfileItem: React.FC<Props> = (props) => {
           updateProfileItem={updateProfileItem}
         />
       )}
-      {confirmOpen && (
-        <ConfirmModal
-          onChange={setConfirmOpen}
-          title={t('profile.confirmDeleteProfile')}
-          confirmText={t('common.delete')}
-          cancelText={t('common.cancel')}
-          onConfirm={() => {
-            removeProfileItem(info.id)
-            mutateProfileConfig()
-          }}
-        />
-      )}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogMedia>
+              <CircleAlert className="size-8 text-destructive" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>{t('profile.confirmDeleteProfile')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {info.name}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                removeProfileItem(info.id)
+                mutateProfileConfig()
+              }}
+            >
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <div
         role="button"
@@ -484,7 +527,6 @@ const ProfileItem: React.FC<Props> = (props) => {
                       size="icon-sm"
                       variant="ghost"
                       disabled={updating}
-                      className="rounded-xl"
                       onClick={async () => {
                         setUpdating(true)
                         await addProfileItem(info)
@@ -505,17 +547,18 @@ const ProfileItem: React.FC<Props> = (props) => {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="icon-sm" variant="ghost" className="rounded-xl">
+                  <Button size="icon-sm" variant="ghost">
                     <EllipsisVertical className="text-base text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
+                <DropdownMenuContent align="end">
                   {menuItems.map((item) => (
                     <React.Fragment key={item.key}>
                       <DropdownMenuItem
                         variant={item.variant}
                         onClick={() => onMenuAction(item.key)}
                       >
+                        {item.icon}
                         {item.label}
                       </DropdownMenuItem>
                       {item.showDivider && <DropdownMenuSeparator />}

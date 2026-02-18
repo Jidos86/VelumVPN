@@ -6,7 +6,7 @@ import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useGroups } from '@renderer/hooks/use-groups'
 import { restartCore, triggerSysProxy } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import Power from '@renderer/assets/on_icon.svg'
@@ -19,6 +19,9 @@ function formatBytes(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(1024))
   return `${(bytes / Math.pow(1024, i)).toFixed(i > 1 ? 1 : 0)} ${units[i]}`
 }
+
+// Module-level variable: persists across component mounts/unmounts
+let connectionStartTime: number | null = null
 
 function formatTimer(seconds: number): string {
   const h = Math.floor(seconds / 3600)
@@ -50,27 +53,30 @@ const Home: React.FC = () => {
     'connecting'
   )
 
-  // Connection timer
-  const [elapsed, setElapsed] = useState(0)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [elapsed, setElapsed] = useState(() => {
+    if (connectionStartTime !== null) {
+      return Math.floor((Date.now() - connectionStartTime) / 1000)
+    }
+    return 0
+  })
 
   const isSelected =
     mainSwitchMode === 'tun' ? (tun?.enable ?? false) : (sysProxyEnable ?? false)
 
   useEffect(() => {
     if (isSelected) {
-      timerRef.current = setInterval(() => {
-        setElapsed((prev) => prev + 1)
-      }, 1000)
-    } else {
-      setElapsed(0)
-      if (timerRef.current) {
-        clearInterval(timerRef.current)
-        timerRef.current = null
+      if (connectionStartTime === null) {
+        connectionStartTime = Date.now()
       }
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
+      setElapsed(Math.floor((Date.now() - connectionStartTime) / 1000))
+      const interval = setInterval(() => {
+        setElapsed(Math.floor((Date.now() - connectionStartTime!) / 1000))
+      }, 1000)
+      return () => clearInterval(interval)
+    } else {
+      connectionStartTime = null
+      setElapsed(0)
+      return undefined
     }
   }, [isSelected])
 

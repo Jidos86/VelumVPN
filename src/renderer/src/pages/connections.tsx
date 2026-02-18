@@ -748,7 +748,7 @@ const Connections: React.FC = () => {
           )}
         </div>
       </div>
-      <div className="h-[calc(100vh-119px)] mt-px mb-2">
+      <div className="h-[calc(100vh-106px)] mt-px mb-2">
         {viewMode === 'list' ? (
           <Virtuoso data={filteredConnections} itemContent={renderConnectionItem} />
         ) : (
