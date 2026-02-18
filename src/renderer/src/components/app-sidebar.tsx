@@ -53,12 +53,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
   const [showRuntimeConfig, setShowRuntimeConfig] = useState(false)
 
   return (
-    <Sidebar
-      collapsible="icon"
-      side="left"
-      variant="floating"
-      className="pt-[57px]"
-    >
+    <Sidebar collapsible="icon" side="left" variant="floating" className="pt-[57px]">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
@@ -93,7 +88,11 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton tooltip={t('common.toggleSidebar')} onClick={toggleSidebar}>
-                {collapsed ? <CollapsedIcon className="size-4 shrink-0" /> : <ExpandedIcon className="size-4 shrink-0" />}
+                {collapsed ? (
+                  <ExpandedIcon className="size-4 shrink-0" />
+                ) : (
+                  <CollapsedIcon className="size-4 shrink-0" />
+                )}
                 <span>{t('common.hideSidebar')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
