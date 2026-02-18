@@ -148,11 +148,11 @@ const Home: React.FC = () => {
               )}
               <span className="font-medium text-base">{currentProfile.name}</span>
             </div>
-            <div className="text-sm font-medium text-center">
-              Эвкалипт 🌿— вечнозелёное дерево с ароматными листьями. Его масло применяют при
-              простуде, а листья используют в чаях и ингаляциях. 🌱 Полезен, красив и незаменим.
-              Ведь природа знает толк в пользе! 🍃
-            </div>
+            {currentProfile.announce && (
+              <div className="text-sm font-medium text-center">
+                {currentProfile.announce}
+              </div>
+            )}
             {/* Subscription info */}
           </div>
         )}

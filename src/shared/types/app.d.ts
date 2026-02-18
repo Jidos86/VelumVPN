@@ -124,6 +124,7 @@ interface ProfileItem {
   extra?: SubscriptionUserInfo
   locked?: boolean
   autoUpdate?: boolean
+  announce?: string
 }
 
 interface SubscriptionUserInfo {

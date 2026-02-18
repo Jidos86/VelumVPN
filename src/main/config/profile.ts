@@ -194,6 +194,17 @@ export async function createProfile(item: Partial<ProfileItem>): Promise<Profile
       if (userinfoKey) {
         newItem.extra = parseSubinfo(headers[userinfoKey])
       }
+      const announceKey = Object.keys(headers).find((k) =>
+        k.toLowerCase().endsWith('announce')
+      )
+      if (announceKey) {
+        const announceValue = headers[announceKey]
+        if (announceValue.startsWith('base64:')) {
+          newItem.announce = Buffer.from(announceValue.slice(7), 'base64').toString('utf-8')
+        } else {
+          newItem.announce = announceValue
+        }
+      }
       if (newItem.verify) {
         try {
           parseYaml<MihomoConfig>(data)
