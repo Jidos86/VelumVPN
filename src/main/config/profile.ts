@@ -66,14 +66,15 @@ export async function updateProfileItem(item: ProfileItem): Promise<void> {
 export async function addProfileItem(item: Partial<ProfileItem>): Promise<void> {
   const newItem = await createProfile(item)
   const config = await getProfileConfig()
-  if (await getProfileItem(newItem.id)) {
+  const isExisting = !!(await getProfileItem(newItem.id))
+  if (isExisting) {
     await updateProfileItem(newItem)
   } else {
     config.items.push(newItem)
+    await setProfileConfig(config)
   }
-  await setProfileConfig(config)
 
-  if (!config.current) {
+  if (!isExisting || !config.current) {
     await changeCurrentProfile(newItem.id)
   }
   await addProfileUpdater(newItem)
@@ -201,13 +202,11 @@ export async function createProfile(item: Partial<ProfileItem>): Promise<Profile
         }
       }
       await setProfileStr(id, data)
-      await changeCurrentProfile(id)
       break
     }
     case 'local': {
       const data = item.file || ''
       await setProfileStr(id, data)
-      await changeCurrentProfile(id)
       break
     }
   }
