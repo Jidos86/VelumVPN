@@ -7,7 +7,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@renderer/components/ui/dropdown-menu'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { cn } from '@renderer/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { calcPercent, calcTraffic } from '@renderer/utils/calc'
@@ -521,28 +520,23 @@ const ProfileItem: React.FC<Props> = (props) => {
               onClick={(e) => e.stopPropagation()}
             >
               {info.type === 'remote' && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      disabled={updating}
-                      onClick={async () => {
-                        setUpdating(true)
-                        await addProfileItem(info)
-                        setUpdating(false)
-                      }}
-                    >
-                      <RefreshCcw
-                        className={cn(
-                          'text-base text-muted-foreground',
-                          updating && 'animate-spin'
-                        )}
-                      />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left">{updatedFromNow}</TooltipContent>
-                </Tooltip>
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    disabled={updating}
+                    onClick={async () => {
+                      setUpdating(true)
+                      await addProfileItem(info)
+                      setUpdating(false)
+                    }}
+                  >
+                    <RefreshCcw
+                      className={cn(
+                        'text-base text-muted-foreground',
+                        updating && 'animate-spin'
+                      )}
+                    />
+                  </Button>
               )}
 
               <DropdownMenu>
