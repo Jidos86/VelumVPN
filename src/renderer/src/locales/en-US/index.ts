@@ -418,9 +418,6 @@ export default {
       autoStart: 'Auto Start',
       silentStart: 'Silent Start',
       autoCheckUpdate: 'Auto Check Updates',
-      updateChannel: 'Update Channel',
-      stable: 'Stable',
-      beta: 'Beta',
       disableGPU: 'Disable GPU Acceleration',
       disableGPUHelp:
         'When enabled, the application will disable GPU acceleration, which may improve stability but reduce performance',

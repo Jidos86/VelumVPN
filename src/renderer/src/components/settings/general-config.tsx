@@ -4,7 +4,6 @@ import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import { Button } from '@renderer/components/ui/button'
 import { Switch } from '@renderer/components/ui/switch'
-import { Tabs, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import useSWR from 'swr'
 import { checkAutoRun, disableAutoRun, enableAutoRun, relaunchApp } from '@renderer/utils/ipc'
@@ -20,7 +19,6 @@ const GeneralConfig: React.FC = () => {
   const {
     silentStart = false,
     autoCheckUpdate,
-    updateChannel = 'stable',
 
     disableGPU = false
   } = appConfig || {}
@@ -86,19 +84,6 @@ const GeneralConfig: React.FC = () => {
               patchAppConfig({ autoCheckUpdate: value })
             }}
           />
-        </SettingItem>
-        <SettingItem title={t('settings.general.updateChannel')} divider>
-          <Tabs
-            value={updateChannel}
-            onValueChange={async (value) => {
-              patchAppConfig({ updateChannel: value as 'stable' | 'beta' })
-            }}
-          >
-            <TabsList>
-              <TabsTrigger value="stable">{t('settings.general.stable')}</TabsTrigger>
-              <TabsTrigger value="beta">{t('settings.general.beta')}</TabsTrigger>
-            </TabsList>
-          </Tabs>
         </SettingItem>
         <SettingItem
           title={t('settings.general.disableGPU')}

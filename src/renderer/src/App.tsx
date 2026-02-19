@@ -25,8 +25,7 @@ const App: React.FC = () => {
     appTheme = 'system',
     customTheme,
     useWindowFrame = false,
-    autoCheckUpdate,
-    updateChannel = 'stable'
+    autoCheckUpdate
   } = appConfig || {}
   const { setTheme, systemTheme, resolvedTheme } = useTheme()
   const mapBg = resolvedTheme === 'dark' ? mapDark : mapLight
@@ -47,7 +46,7 @@ const App: React.FC = () => {
     }
   }
   const { data: latest } = useSWR(
-    autoCheckUpdate ? ['checkUpdate', updateChannel] : undefined,
+    autoCheckUpdate ? ['checkUpdate'] : undefined,
     autoCheckUpdate ? checkUpdate : (): undefined => {},
     {
       refreshInterval: 1000 * 60 * 10
