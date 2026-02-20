@@ -260,6 +260,7 @@ export default {
     },
     tun: {
       title: 'Virtual Network Interface Settings',
+      takeOverTun: 'Take over TUN settings',
       resetFirewall: 'Reset Firewall',
       resetFirewallButton: 'Reset Firewall',
       firewallResetSuccess: 'Firewall reset successfully',

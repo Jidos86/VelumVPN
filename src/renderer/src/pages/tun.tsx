@@ -19,7 +19,7 @@ const Tun: React.FC = () => {
   const { t } = useTranslation()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { appConfig, patchAppConfig } = useAppConfig()
-  const { autoSetDNSMode = 'exec' } = appConfig || {}
+  const { autoSetDNSMode = 'exec', controlTun = false } = appConfig || {}
   const { tun } = controledMihomoConfig || {}
   const [loading, setLoading] = useState(false)
   const {
@@ -90,6 +90,20 @@ const Tun: React.FC = () => {
         }
       >
         <SettingCard className="tun-settings">
+          <SettingItem title={t('pages.tun.takeOverTun')} divider>
+            <Switch
+              checked={controlTun}
+              onCheckedChange={async (value) => {
+                try {
+                  await patchAppConfig({ controlTun: value })
+                  await patchControledMihomoConfig({})
+                  await restartCore()
+                } catch (e) {
+                  toast.error(`${e}`)
+                }
+              }}
+            />
+          </SettingItem>
           {platform === 'win32' && (
             <SettingItem title={t('pages.tun.resetFirewall')} divider>
               <Button

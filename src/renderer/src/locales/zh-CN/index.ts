@@ -298,6 +298,7 @@ export default {
     },
     tun: {
       title: '虚拟网卡设置',
+      takeOverTun: '接管 TUN 设置',
       resetFirewall: '重设防火墙',
       resetFirewallButton: '重设防火墙',
       firewallResetSuccess: '防火墙重设成功',

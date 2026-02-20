@@ -20,8 +20,8 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<M
 
 export async function patchControledMihomoConfig(patch: Partial<MihomoConfig>): Promise<void> {
   await getControledMihomoConfig()
-  const { controlDns = false, controlSniff = false } = await getAppConfig()
-  if (controlDns) {
+  const { controlDns = false, controlSniff = false, controlTun = false } = await getAppConfig()
+  if (!controlDns) {
     delete controledMihomoConfig.dns
     delete controledMihomoConfig.hosts
   } else {
@@ -30,12 +30,19 @@ export async function patchControledMihomoConfig(patch: Partial<MihomoConfig>): 
       controledMihomoConfig.dns = defaultControledMihomoConfig.dns
     }
   }
-  if (controlSniff) {
+  if (!controlSniff) {
     delete controledMihomoConfig.sniffer
   } else {
     // 从不接管状态恢复
     if (!controledMihomoConfig.sniffer) {
       controledMihomoConfig.sniffer = defaultControledMihomoConfig.sniffer
+    }
+  }
+  if (!controlTun) {
+    delete controledMihomoConfig.tun
+  } else {
+    if (!controledMihomoConfig.tun) {
+      controledMihomoConfig.tun = defaultControledMihomoConfig.tun as MihomoTunConfig
     }
   }
   if (patch.dns?.['nameserver-policy']) {

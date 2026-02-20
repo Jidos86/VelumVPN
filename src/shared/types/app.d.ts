@@ -80,6 +80,7 @@ interface AppConfig {
   encryptedPassword?: number[]
   controlDns?: boolean
   controlSniff?: boolean
+  controlTun?: boolean
   useDockIcon?: boolean
   useCustomTrayMenu?: boolean
   hosts: IHost[]

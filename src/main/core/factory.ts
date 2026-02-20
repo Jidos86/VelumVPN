@@ -54,7 +54,12 @@ function processRulesWithOffset(ruleStrings: string[], currentRules: string[], i
 
 export async function generateProfile(): Promise<void> {
   const { current } = await getProfileConfig()
-  const { diffWorkDir = false, controlDns = true, controlSniff = true } = await getAppConfig()
+  const {
+    diffWorkDir = false,
+    controlDns = true,
+    controlSniff = true,
+    controlTun = false
+  } = await getAppConfig()
   const currentProfile = await getProfile(current)
   rawProfileStr = await getProfileStr(current)
   currentProfileStr = stringifyYaml(currentProfile)
@@ -67,6 +72,9 @@ export async function generateProfile(): Promise<void> {
   }
   if (!controlSniff) {
     delete configToMerge.sniffer
+  }
+  if (!controlTun) {
+    delete configToMerge.tun
   }
 
   const ruleFilePath = rulePath(current || 'default')
@@ -120,7 +128,7 @@ export async function generateProfile(): Promise<void> {
 
   const profile = deepMerge(JSON.parse(JSON.stringify(currentProfile)), configToMerge)
 
-  await cleanProfile(profile, controlDns, controlSniff)
+  await cleanProfile(profile, controlDns, controlSniff, controlTun)
 
   runtimeConfig = profile
   runtimeConfigStr = stringifyYaml(profile)
@@ -136,7 +144,8 @@ export async function generateProfile(): Promise<void> {
 async function cleanProfile(
   profile: MihomoConfig,
   controlDns: boolean,
-  controlSniff: boolean
+  controlSniff: boolean,
+  controlTun: boolean
 ): Promise<void> {
   if (!['info', 'debug'].includes(profile['log-level'])) {
     profile['log-level'] = 'info'
@@ -147,7 +156,7 @@ async function cleanProfile(
   cleanNumberConfigs(profile)
   cleanStringConfigs(profile)
   cleanAuthenticationConfig(profile)
-  cleanTunConfig(profile)
+  cleanTunConfig(profile, controlTun)
   cleanDnsConfig(profile, controlDns)
   cleanSnifferConfig(profile, controlSniff)
   cleanProxyConfigs(profile)
@@ -254,7 +263,8 @@ function cleanAuthenticationConfig(profile: MihomoConfig): void {
   }
 }
 
-function cleanTunConfig(profile: MihomoConfig): void {
+function cleanTunConfig(profile: MihomoConfig, controlTun: boolean): void {
+  if (!controlTun) return
   if (!profile.tun?.enable) {
     delete (profile as Partial<MihomoConfig>).tun
     return

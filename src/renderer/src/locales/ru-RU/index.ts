@@ -258,6 +258,7 @@ export default {
     },
     tun: {
       title: 'Настройки виртуального сетевого интерфейса',
+      takeOverTun: 'Перехватить настройки TUN',
       resetFirewall: 'Сбросить брандмауэр',
       resetFirewallButton: 'Сбросить брандмауэр',
       firewallResetSuccess: 'Брандмауэр успешно сброшен',
