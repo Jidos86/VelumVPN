@@ -60,7 +60,7 @@ const FloatingApp: React.FC = () => {
 
   return (
     <div className="app-drag h-screen w-screen overflow-hidden">
-      <div className="floating-bg border border-divider flex rounded-full bg-content1 h-[calc(100%-2px)] w-[calc(100%-2px)]">
+      <div className="floating-bg border border-stroke flex rounded-full bg-background h-[calc(100%-2px)] w-[calc(100%-2px)]">
         <div className="flex justify-center items-center h-full aspect-square">
           <div
             onContextMenu={(e) => {
@@ -78,7 +78,7 @@ const FloatingApp: React.FC = () => {
                   }
                 : {}
             }
-            className={`app-nodrag cursor-pointer floating-thumb ${tunEnabled ? 'bg-secondary' : sysProxyEnabled ? 'bg-primary' : 'bg-default'} hover:opacity-hover rounded-full h-[calc(100%-4px)] aspect-square`}
+            className={`app-nodrag cursor-pointer floating-thumb ${tunEnabled ? 'bg-gradient-end-power-on' : sysProxyEnabled ? 'bg-primary' : 'bg-muted'} hover:opacity-80 rounded-full h-[calc(100%-4px)] aspect-square`}
           >
             <MihomoIcon className="floating-icon text-primary-foreground h-full leading-full text-[22px] mx-auto" />
           </div>

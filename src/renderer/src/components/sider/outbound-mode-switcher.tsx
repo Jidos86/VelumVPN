@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { useSidebar } from '@renderer/components/ui/sidebar'
 import { useAppConfig } from '@renderer/hooks/use-app-config'

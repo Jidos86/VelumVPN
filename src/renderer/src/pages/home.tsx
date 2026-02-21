@@ -236,7 +236,7 @@ const Home: React.FC = () => {
             </div>
           )}
           {subscription && (
-            <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center rounded-2xl border border-stroke bg-card/50 backdrop-blur-xl p-1 bg-background/50">
+            <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center rounded-2xl border border-stroke bg-card/50 backdrop-blur-xl p-1">
               <div className="flex flex-col items-center py-2 px-1">
                 <span className="text-sm text-foreground">{t('pages.home.trafficRemaining')}</span>
                 <span className="font-bold text-base mt-0.5">
