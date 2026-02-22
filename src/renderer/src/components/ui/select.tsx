@@ -4,10 +4,100 @@ import { Select as SelectPrimitive } from "radix-ui"
 
 import { cn } from "@renderer/lib/utils"
 
+const SELECT_CLOSE_ANIMATION_MS = 150
+
+type SelectAnimationContextValue = {
+  isClosing: boolean
+}
+
+const SelectAnimationContext = React.createContext<SelectAnimationContextValue>({
+  isClosing: false,
+})
+
 function Select({
+  open: openProp,
+  defaultOpen,
+  onOpenChange,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  return <SelectPrimitive.Root data-slot="select" {...props} />
+  const [renderOpen, setRenderOpen] = React.useState(
+    () => openProp ?? defaultOpen ?? false
+  )
+  const [isClosing, setIsClosing] = React.useState(false)
+  const closeTimeoutRef = React.useRef<number | null>(null)
+  const isControlled = openProp !== undefined
+
+  const clearCloseTimeout = React.useCallback(() => {
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current)
+      closeTimeoutRef.current = null
+    }
+  }, [])
+
+  const scheduleClose = React.useCallback(() => {
+    clearCloseTimeout()
+    setIsClosing(true)
+
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setRenderOpen(false)
+      setIsClosing(false)
+      closeTimeoutRef.current = null
+    }, SELECT_CLOSE_ANIMATION_MS)
+  }, [clearCloseTimeout])
+
+  React.useEffect(() => {
+    return () => {
+      clearCloseTimeout()
+    }
+  }, [clearCloseTimeout])
+
+  React.useEffect(() => {
+    if (!isControlled) {
+      return
+    }
+
+    if (openProp) {
+      clearCloseTimeout()
+      setIsClosing(false)
+      setRenderOpen(true)
+      return
+    }
+
+    if (renderOpen && !isClosing) {
+      scheduleClose()
+    }
+  }, [clearCloseTimeout, isClosing, isControlled, openProp, renderOpen, scheduleClose])
+
+  const handleOpenChange = React.useCallback(
+    (nextOpen: boolean) => {
+      if (nextOpen) {
+        clearCloseTimeout()
+        setIsClosing(false)
+        setRenderOpen(true)
+      } else if (renderOpen && !isClosing) {
+        scheduleClose()
+      }
+
+      onOpenChange?.(nextOpen)
+    },
+    [clearCloseTimeout, isClosing, onOpenChange, renderOpen, scheduleClose]
+  )
+
+  const contextValue = React.useMemo<SelectAnimationContextValue>(
+    () => ({ isClosing }),
+    [isClosing]
+  )
+
+  return (
+    <SelectAnimationContext.Provider value={contextValue}>
+      <SelectPrimitive.Root
+        data-slot="select"
+        open={renderOpen}
+        onOpenChange={handleOpenChange}
+        {...props}
+      />
+    </SelectAnimationContext.Provider>
+  )
 }
 
 function SelectGroup({
@@ -55,12 +145,18 @@ function SelectContent({
   align = "center",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
+  const { isClosing } = React.useContext(SelectAnimationContext)
+
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
         data-slot="select-content"
+        data-closing={isClosing ? "true" : undefined}
         className={cn(
-          "bg-card/50 backdrop-blur-xl text-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-2xl border border-stroke p-1.5 shadow-lg",
+          "bg-card/50 backdrop-blur-xl text-foreground data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-2xl border border-stroke p-1.5 shadow-lg",
+          isClosing
+            ? "animate-out fade-out-0 zoom-out-95 duration-150 pointer-events-none"
+            : "animate-in duration-150",
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
           className

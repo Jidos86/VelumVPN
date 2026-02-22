@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -26,15 +27,19 @@ const EditFileModal: React.FC<Props> = (props) => {
   const [isDiff, setIsDiff] = useState(false)
   const [sideBySide, setSideBySide] = useState(false)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const dialogCloseRef = useRef<HTMLButtonElement>(null)
+  const forceCloseRef = useRef(false)
 
   const isModified = currData !== originalData
 
-  const handleClose = (): void => {
-    if (isModified) {
-      setIsConfirmOpen(true)
-    } else {
-      onClose()
-    }
+  const closeWithAnimation = (): void => {
+    dialogCloseRef.current?.click()
+  }
+
+  const discardAndClose = (): void => {
+    forceCloseRef.current = true
+    setIsConfirmOpen(false)
+    closeWithAnimation()
   }
 
   const getContent = async (): Promise<void> => {
@@ -51,7 +56,20 @@ const EditFileModal: React.FC<Props> = (props) => {
     <Dialog
       open={true}
       onOpenChange={(open) => {
-        if (!open) handleClose()
+        if (!open) {
+          if (forceCloseRef.current) {
+            forceCloseRef.current = false
+            onClose()
+            return
+          }
+
+          if (isModified) {
+            setIsConfirmOpen(true)
+            return
+          }
+
+          onClose()
+        }
       }}
     >
       {isConfirmOpen && (
@@ -61,9 +79,12 @@ const EditFileModal: React.FC<Props> = (props) => {
           confirmText={t('profile.discardChanges')}
           cancelText={t('profile.keepEditing')}
           onChange={setIsConfirmOpen}
-          onConfirm={onClose}
+          onConfirm={discardAndClose}
         />
       )}
+      <DialogClose asChild>
+        <button ref={dialogCloseRef} type="button" className="hidden" tabIndex={-1} />
+      </DialogClose>
       <DialogContent
         className="h-[calc(100%-111px)] w-[calc(100%-100px)] max-w-none sm:max-w-none flex flex-col"
         showCloseButton={false}
@@ -92,14 +113,27 @@ const EditFileModal: React.FC<Props> = (props) => {
             </label>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="ghost" onClick={handleClose}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                if (isModified) {
+                  setIsConfirmOpen(true)
+                  return
+                }
+                forceCloseRef.current = true
+                closeWithAnimation()
+              }}
+            >
               {t('common.cancel')}
             </Button>
             <Button
               size="sm"
               onClick={async () => {
                 await setProfileStr(id, currData)
-                onClose()
+                setOriginalData(currData)
+                forceCloseRef.current = true
+                closeWithAnimation()
               }}
             >
               {t('common.save')}

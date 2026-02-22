@@ -178,7 +178,7 @@ const Home: React.FC = () => {
     <BasePage>
       {!hasProfiles ? (
         <div className="h-full w-full flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4 max-w-[300px] rounded-2xl border border-stroke bg-card/50 backdrop-blur-xl p-8">
+          <div className="flex flex-col items-center gap-4 max-w-75 rounded-2xl border border-stroke bg-card/50 backdrop-blur-xl p-8">
             <WifiOff className="size-16 text-muted-foreground" />
             <h2 className="text-xl font-bold text-foreground">{t('pages.profiles.emptyTitle')}</h2>
             <p className="text-sm font-medium text-muted-foreground text-center">
@@ -330,7 +330,7 @@ const Home: React.FC = () => {
 
           {/* Group & Proxy selectors */}
           {firstGroup && (
-            <div className="flex flex-col grow items-center gap-3 pb-2 mx-auto w-full max-w-3xs max-h-16">
+            <div className="flag-emoji flex flex-col grow items-center gap-3 pb-2 mx-auto w-full max-w-3xs max-h-16">
               <div className="w-full cursor-pointer" onClick={() => navigate('/proxies')}>
                 <div className="flex items-center justify-between h-9 rounded-2xl border border-stroke pl-3 pr-1 py-3 backdrop-blur-xl bg-card/50">
                   <div className="text-sm truncate max-w-52">{firstGroup.now || '—'}</div>

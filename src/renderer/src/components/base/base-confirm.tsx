@@ -2,6 +2,7 @@ import React from 'react'
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@renderer/components/ui/button'
+import { cn } from '@renderer/lib/utils'
 
 export interface ConfirmButton {
   key: string
@@ -38,6 +39,8 @@ const ConfirmModal: React.FC<Props> = (props) => {
   const modalTitle = title || t('modal.pleaseConfirm')
   const modalConfirmText = confirmText || t('common.confirm')
   const modalCancelText = cancelText || t('common.cancel')
+  const actionButtonClassName =
+    'w-full max-w-full whitespace-normal break-words text-center h-auto min-h-8 py-2 sm:w-auto'
 
   const renderButtons = () => {
     if (buttons && buttons.length > 0) {
@@ -47,6 +50,7 @@ const ConfirmModal: React.FC<Props> = (props) => {
           size="sm"
           color={button.color || 'primary'}
           variant={button.variant || 'default'}
+          className={actionButtonClassName}
           onClick={async () => {
             await button.onPress()
             onChange(false)
@@ -60,13 +64,14 @@ const ConfirmModal: React.FC<Props> = (props) => {
     return (
       <>
         <DialogClose asChild>
-          <Button size="sm" variant="ghost">
+          <Button size="sm" variant="ghost" className={actionButtonClassName}>
             {modalCancelText}
           </Button>
         </DialogClose>
         <Button
           size="sm"
           variant="destructive"
+          className={actionButtonClassName}
           onClick={async () => {
             if (onConfirm) {
               await onConfirm()
@@ -82,12 +87,12 @@ const ConfirmModal: React.FC<Props> = (props) => {
 
   return (
     <Dialog open={true} onOpenChange={onChange}>
-      <DialogContent className={['w-[400px]', className].filter(Boolean).join(' ')}>
+      <DialogContent className={cn('w-[min(420px,calc(100%-2rem))]', className)}>
         <DialogHeader>
           <DialogTitle>{modalTitle}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <DialogFooter>{renderButtons()}</DialogFooter>
+        <DialogFooter className="sm:flex-wrap sm:justify-end">{renderButtons()}</DialogFooter>
       </DialogContent>
     </Dialog>
   )
