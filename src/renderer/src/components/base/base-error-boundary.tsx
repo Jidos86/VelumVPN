@@ -11,22 +11,6 @@ const ErrorFallback = ({ error }: FallbackProps): JSX.Element => {
         {t('errorBoundary.title')}
       </h2>
 
-      {/* <Button
-        size="sm"
-        variant="secondary"
-        onClick={() => open('https://github.com/xishang0128/sparkle/issues/new/choose')}
-      >
-        GitHub
-      </Button> */}
-      <Button
-        size="sm"
-        variant="secondary"
-        className="ml-2"
-        onClick={() => open('https://t.me/+y7rcYjEKIiI1NzZl')}
-      >
-        Telegram
-      </Button>
-
       <Button
         size="sm"
         variant="secondary"

@@ -74,10 +74,10 @@ const UpdaterModal: React.FC<Props> = (props) => {
               className="app-nodrag"
               onClick={() => {
                 if (version.includes('beta')) {
-                  open('https://github.com/xishang0128/sparkle/releases/tag/pre-release')
+                  open('https://github.com/coolcoala/koala-clash/releases/tag/pre-release')
                   return
                 }
-                open(`https://github.com/xishang0128/sparkle/releases/tag/${version}`)
+                open(`https://github.com/coolcoala/koala-clash/releases/tag/${version}`)
               }}
             >
               {t('updater.goToDownload')}

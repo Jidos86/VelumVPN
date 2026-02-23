@@ -46,7 +46,7 @@ const zhCN: LocaleTranslations = {
   },
   menu: {
     about: '关于',
-    aboutApp: '关于 Sparkle',
+    aboutApp: '关于 Koala Clash',
     hide: '隐藏',
     hideOthers: '隐藏其他',
     showAll: '显示全部',
@@ -183,7 +183,7 @@ const enUS: LocaleTranslations = {
   },
   menu: {
     about: 'About',
-    aboutApp: 'About Sparkle',
+    aboutApp: 'About Koala Clash',
     hide: 'Hide',
     hideOthers: 'Hide Others',
     showAll: 'Show All',
@@ -320,7 +320,7 @@ const ruRU: LocaleTranslations = {
   },
   menu: {
     about: 'О программе',
-    aboutApp: 'О Sparkle',
+    aboutApp: 'О Koala Clash',
     hide: 'Скрыть',
     hideOthers: 'Скрыть остальные',
     showAll: 'Показать все',
@@ -396,8 +396,7 @@ const ruRU: LocaleTranslations = {
     unableToVerifyCert: 'Невозможно проверить сертификат сервера',
     certVerificationFailed: 'Ошибка проверки сертификата',
     requestFailed: 'Ошибка запроса',
-    subscriptionFormatError:
-      'Неверный формат подписки: не удалось разобрать конфигурационный файл',
+    subscriptionFormatError: 'Неверный формат подписки: не удалось разобрать конфигурационный файл',
     invalidEncryptionFormat: 'Недопустимый формат шифрования',
     systemCorePathInvalid: 'Путь к системному ядру недействителен или не существует',
     systemCorePathNotSet: 'Путь к системному ядру не задан',
@@ -415,7 +414,7 @@ const ruRU: LocaleTranslations = {
     downloadCancelled: 'Загрузка отменена',
     downloadFailed: 'Ошибка загрузки',
     userCancelledDownload: 'Пользователь отменил загрузку',
-    scriptReturnMustBeObject: 'Возвращаемое значение скрипта должно быть объектом',
+    scriptReturnMustBeObject: 'Возвращаемое значение скрипта должно быть объектом'
   },
   ui: {
     defaultTheme: 'По умолчанию',

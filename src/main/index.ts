@@ -88,10 +88,10 @@ if (
       } else {
         writeFileSync(path.join(taskDir(), 'param.txt'), 'empty')
       }
-      if (!existsSync(path.join(taskDir(), 'sparkle-run.exe'))) {
-        throw new Error('sparkle-run.exe not found')
+      if (!existsSync(path.join(taskDir(), 'koala-clash-run.exe'))) {
+        throw new Error('koala-clash-run.exe not found')
       } else {
-        execSync('%SystemRoot%\\System32\\schtasks.exe /run /tn sparkle-run')
+        execSync('%SystemRoot%\\System32\\schtasks.exe /run /tn koala-clash-run')
       }
       app.exit()
     } catch {
@@ -144,7 +144,7 @@ if (syncConfig.disableGPU) {
 function getDeepLinkFromArgs(argv: string[]): string | undefined {
   return argv.find(
     (arg) =>
-      arg.startsWith('clash://') || arg.startsWith('mihomo://') || arg.startsWith('sparkle://')
+      arg.startsWith('clash://') || arg.startsWith('mihomo://') || arg.startsWith('koala-clash://')
   )
 }
 
@@ -277,7 +277,7 @@ powerMonitor.on('shutdown', async () => {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('sparkle.app')
+  electronApp.setAppUserModelId('koala-clash.app')
   try {
     await initPromise
   } catch (e) {
@@ -350,7 +350,11 @@ app.whenReady().then(async () => {
 })
 
 async function handleDeepLink(url: string): Promise<void> {
-  if (!url.startsWith('clash://') && !url.startsWith('mihomo://') && !url.startsWith('sparkle://'))
+  if (
+    !url.startsWith('clash://') &&
+    !url.startsWith('mihomo://') &&
+    !url.startsWith('koala-clash://')
+  )
     return
 
   const urlObj = new URL(url)

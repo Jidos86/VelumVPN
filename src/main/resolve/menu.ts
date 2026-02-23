@@ -172,13 +172,13 @@ export async function createApplicationMenu(): Promise<void> {
         {
           label: t('menu.learnMore'),
           click: () => {
-            shell.openExternal('https://github.com/xishang0128/sparkle')
+            shell.openExternal('https://github.com/coolcoala/koala-clash')
           }
         },
         {
           label: t('menu.reportIssue'),
           click: () => {
-            shell.openExternal('https://github.com/xishang0128/sparkle/issues')
+            shell.openExternal('https://github.com/coolcoala/koala-clash/issues')
           }
         },
         { type: 'separator' },
@@ -188,7 +188,7 @@ export async function createApplicationMenu(): Promise<void> {
             dialog.showMessageBox(mainWindow!, {
               type: 'info',
               title: t('menu.aboutApp'),
-              message: 'Sparkle',
+              message: 'Koala Clash',
               detail: `${t('menu.version')}：${app.getVersion()}\n${t('menu.electronProxyTool')}`,
               buttons: [t('menu.ok')]
             })

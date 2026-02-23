@@ -1,10 +1,10 @@
 {
-  "name": "sparkle",
+  "name": "koala-clash",
   "version": "1.6.16",
-  "description": "Sparkle",
+  "description": "Koala Clash",
   "main": "./out/main/index.js",
-  "author": "xishang0128",
-  "homepage": "https://github.com/xishang0128/sparkle",
+  "author": "xishang0128, co-author: coolcoala",
+  "homepage": "https://github.com/coolcoala/koala-clash",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",

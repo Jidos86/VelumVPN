@@ -53,15 +53,6 @@ jobs:
           - os: ubuntu-latest
             arch: arm64
             format: pacman
-          - os: ubuntu-latest
-            arch: loong64
-            format: deb
-          - os: ubuntu-latest
-            arch: loong64
-            format: rpm
-          - os: ubuntu-latest
-            arch: loong64
-            format: pacman
 
           - os: macos-latest
             arch: x64
@@ -102,25 +93,12 @@ jobs:
       - name: Keep product name lowercase on Linux
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sed -i "s/productName: Sparkle/productName: sparkle/" electron-builder.yml
+          sed -i "s/productName: Koala Clash/productName: koala-clash/" electron-builder.yml
 
       - name: Install Build Tools
         if: matrix.os == 'ubuntu-latest' && matrix.format == 'pacman'
         run: |
           sudo apt-get update && sudo apt-get install -y libarchive-tools fakeroot
-
-      - name: Adaptation to the loongarch64 architecture
-        env:
-          npm_config_arch: ${{ matrix.arch }}
-          npm_config_target_arch: ${{ matrix.arch }}
-        if: matrix.os == 'ubuntu-latest' && matrix.arch == 'loong64'
-        shell: bash
-        run: |
-          export ELECTRON_MIRROR="https://github.com/darkyzhou/electron-loong64/releases/download/"
-          export electron_use_remote_checksums=1
-          SKIP_PREPARE=1 pnpm install electron@37.2.5 -D
-          pnpm remove electron-builder
-          SKIP_PREPARE=1 pnpm install @loongdotjs/electron-builder@26.0.12-1 -D
 
       - name: Install Dependencies and Prepare
         env:
@@ -140,13 +118,7 @@ jobs:
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             pnpm build:win ${{ matrix.format }} --${{ matrix.arch }}
           elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            if [[ "${{ matrix.arch }}" == "loong64" ]]; then
-              export ELECTRON_MIRROR="https://github.com/darkyzhou/electron-loong64/releases/download/"
-              export electron_use_remote_checksums=1
-              pnpm build:linux ${{ matrix.format }} --${{ matrix.arch }}
-            else
-              pnpm build:linux ${{ matrix.format }} --${{ matrix.arch }}
-            fi
+            pnpm build:linux ${{ matrix.format }} --${{ matrix.arch }}
           else
             pnpm build:mac --${{ matrix.arch }}
           fi
@@ -159,18 +131,6 @@ jobs:
           Get-ChildItem dist/*portable.7z | ForEach-Object {
             7z a $_.FullName PORTABLE
           }
-
-      - name: Magic build for AOSC OS(loongarch64)
-        if: matrix.os == 'ubuntu-latest' && matrix.format == 'deb' && matrix.arch == 'loong64'
-        shell: bash
-        run: |
-          set -e
-          VERSION=$(jq -r '.version' package.json)
-          mkdir workdir
-          fakeroot dpkg-deb -R dist/sparkle-linux-${VERSION}-loong64.deb workdir
-          fakeroot sed -i 's/^Architecture: .*/Architecture: loongarch64/' workdir/DEBIAN/control
-          fakeroot dpkg-deb -b workdir dist/sparkle-linux-${VERSION}-loongarch64.deb
-          rm -rf workdir
 
       - name: Create Changelog
         env:
@@ -187,9 +147,9 @@ jobs:
         with:
           name: ${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
           path: |
-            dist/sparkle*
-            !dist/sparkle.app.plist
-            !dist/sparkle*blockmap*
+            dist/koala-clash*
+            !dist/koala-clash.app.plist
+            !dist/koala-clash*blockmap*
             latest.yml
             changelog.md
 
@@ -271,7 +231,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$PAYLOAD" \
             --max-time 30)
-          echo '# 更新日志' > changelog.md
+          echo '# Changelog' > changelog.md
           echo $RESPONSE | jq .choices[0].message.content -r | sed 's/\\n/\n/g' | sed 's/^/ - /g' >> changelog.md
 
       - name: Update Version

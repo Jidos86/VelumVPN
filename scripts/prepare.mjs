@@ -32,8 +32,7 @@ const MIHOMO_ALPHA_MAP = {
   'darwin-x64': 'mihomo-darwin-amd64-v3',
   'darwin-arm64': 'mihomo-darwin-arm64',
   'linux-x64': 'mihomo-linux-amd64-v3',
-  'linux-arm64': 'mihomo-linux-arm64',
-  'linux-loong64': 'mihomo-linux-loong64-abi2'
+  'linux-arm64': 'mihomo-linux-arm64'
 }
 
 // Fetch the latest alpha release version from the version.txt file
@@ -64,8 +63,7 @@ const MIHOMO_MAP = {
   'darwin-x64': 'mihomo-darwin-amd64-v3',
   'darwin-arm64': 'mihomo-darwin-arm64',
   'linux-x64': 'mihomo-linux-amd64-v3',
-  'linux-arm64': 'mihomo-linux-arm64',
-  'linux-loong64': 'mihomo-linux-loong64-abi2'
+  'linux-arm64': 'mihomo-linux-arm64'
 }
 
 // Fetch the latest release version from the version.txt file
@@ -286,8 +284,7 @@ const resolveSparkleService = () => {
     'darwin-x64': 'sparkle-service-darwin-amd64-v3',
     'darwin-arm64': 'sparkle-service-darwin-arm64',
     'linux-x64': 'sparkle-service-linux-amd64-v3',
-    'linux-arm64': 'sparkle-service-linux-arm64',
-    'linux-loong64': 'sparkle-service-linux-loong64-abi2'
+    'linux-arm64': 'sparkle-service-linux-arm64'
   }
   if (!map[`${platform}-${arch}`]) {
     throw new Error(`unsupported platform "${platform}-${arch}"`)
@@ -303,8 +300,8 @@ const resolveSparkleService = () => {
 }
 const resolveRunner = () =>
   resolveResource({
-    file: 'sparkle-run.exe',
-    downloadURL: `https://github.com/xishang0128/sparkle-run/releases/download/${arch}/sparkle-run.exe`
+    file: 'koala-clash-run.exe',
+    downloadURL: `https://github.com/coolcoala/koala-clash-run/releases/download/${arch}/koala-clash-run.exe`
   })
 
 const resolve7zip = () =>

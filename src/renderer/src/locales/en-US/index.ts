@@ -190,7 +190,8 @@ export default {
       addProfile: 'Add Profile',
       dropFileHint: 'Drop config file here',
       hwidLimitTitle: 'Device limit exceeded',
-      hwidLimitDescription: 'The maximum device limit for this subscription has been reached. The subscription was not added or updated.',
+      hwidLimitDescription:
+        'The maximum device limit for this subscription has been reached. The subscription was not added or updated.',
       support: 'Support'
     },
     proxies: {
@@ -390,7 +391,7 @@ export default {
     pleaseConfirm: 'Please Confirm',
     confirmDelete: 'Confirm Delete',
     confirmImportProfile: 'Confirm import subscription config?',
-    confirmQuit: 'Are you sure you want to quit Sparkle?',
+    confirmQuit: 'Are you sure you want to quit Koala Clash?',
     quitWarning: 'Proxy functionality will stop working after quitting',
     quickQuitHint: 'Double press or long press',
     canQuitDirectly: 'to quit directly',
@@ -423,7 +424,7 @@ export default {
       autoCheckUpdate: 'Auto Check Updates',
       disableGPU: 'Disable GPU Acceleration',
       disableGPUHelp:
-        'When enabled, the application will disable GPU acceleration, which may improve stability but reduce performance',
+        'When enabled, the application will disable GPU acceleration, which may improve stability but reduce performance'
     },
     appearance: {
       title: 'Appearance Settings',
@@ -622,7 +623,7 @@ export default {
       registerTaskSchedule: 'Register Task Schedule'
     },
     serviceModal: {
-      title: 'Sparkle Service Management',
+      title: 'Koala Clash Service Management',
       serviceStatus: 'Service Status',
       connectionStatus: 'Connection Status',
       checking: 'Checking',
@@ -694,7 +695,7 @@ export default {
       noMatchingRules: 'No matching rules',
       saveError: 'Error saving rules',
       noResolve: 'Skip DNS resolution (no-resolve)',
-      src: 'Match source IP (src)',
+      src: 'Match source IP (src)'
     },
     openFile: 'Open File',
     delete: 'Delete',
@@ -737,7 +738,7 @@ export default {
     useProxyUpdate: 'Update via proxy',
     autoUpdate: 'Auto update',
     updateIntervalMinutes: 'Update Interval (minutes)',
-    updateIntervalLockedHelp: 'The update interval is managed remotely',
+    updateIntervalLockedHelp: 'The update interval is managed remotely'
   },
 
   connection: {
@@ -781,7 +782,6 @@ export default {
     refreshIntervalPlaceholder: 'Default: 500',
     refreshIntervalUnit: 'ms'
   },
-
 
   validate: {
     shouldIncludePort: 'Should include port number',
@@ -912,7 +912,7 @@ export default {
     sidebarHomeDesc: 'Click the Home icon in the sidebar to return and finish the tutorial.',
     supportTitle: 'Support',
     supportDesc: 'Click here to contact your provider support.',
-    welcome: 'Welcome to Sparkle',
+    welcome: 'Welcome to Koala Clash',
     welcomeDesc:
       'This is an interactive tutorial to help you quickly get familiar with this app. Click "Next" to continue.',
     navbar: 'Navigation Bar',
