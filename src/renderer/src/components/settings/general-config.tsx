@@ -12,7 +12,12 @@ import ConfirmModal from '../base/base-confirm'
 import { useTranslation } from 'react-i18next'
 import { MessageCircleQuestionMark } from 'lucide-react'
 
-const GeneralConfig: React.FC = () => {
+interface GeneralConfigProps {
+  showHiddenSettings: boolean
+}
+
+const GeneralConfig: React.FC<GeneralConfigProps> = (props) => {
+  const { showHiddenSettings } = props
   const { t } = useTranslation()
   const { data: enable, mutate: mutateEnable } = useSWR('checkAutoRun', checkAutoRun)
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -77,7 +82,7 @@ const GeneralConfig: React.FC = () => {
             }}
           />
         </SettingItem>
-        <SettingItem title={t('settings.general.autoCheckUpdate')} divider>
+        <SettingItem title={t('settings.general.autoCheckUpdate')} divider={showHiddenSettings}>
           <Switch
             checked={autoCheckUpdate}
             onCheckedChange={(value) => {
@@ -85,27 +90,29 @@ const GeneralConfig: React.FC = () => {
             }}
           />
         </SettingItem>
-        <SettingItem
-          title={t('settings.general.disableGPU')}
-          actions={
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="icon-sm" variant="ghost">
-                  <MessageCircleQuestionMark className="text-lg" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t('settings.general.disableGPUHelp')}</TooltipContent>
-            </Tooltip>
-          }
-        >
-          <Switch
-            checked={pendingDisableGPU}
-            onCheckedChange={(value) => {
-              setPendingDisableGPU(value)
-              setShowRestartConfirm(true)
-            }}
-          />
-        </SettingItem>
+        {showHiddenSettings && (
+          <SettingItem
+            title={t('settings.general.disableGPU')}
+            actions={
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon-sm" variant="ghost">
+                    <MessageCircleQuestionMark className="text-lg" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('settings.general.disableGPUHelp')}</TooltipContent>
+              </Tooltip>
+            }
+          >
+            <Switch
+              checked={pendingDisableGPU}
+              onCheckedChange={(value) => {
+                setPendingDisableGPU(value)
+                setShowRestartConfirm(true)
+              }}
+            />
+          </SettingItem>
+        )}
       </SettingCard>
     </>
   )

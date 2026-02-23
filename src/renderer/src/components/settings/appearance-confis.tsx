@@ -35,7 +35,12 @@ import CSSEditorModal from './css-editor-modal'
 import { useTranslation } from 'react-i18next'
 import { CloudDownload, FilePenLine, Import, MessageCircleQuestionMark } from 'lucide-react'
 
-const AppearanceConfig: React.FC = () => {
+interface AppearanceConfigProps {
+  showHiddenSettings: boolean
+}
+
+const AppearanceConfig: React.FC<AppearanceConfigProps> = (props) => {
+  const { showHiddenSettings } = props
   const { t } = useTranslation()
   const { appConfig, patchAppConfig } = useAppConfig()
   const [customThemes, setCustomThemes] = useState<{ key: string; label: string }[]>()
@@ -181,7 +186,7 @@ const AppearanceConfig: React.FC = () => {
             }}
           />
         </SettingItem>
-        <SettingItem title={t('settings.appearance.backgroundColor')} divider>
+        <SettingItem title={t('settings.appearance.backgroundColor')} divider={showHiddenSettings}>
           <Tabs
             value={appTheme}
             onValueChange={(value) => {
@@ -196,87 +201,89 @@ const AppearanceConfig: React.FC = () => {
             </TabsList>
           </Tabs>
         </SettingItem>
-        <SettingItem
-          title={t('settings.appearance.theme')}
-          actions={
-            <>
-              <Button
-                size="icon-sm"
-                title={t('settings.appearance.pullTheme')}
-                variant="ghost"
-                disabled={fetching}
-                onClick={async () => {
-                  setFetching(true)
+        {showHiddenSettings && (
+          <SettingItem
+            title={t('settings.appearance.theme')}
+            actions={
+              <>
+                <Button
+                  size="icon-sm"
+                  title={t('settings.appearance.pullTheme')}
+                  variant="ghost"
+                  disabled={fetching}
+                  onClick={async () => {
+                    setFetching(true)
+                    try {
+                      await fetchThemes()
+                      setCustomThemes(await resolveThemes())
+                    } catch (e) {
+                      toast.error(`${e}`)
+                    } finally {
+                      setFetching(false)
+                    }
+                  }}
+                >
+                  {fetching ? (
+                    <Spinner className="text-lg" />
+                  ) : (
+                    <CloudDownload className="text-lg" />
+                  )}
+                </Button>
+                <Button
+                  size="icon-sm"
+                  title={t('settings.appearance.importTheme')}
+                  variant="ghost"
+                  onClick={async () => {
+                    const files = await getFilePath(['css'])
+                    if (!files) return
+                    try {
+                      await importThemes(files)
+                      setCustomThemes(await resolveThemes())
+                    } catch (e) {
+                      toast.error(`${e}`)
+                    }
+                  }}
+                >
+                  <Import className="text-lg" />
+                </Button>
+                <Button
+                  size="icon-sm"
+                  title={t('settings.appearance.editTheme')}
+                  variant="ghost"
+                  onClick={async () => {
+                    setOpenCSSEditor(true)
+                  }}
+                >
+                  <FilePenLine className="text-lg" />
+                </Button>
+              </>
+            }
+          >
+            {customThemes && (
+              <Select
+                value={customTheme}
+                onValueChange={async (value) => {
                   try {
-                    await fetchThemes()
-                    setCustomThemes(await resolveThemes())
+                    await patchAppConfig({ customTheme: value })
                   } catch (e) {
                     toast.error(`${e}`)
-                  } finally {
-                    setFetching(false)
                   }
                 }}
               >
-                {fetching ? (
-                  <Spinner className="text-lg" />
-                ) : (
-                  <CloudDownload className="text-lg" />
-                )}
-              </Button>
-              <Button
-                size="icon-sm"
-                title={t('settings.appearance.importTheme')}
-                variant="ghost"
-                onClick={async () => {
-                  const files = await getFilePath(['css'])
-                  if (!files) return
-                  try {
-                    await importThemes(files)
-                    setCustomThemes(await resolveThemes())
-                  } catch (e) {
-                    toast.error(`${e}`)
-                  }
-                }}
-              >
-                <Import className="text-lg" />
-              </Button>
-              <Button
-                size="icon-sm"
-                title={t('settings.appearance.editTheme')}
-                variant="ghost"
-                onClick={async () => {
-                  setOpenCSSEditor(true)
-                }}
-              >
-                <FilePenLine className="text-lg" />
-              </Button>
-            </>
-          }
-        >
-          {customThemes && (
-            <Select
-              value={customTheme}
-              onValueChange={async (value) => {
-                try {
-                  await patchAppConfig({ customTheme: value })
-                } catch (e) {
-                  toast.error(`${e}`)
-                }
-              }}
-            >
-              <SelectTrigger size="sm" className="w-[60%]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {customThemes.map((theme) => (
-                  <SelectItem key={theme.key} value={theme.key}>
-                    {theme.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </SettingItem>
+                <SelectTrigger size="sm" className="w-[60%]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {customThemes.map((theme) => (
+                    <SelectItem key={theme.key} value={theme.key}>
+                      {theme.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </SettingItem>
+        )}
       </SettingCard>
     </>
   )

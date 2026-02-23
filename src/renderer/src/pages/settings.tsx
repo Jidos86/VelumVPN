@@ -9,9 +9,11 @@ import LanguageConfig from '@renderer/components/settings/language-config'
 import ProxySwitches from '@renderer/components/settings/proxy-switches'
 import { useTranslation } from 'react-i18next'
 import { Github } from 'lucide-react'
+import { useState } from 'react'
 
 const Settings: React.FC = () => {
   const { t } = useTranslation()
+  const [showHiddenSettings, setShowHiddenSettings] = useState(false)
 
   return (
     <BasePage
@@ -33,12 +35,15 @@ const Settings: React.FC = () => {
       }
     >
       <ProxySwitches />
-      <GeneralConfig />
+      <GeneralConfig showHiddenSettings={showHiddenSettings} />
       <LanguageConfig />
-      <AppearanceConfig />
-      <AdvancedSettings />
+      <AppearanceConfig showHiddenSettings={showHiddenSettings} />
+      <AdvancedSettings showHiddenSettings={showHiddenSettings} />
       <ShortcutConfig />
-      <Actions />
+      <Actions
+        showHiddenSettings={showHiddenSettings}
+        onUnlockHiddenSettings={() => setShowHiddenSettings(true)}
+      />
     </BasePage>
   )
 }

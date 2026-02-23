@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { toast } from 'sonner'
 import { Button } from '@renderer/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
@@ -12,7 +13,7 @@ import {
   resetAppConfig,
   cancelUpdate
 } from '@renderer/utils/ipc'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import UpdaterModal from '../updater/updater-modal'
 import { version } from '@renderer/utils/init'
@@ -22,7 +23,15 @@ import ConfirmModal from '../base/base-confirm'
 import { useTranslation } from 'react-i18next'
 import { MessageCircleQuestionMark, Settings } from 'lucide-react'
 
-const Actions: React.FC = () => {
+const EASTER_EGG_TAP_COUNT = 7
+
+interface ActionsProps {
+  showHiddenSettings: boolean
+  onUnlockHiddenSettings: () => void
+}
+
+const Actions: React.FC<ActionsProps> = (props) => {
+  const { showHiddenSettings, onUnlockHiddenSettings } = props
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { data: coreVersion } = useSWR('mihomoVersion', mihomoVersion)
@@ -31,6 +40,7 @@ const Actions: React.FC = () => {
   const [openUpdate, setOpenUpdate] = useState(false)
   const [checkingUpdate, setCheckingUpdate] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const versionTapCountRef = useRef(0)
   const [updateStatus, setUpdateStatus] = useState<{
     downloading: boolean
     progress: number
@@ -61,6 +71,14 @@ const Actions: React.FC = () => {
       setUpdateStatus({ downloading: false, progress: 0 })
     } catch (e) {
       // ignore
+    }
+  }
+
+  const handleVersionClick = (): void => {
+    if (showHiddenSettings) return
+    versionTapCountRef.current = Math.min(versionTapCountRef.current + 1, EASTER_EGG_TAP_COUNT)
+    if (versionTapCountRef.current >= EASTER_EGG_TAP_COUNT) {
+      onUnlockHiddenSettings()
     }
   }
 
@@ -141,42 +159,46 @@ const Actions: React.FC = () => {
             {t('settings.actions.resetApp')}
           </Button>
         </SettingItem>
-        <SettingItem
-          title={t('settings.actions.clearCache')}
-          actions={
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="icon-sm" variant="ghost">
-                  <MessageCircleQuestionMark className="text-lg" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t('settings.actions.clearCacheHelp')}</TooltipContent>
-            </Tooltip>
-          }
-          divider
-        >
-          <Button size="sm" onClick={() => localStorage.clear()}>
-            {t('settings.actions.clearCache')}
-          </Button>
-        </SettingItem>
-        <SettingItem
-          title={t('settings.actions.createHeapSnapshot')}
-          actions={
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="icon-sm" variant="ghost">
-                  <MessageCircleQuestionMark className="text-lg" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t('settings.actions.createHeapSnapshotHelp')}</TooltipContent>
-            </Tooltip>
-          }
-          divider
-        >
-          <Button size="sm" onClick={createHeapSnapshot}>
-            {t('settings.actions.createHeapSnapshot')}
-          </Button>
-        </SettingItem>
+        {showHiddenSettings && (
+          <SettingItem
+            title={t('settings.actions.clearCache')}
+            actions={
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon-sm" variant="ghost">
+                    <MessageCircleQuestionMark className="text-lg" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('settings.actions.clearCacheHelp')}</TooltipContent>
+              </Tooltip>
+            }
+            divider
+          >
+            <Button size="sm" onClick={() => localStorage.clear()}>
+              {t('settings.actions.clearCache')}
+            </Button>
+          </SettingItem>
+        )}
+        {showHiddenSettings && (
+          <SettingItem
+            title={t('settings.actions.createHeapSnapshot')}
+            actions={
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon-sm" variant="ghost">
+                    <MessageCircleQuestionMark className="text-lg" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('settings.actions.createHeapSnapshotHelp')}</TooltipContent>
+              </Tooltip>
+            }
+            divider
+          >
+            <Button size="sm" onClick={createHeapSnapshot}>
+              {t('settings.actions.createHeapSnapshot')}
+            </Button>
+          </SettingItem>
+        )}
         <SettingItem
           title={t('settings.actions.quitKeepCore')}
           actions={
@@ -217,7 +239,9 @@ const Actions: React.FC = () => {
           <div>{coreVersion?.version ? coreVersion.version : '...'}</div>
         </SettingItem>
         <SettingItem title={t('settings.actions.appVersion')}>
-          <div>v{version}</div>
+          <button type="button" className="select-none" onClick={handleVersionClick}>
+            v{version}
+          </button>
         </SettingItem>
       </SettingCard>
     </>

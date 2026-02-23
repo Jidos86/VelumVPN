@@ -49,7 +49,12 @@ const envOptions: Array<{ value: EnvType; label: string }> = [
   { value: 'nushell', label: 'NuShell' }
 ]
 
-const AdvancedSettings: React.FC = () => {
+interface AdvancedSettingsProps {
+  showHiddenSettings: boolean
+}
+
+const AdvancedSettings: React.FC<AdvancedSettingsProps> = (props) => {
+  const { showHiddenSettings } = props
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -139,7 +144,7 @@ const AdvancedSettings: React.FC = () => {
             </Tabs>
           </SettingItem>
           <SettingItem title={t('settings.advanced.autoEnterLightModeDelay')} divider>
-            <InputGroup className="w-[150px] h-8">
+            <InputGroup className="w-37.5 h-8">
               <InputGroupInput
                 type="number"
                 value={autoLightweightDelay.toString()}
@@ -158,41 +163,43 @@ const AdvancedSettings: React.FC = () => {
           </SettingItem>
         </>
       )}
-      <SettingItem
-        title={t('settings.advanced.copyEnvType')}
-        actions={envType.map((type) => (
-          <Button
-            key={type}
-            title={type}
-            size="icon-sm"
-            variant="ghost"
-            onClick={() => copyEnv(type)}
-          >
-            <Copy className="text-lg" />
-          </Button>
-        ))}
-        divider
-      >
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="w-[150px] justify-between">
-              <span className="truncate">{envTypeLabel}</span>
-              <ChevronDownIcon className="size-4 opacity-50" />
+      {showHiddenSettings && (
+        <SettingItem
+          title={t('settings.advanced.copyEnvType')}
+          actions={envType.map((type) => (
+            <Button
+              key={type}
+              title={type}
+              size="icon-sm"
+              variant="ghost"
+              onClick={() => copyEnv(type)}
+            >
+              <Copy className="text-lg" />
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-[150px]">
-            {envOptions.map((option) => (
-              <DropdownMenuCheckboxItem
-                key={option.value}
-                checked={envTypeValue.includes(option.value)}
-                onCheckedChange={(checked) => handleEnvTypeChange(option.value, checked)}
-              >
-                {option.label}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SettingItem>
+          ))}
+          divider
+        >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="w-37.5 justify-between">
+                <span className="truncate">{envTypeLabel}</span>
+                <ChevronDownIcon className="size-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-37.5">
+              {envOptions.map((option) => (
+                <DropdownMenuCheckboxItem
+                  key={option.value}
+                  checked={envTypeValue.includes(option.value)}
+                  onCheckedChange={(checked) => handleEnvTypeChange(option.value, checked)}
+                >
+                  {option.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SettingItem>
+      )}
       {platform === 'win32' && (
         <SettingItem title={t('settings.advanced.corePriority')} divider>
           <Select
@@ -208,7 +215,7 @@ const AdvancedSettings: React.FC = () => {
               }
             }}
           >
-            <SelectTrigger size="sm" className="w-[150px]">
+            <SelectTrigger size="sm" className="w-37.5">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -312,7 +319,7 @@ const AdvancedSettings: React.FC = () => {
                   {t('common.confirm')}
                 </Button>
               )}
-              <InputGroup className="w-[150px] h-8">
+              <InputGroup className="w-37.5 h-8">
                 <InputGroupInput
                   type="number"
                   value={interval.toString()}
