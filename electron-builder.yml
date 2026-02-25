@@ -1,4 +1,4 @@
-appId: koala-clash.app
+appId: com.koala-clash
 productName: Koala Clash
 directories:
   buildResources: build

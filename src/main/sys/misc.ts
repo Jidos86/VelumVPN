@@ -39,8 +39,9 @@ export async function openUWPTool(): Promise<void> {
 
 export async function setupFirewall(): Promise<void> {
   const execPromise = promisify(exec)
+  const appName = app.getName()
   const removeCommand = `
-  $rules = @("mihomo", "mihomo-alpha", "Koala-Clash")
+  $rules = @("mihomo", "mihomo-alpha", "${appName}", "Sparkle", "Mihomo Party")
   foreach ($rule in $rules) {
     if (Get-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue) {
       Remove-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue
@@ -50,7 +51,7 @@ export async function setupFirewall(): Promise<void> {
   const createCommand = `
   New-NetFirewallRule -DisplayName "mihomo" -Direction Inbound -Action Allow -Program "${mihomoCorePath('mihomo')}" -Enabled True -Profile Any -ErrorAction SilentlyContinue
   New-NetFirewallRule -DisplayName "mihomo-alpha" -Direction Inbound -Action Allow -Program "${mihomoCorePath('mihomo-alpha')}" -Enabled True -Profile Any -ErrorAction SilentlyContinue
-  New-NetFirewallRule -DisplayName "Koala-Clash" -Direction Inbound -Action Allow -Program "${exePath()}" -Enabled True -Profile Any -ErrorAction SilentlyContinue
+  New-NetFirewallRule -DisplayName "${appName}" -Direction Inbound -Action Allow -Program "${exePath()}" -Enabled True -Profile Any -ErrorAction SilentlyContinue
   `
 
   if (process.platform === 'win32') {

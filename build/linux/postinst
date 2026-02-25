@@ -1,24 +1,32 @@
 #!/bin/bash
 
+# Must match productName in electron-builder.yml (lowercase for Linux)
+APP_NAME="koala-clash"
+DISPLAY_NAME="Koala Clash"
+
+# Clean up old "sparkle" installation
+if [ -L '/usr/bin/sparkle' ]; then
+    if type update-alternatives 2>/dev/null >&1; then
+        update-alternatives --remove 'sparkle' '/opt/sparkle/sparkle' 2>/dev/null || true
+    fi
+    rm -f '/usr/bin/sparkle'
+fi
+
 if type update-alternatives 2>/dev/null >&1; then
     # Remove previous link if it doesn't use update-alternatives
-    if [ -L '/usr/bin/sparkle' -a -e '/usr/bin/sparkle' -a "`readlink '/usr/bin/sparkle'`" != '/etc/alternatives/sparkle' ]; then
-        rm -f '/usr/bin/sparkle'
+    if [ -L "/usr/bin/${APP_NAME}" -a -e "/usr/bin/${APP_NAME}" -a "$(readlink "/usr/bin/${APP_NAME}")" != "/etc/alternatives/${APP_NAME}" ]; then
+        rm -f "/usr/bin/${APP_NAME}"
     fi
-    update-alternatives --install '/usr/bin/sparkle' 'sparkle' '/opt/sparkle/sparkle' 100 || ln -sf '/opt/sparkle/sparkle' '/usr/bin/sparkle'
+    update-alternatives --install "/usr/bin/${APP_NAME}" "${APP_NAME}" "/opt/${APP_NAME}/${APP_NAME}" 100 || ln -sf "/opt/${APP_NAME}/${APP_NAME}" "/usr/bin/${APP_NAME}"
 else
-    ln -sf '/opt/sparkle/sparkle' '/usr/bin/sparkle'
+    ln -sf "/opt/${APP_NAME}/${APP_NAME}" "/usr/bin/${APP_NAME}"
 fi
 
-sed -i 's/Name=sparkle/Name=Sparkle/' '/usr/share/applications/sparkle.desktop'
+sed -i "s/Name=${APP_NAME}/Name=${DISPLAY_NAME}/" "/usr/share/applications/${APP_NAME}.desktop"
 
-chmod 4755 '/opt/sparkle/chrome-sandbox' || true
-chmod +sx /opt/sparkle/resources/sidecar/mihomo
-chmod +sx /opt/sparkle/resources/sidecar/mihomo-alpha
-
-if [ -d '/opt/sparkle/resources/files/sub-store-frontend' ]; then
-    chmod -R go-w '/opt/sparkle/resources/files/sub-store-frontend' 2>/dev/null || true
-fi
+chmod 4755 "/opt/${APP_NAME}/chrome-sandbox" || true
+chmod +sx "/opt/${APP_NAME}/resources/sidecar/mihomo"
+chmod +sx "/opt/${APP_NAME}/resources/sidecar/mihomo-alpha"
 
 if hash update-mime-database 2>/dev/null; then
     update-mime-database /usr/share/mime || true

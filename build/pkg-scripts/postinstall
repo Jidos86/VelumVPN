@@ -1,9 +1,10 @@
 #!/bin/sh
 
-chown root:admin $2/Sparkle.app/Contents/Resources/sidecar/mihomo
-chown root:admin $2/Sparkle.app/Contents/Resources/sidecar/mihomo-alpha
-chmod +s $2/Sparkle.app/Contents/Resources/sidecar/mihomo
-chmod +s $2/Sparkle.app/Contents/Resources/sidecar/mihomo-alpha
+APP_NAME="Koala Clash"
 
+chown root:admin "$2/${APP_NAME}.app/Contents/Resources/sidecar/mihomo"
+chown root:admin "$2/${APP_NAME}.app/Contents/Resources/sidecar/mihomo-alpha"
+chmod +s "$2/${APP_NAME}.app/Contents/Resources/sidecar/mihomo"
+chmod +s "$2/${APP_NAME}.app/Contents/Resources/sidecar/mihomo-alpha"
 
 exit 0
