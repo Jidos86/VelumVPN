@@ -96,7 +96,7 @@ const Tun: React.FC = () => {
               onCheckedChange={async (value) => {
                 try {
                   await patchAppConfig({ controlTun: value })
-                  await patchControledMihomoConfig({})
+                  await patchControledMihomoConfig(value ? {} : { tun: { enable: false } })
                   await restartCore()
                 } catch (e) {
                   toast.error(`${e}`)

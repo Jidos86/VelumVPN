@@ -74,6 +74,7 @@ export async function generateProfile(): Promise<void> {
     delete configToMerge.sniffer
   }
   if (!controlTun && currentProfile.tun) {
+    currentProfile.tun.enable = controledMihomoConfig.tun?.enable ?? false
     delete configToMerge.tun
   }
 

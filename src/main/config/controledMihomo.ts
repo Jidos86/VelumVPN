@@ -20,6 +20,7 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<M
 
 export async function patchControledMihomoConfig(patch: Partial<MihomoConfig>): Promise<void> {
   await getControledMihomoConfig()
+  const patchToMerge = JSON.parse(JSON.stringify(patch)) as Partial<MihomoConfig>
   const { controlDns = false, controlSniff = false, controlTun = false } = await getAppConfig()
   if (!controlDns) {
     delete controledMihomoConfig.dns
@@ -39,20 +40,25 @@ export async function patchControledMihomoConfig(patch: Partial<MihomoConfig>): 
     }
   }
   if (!controlTun) {
-    delete controledMihomoConfig.tun
+    const previousTunEnable = controledMihomoConfig.tun?.enable ?? false
+    const nextTunEnable = patchToMerge.tun?.enable ?? previousTunEnable
+    controledMihomoConfig.tun = { enable: nextTunEnable }
+    if (patchToMerge.tun) {
+      patchToMerge.tun = { enable: nextTunEnable }
+    }
   } else {
     if (!controledMihomoConfig.tun) {
       controledMihomoConfig.tun = defaultControledMihomoConfig.tun as MihomoTunConfig
     }
   }
-  if (patch.dns?.['nameserver-policy']) {
+  if (patchToMerge.dns?.['nameserver-policy']) {
     controledMihomoConfig.dns = controledMihomoConfig.dns || {}
-    controledMihomoConfig.dns['nameserver-policy'] = patch.dns['nameserver-policy']
+    controledMihomoConfig.dns['nameserver-policy'] = patchToMerge.dns['nameserver-policy']
   }
-  if (patch.dns?.['use-hosts']) {
-    controledMihomoConfig.hosts = patch.hosts
+  if (patchToMerge.dns?.['use-hosts']) {
+    controledMihomoConfig.hosts = patchToMerge.hosts
   }
-  controledMihomoConfig = deepMerge(controledMihomoConfig, patch)
+  controledMihomoConfig = deepMerge(controledMihomoConfig, patchToMerge)
   await generateProfile()
   await writeFile(controledMihomoConfigPath(), stringifyYaml(controledMihomoConfig), 'utf-8')
 }
