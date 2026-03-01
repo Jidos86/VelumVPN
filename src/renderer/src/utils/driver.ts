@@ -83,7 +83,9 @@ let isSwitchingGuideMode = false
 let onMainGuideCompleted: (() => void) | null = null
 let isMainGuideCompleted = false
 let F11Count = 0
+let f11ResetTimeout: number | null = null
 let removeTourExitHotkeyListener: (() => void) | null = null
+let isStartingTour = false
 
 const GUIDE_SELECTORS = {
   addProfileButton: '[data-guide="home-add-profile-btn"]',
@@ -107,6 +109,8 @@ const WAIT_TIMEOUT_MS = 45_000
 const WAIT_INTERVAL_MS = 120
 const FIRST_PROXY_GROUP_OVERLAY_ID = 'guide-first-group-overlay'
 
+type CancelSignal = { aborted: boolean }
+
 function clearGuideModeObserver(): void {
   stopGuideModeObserver?.()
   stopGuideModeObserver = null
@@ -114,6 +118,10 @@ function clearGuideModeObserver(): void {
 
 function clearTourExitHotkeyListener(): void {
   F11Count = 0
+  if (f11ResetTimeout !== null) {
+    window.clearTimeout(f11ResetTimeout)
+    f11ResetTimeout = null
+  }
   removeTourExitHotkeyListener?.()
   removeTourExitHotkeyListener = null
 }
@@ -125,7 +133,14 @@ function ensureTourExitHotkeyListener(): void {
     if (event.key !== 'F11') return
 
     event.preventDefault()
+
+    if (f11ResetTimeout !== null) window.clearTimeout(f11ResetTimeout)
     F11Count++
+    f11ResetTimeout = window.setTimeout(() => {
+      F11Count = 0
+      f11ResetTimeout = null
+    }, 3000)
+
     if (F11Count < 5) return
 
     F11Count = 0
@@ -163,12 +178,18 @@ function sleep(ms: number): Promise<void> {
 
 function waitForAnyElement(
   selectors: readonly string[],
-  timeoutMs = WAIT_TIMEOUT_MS
+  timeoutMs = WAIT_TIMEOUT_MS,
+  signal?: CancelSignal
 ): Promise<Element> {
   return new Promise((resolve, reject) => {
     const startTime = Date.now()
 
     const check = (): void => {
+      if (signal?.aborted) {
+        reject(new Error('Aborted'))
+        return
+      }
+
       const element = selectors.map(resolveElement).find(Boolean)
       if (element) {
         resolve(element)
@@ -187,8 +208,12 @@ function waitForAnyElement(
   })
 }
 
-function waitForElement(selector: string, timeoutMs = WAIT_TIMEOUT_MS): Promise<Element> {
-  return waitForAnyElement([selector], timeoutMs)
+function waitForElement(
+  selector: string,
+  timeoutMs = WAIT_TIMEOUT_MS,
+  signal?: CancelSignal
+): Promise<Element> {
+  return waitForAnyElement([selector], timeoutMs, signal)
 }
 
 function isValidHttpUrl(value: string): boolean {
@@ -260,17 +285,20 @@ function createAutoClickStep({
 }: AutoClickStepOptions): DriveStep {
   let detachClickListener: (() => void) | null = null
   let isWaiting = false
+  let cancelSignal: CancelSignal | null = null
 
-  const waitForTarget = async (): Promise<void> => {
+  const waitForTarget = async (signal: CancelSignal): Promise<void> => {
     if (waitFor) {
       if (Array.isArray(waitFor)) {
-        await waitForAnyElement(waitFor)
+        await waitForAnyElement(waitFor, WAIT_TIMEOUT_MS, signal)
       } else {
-        await waitForElement(waitFor)
+        await waitForElement(waitFor, WAIT_TIMEOUT_MS, signal)
       }
     }
 
-    await afterClick?.()
+    if (!signal.aborted) {
+      await afterClick?.()
+    }
   }
 
   return {
@@ -280,21 +308,24 @@ function createAutoClickStep({
       description,
       side,
       align,
-      showButtons: ['previous']
+      showButtons: ['next', 'previous']
     },
     onHighlighted: (highlightedElement, _step, options): void => {
       detachClickListener?.()
       isWaiting = false
+      if (cancelSignal) cancelSignal.aborted = true
+      const signal: CancelSignal = { aborted: false }
+      cancelSignal = signal
 
       if (!highlightedElement) return
 
       const onClick = async (): Promise<void> => {
-        if (isWaiting) return
+        if (isWaiting || signal.aborted) return
         isWaiting = true
 
         try {
-          await waitForTarget()
-          options.driver.moveNext()
+          await waitForTarget(signal)
+          if (!signal.aborted) options.driver.moveNext()
         } catch {
           isWaiting = false
         }
@@ -309,6 +340,7 @@ function createAutoClickStep({
       detachClickListener?.()
       detachClickListener = null
       isWaiting = false
+      if (cancelSignal) cancelSignal.aborted = true
     }
   }
 }
@@ -385,7 +417,7 @@ function createAutoAdvanceStep({
       description,
       side,
       align,
-      showButtons: ['previous']
+      showButtons: ['next', 'previous']
     },
     onHighlighted: (_highlightedElement, _step, options): void => {
       stopWatcher?.()
@@ -665,13 +697,17 @@ function switchGuideModeIfNeeded(driver: Driver): void {
 
   if (resolveElement(GUIDE_SELECTORS.adminRequiredModal)) {
     if (guideMode !== 'admin-required') {
-      void restartGuideInMode('admin-required')
+      void restartGuideInMode('admin-required').catch(() => {
+        driverInstance?.destroy()
+      })
     }
     return
   }
 
   if (guideMode === 'default' && resolveElement(GUIDE_SELECTORS.profileInstallConfirmModal)) {
-    void restartGuideInMode('deep-link')
+    void restartGuideInMode('deep-link').catch(() => {
+      driverInstance?.destroy()
+    })
   }
 }
 
@@ -699,32 +735,39 @@ export async function startTour(
   navigate: NavigateFunction,
   options: StartTourOptions = {}
 ): Promise<void> {
-  onMainGuideCompleted = options.onMainGuideCompleted ?? null
-  isMainGuideCompleted = false
-
-  navigate('/home')
-  await sleep(120)
+  if (isStartingTour) return
+  isStartingTour = true
 
   try {
-    await waitForAnyElement(
-      [
-        GUIDE_SELECTORS.addProfileButton,
-        GUIDE_SELECTORS.powerButton,
-        GUIDE_SELECTORS.profileInstallConfirmModal,
-        GUIDE_SELECTORS.adminRequiredModal
-      ],
-      15_000
-    )
-  } catch {
-    // ignore and let driver fallback to dynamic element resolvers
-  }
+    onMainGuideCompleted = options.onMainGuideCompleted ?? null
+    isMainGuideCompleted = false
 
-  const d = await createDriver(navigate)
-  d.drive()
+    navigate('/home')
+    await sleep(120)
 
-  if (resolveElement(GUIDE_SELECTORS.adminRequiredModal)) {
-    await restartGuideInMode('admin-required')
-  } else if (resolveElement(GUIDE_SELECTORS.profileInstallConfirmModal)) {
-    await restartGuideInMode('deep-link')
+    try {
+      await waitForAnyElement(
+        [
+          GUIDE_SELECTORS.addProfileButton,
+          GUIDE_SELECTORS.powerButton,
+          GUIDE_SELECTORS.profileInstallConfirmModal,
+          GUIDE_SELECTORS.adminRequiredModal
+        ],
+        15_000
+      )
+    } catch {
+      // ignore and let driver fallback to dynamic element resolvers
+    }
+
+    const d = await createDriver(navigate)
+    d.drive()
+
+    if (resolveElement(GUIDE_SELECTORS.adminRequiredModal)) {
+      await restartGuideInMode('admin-required')
+    } else if (resolveElement(GUIDE_SELECTORS.profileInstallConfirmModal)) {
+      await restartGuideInMode('deep-link')
+    }
+  } finally {
+    isStartingTour = false
   }
 }

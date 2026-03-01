@@ -110,7 +110,13 @@ const Actions: React.FC<ActionsProps> = (props) => {
       )}
       <SettingCard>
         <SettingItem title={t('settings.actions.openGuidePage')} divider>
-          <Button size="sm" onClick={() => startTour(navigate)}>
+          <Button
+            size="sm"
+            onClick={() => {
+              window.localStorage.setItem('tourShown', 'true')
+              startTour(navigate)
+            }}
+          >
             {t('settings.actions.openGuide')}
           </Button>
         </SettingItem>
