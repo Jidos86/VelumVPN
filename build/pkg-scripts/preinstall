@@ -1,14 +1,18 @@
 #!/bin/sh
 
-OLD_SYSPROXY="/Library/PrivilegedHelperTools/sparkle.helper"
+APP_NAME="Koala Clash"
 
-UNINSTALL=false
-
-if [ ! -f "$OLD_SYSPROXY" ]; then
-    UNINSTALL=true
+# --- Remove old app only if it is the old fork (contains koala-mihomo) ---
+OLD_APP="/Applications/${APP_NAME}.app"
+if [ -f "$OLD_APP/Contents/MacOS/koala-mihomo" ]; then
+    pkill -f "$OLD_APP" 2>/dev/null || true
+    sleep 2
+    pkill -9 -f "$OLD_APP" 2>/dev/null || true
+    rm -rf "$OLD_APP"
 fi
 
-if [ "$UNINSTALL" = true ]; then
+# --- Clean up old sparkle.helper service ---
+if [ -f "/Library/PrivilegedHelperTools/sparkle.helper" ]; then
     if launchctl list | grep -q "sparkle.helper"; then
         launchctl stop sparkle.helper 2>/dev/null || true
         launchctl unload /Library/LaunchDaemons/sparkle.helper.plist 2>/dev/null || true
