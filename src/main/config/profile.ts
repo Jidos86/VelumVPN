@@ -64,6 +64,13 @@ export async function updateProfileItem(item: ProfileItem): Promise<void> {
 }
 
 export async function addProfileItem(item: Partial<ProfileItem>): Promise<void> {
+  if (item.url && item.type === 'remote') {
+    const config = await getProfileConfig()
+    const duplicate = config.items.find((existing) => existing.url === item.url)
+    if (duplicate) {
+      throw new Error(t('error.duplicateProfile'))
+    }
+  }
   const newItem = await createProfile(item)
   const config = await getProfileConfig()
   const isExisting = !!(await getProfileItem(newItem.id))
