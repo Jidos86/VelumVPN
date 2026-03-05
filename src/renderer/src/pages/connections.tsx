@@ -671,7 +671,7 @@ const Connections: React.FC = () => {
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <InputGroup className="h-8 w-[180px] min-w-[120px]">
+          <InputGroup className="h-8 w-45 min-w-30">
             <InputGroupInput
               className="h-8 text-sm"
               value={filter}
@@ -717,7 +717,7 @@ const Connections: React.FC = () => {
           {viewMode === 'list' && (
             <>
               <Select value={connectionOrderBy} onValueChange={handleOrderByChange}>
-                <SelectTrigger size="sm" className="min-w-[200px]">
+                <SelectTrigger size="sm" className="min-w-50">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent position="popper">
