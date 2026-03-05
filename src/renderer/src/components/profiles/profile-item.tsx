@@ -303,7 +303,7 @@ const ProfileItem: React.FC<Props> = (props) => {
         break
       }
       case 'open-file': {
-        openFile('profile')
+        openFile(info.id)
         break
       }
       case 'delete': {
