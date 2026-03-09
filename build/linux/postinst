@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# Must match productName in electron-builder.yml (lowercase for Linux)
 APP_NAME="Koala.Clash"
-DISPLAY_NAME="Koala Clash"
 
 # Clean up old "sparkle" installation
 if [ -L '/usr/bin/sparkle' ]; then
@@ -21,8 +19,6 @@ if type update-alternatives 2>/dev/null >&1; then
 else
     ln -sf "/opt/${APP_NAME}/${APP_NAME}" "/usr/bin/${APP_NAME}"
 fi
-
-sed -i "s/Name=${APP_NAME}/Name=${DISPLAY_NAME}/" "/usr/share/applications/${APP_NAME}.desktop"
 
 chmod 4755 "/opt/${APP_NAME}/chrome-sandbox" || true
 chmod +sx "/opt/${APP_NAME}/resources/sidecar/mihomo"

@@ -90,6 +90,11 @@ jobs:
 
           jq --arg version "$RELEASE_VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json
 
+      - name: Correct folder name on Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sed -i "s/productName: Koala Clash/productName: Koala.Clash/" electron-builder.yml
+
       - name: Install Build Tools
         if: matrix.os == 'ubuntu-latest' && matrix.format == 'pacman'
         run: |
@@ -154,8 +159,7 @@ jobs:
         with:
           name: ${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
           path: |
-            dist/Koala*
-            dist/koala-clash*
+            dist/[Kk]oala?[Cc]lash*
             !dist/*.plist
             !dist/*blockmap*
             latest.yml
