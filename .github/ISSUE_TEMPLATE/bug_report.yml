@@ -1,0 +1,54 @@
+---
+body:
+  - attributes:
+      description: Before submitting, please complete and check all the following options to confirm that you have read and understood the requirements below. Otherwise, the issue will be closed.
+      label: Confirmation Steps
+      options:
+        - label: I have briefly described the issue I encountered in the title.
+        - label: I accurately described the problem I encountered in English or Russian.
+        - label: I have searched for my issue in [Issues](https://github.com/coolcoala/koala-clash/issues?q=is%3Aissue) but did not find an identical one.
+        - label: This is a GUI program issue, not a kernel program issue.
+        - label: I have tested after disabling all antivirus software/proxy software, but the issue persists.
+        - label: I have tested it using the latest version, and the issue persists.
+        - label: I have already tried restarting the program/computer, but the issue persists.
+        - label: I have confirmed that the issue persists on other devices, such as a brand-new virtual machine.
+    id: ensure
+    type: checkboxes
+  - attributes:
+      description: Please provide the operating system type.
+      label: Operating System
+      multiple: true
+      options:
+        - MacOS
+        - Windows
+        - Linux
+    type: dropdown
+    validations:
+      required: true
+  - attributes:
+      description: Please provide the specific operating system version where the issue occurs, including the minor version number. If this information is not provided, the issue will be closed immediately.
+      label: System Version
+    type: input
+    validations:
+      required: true
+  - attributes:
+      description: Please provide the specific Koala Clash version where the issue occurs, including the minor version number. If this information is not provided, the issue will be closed immediately.
+      label: The version of Koala Clash causing problems
+    type: input
+    validations:
+      required: true
+  - attributes:
+      description: Please provide a detailed description of the error. If none is provided, the issue will be closed immediately.
+      label: Description
+    type: textarea
+    validations:
+      required: true
+  - attributes:
+      description: Please provide steps to reproduce the error. If none are provided, this issue will be closed immediately.
+      label: Reproduction method
+    type: textarea
+    validations:
+      required: true
+description: Submit Koala Clash issue
+name: Error Report
+title: '[Bug] '
