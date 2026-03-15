@@ -439,6 +439,7 @@ export default {
       disableTrayIcon: 'Скрыть иконку в трее',
       trayShowNodeInfo: 'Показать информацию об узле в меню трея',
       showDockIcon: 'Показать иконку в Dock',
+      alwaysOnTop: 'Поверх всех окон',
       useSystemTitleBar: 'Использовать системную строку заголовка',
       backgroundColor: 'Цвет фона',
       theme: 'Тема',

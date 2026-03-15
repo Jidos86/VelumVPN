@@ -21,8 +21,10 @@ import {
   fetchThemes,
   getFilePath,
   importThemes,
+  isAlwaysOnTop,
   relaunchApp,
   resolveThemes,
+  setAlwaysOnTop,
   setDockVisible,
   showFloatingWindow,
   showTrayIcon,
@@ -58,12 +60,14 @@ const AppearanceConfig: React.FC<AppearanceConfigProps> = (props) => {
     appTheme = 'system'
   } = appConfig || {}
   const [localShowFloating, setLocalShowFloating] = useState(showFloating)
+  const [onTop, setOnTop] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     resolveThemes().then((themes) => {
       setCustomThemes(themes)
     })
+    isAlwaysOnTop().then(setOnTop)
   }, [])
 
   useEffect(() => {
@@ -175,6 +179,15 @@ const AppearanceConfig: React.FC<AppearanceConfigProps> = (props) => {
             </SettingItem>
           </>
         )}
+        <SettingItem title={t('settings.appearance.alwaysOnTop')} divider>
+          <Switch
+            checked={onTop}
+            onCheckedChange={async (value) => {
+              await setAlwaysOnTop(value)
+              setOnTop(await isAlwaysOnTop())
+            }}
+          />
+        </SettingItem>
         <SettingItem title={t('settings.appearance.useSystemTitleBar')} divider>
           <Switch
             checked={useWindowFrame}

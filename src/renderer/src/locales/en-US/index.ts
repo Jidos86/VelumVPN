@@ -440,6 +440,7 @@ export default {
       disableTrayIcon: 'Disable tray icon',
       trayShowNodeInfo: 'Show node info in tray menu',
       showDockIcon: 'Show Dock icon',
+      alwaysOnTop: 'Always on top',
       useSystemTitleBar: 'Use system title bar',
       backgroundColor: 'Background Color',
       theme: 'Theme',

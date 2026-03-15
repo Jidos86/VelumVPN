@@ -504,6 +504,7 @@ export default {
       disableTrayIcon: '禁用托盘图标',
       trayShowNodeInfo: '托盘菜单显示节点信息',
       showDockIcon: '显示 Dock 图标',
+      alwaysOnTop: '窗口置顶',
       useSystemTitleBar: '使用系统标题栏',
       backgroundColor: '背景色',
       theme: '主题',
