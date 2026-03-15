@@ -4,14 +4,14 @@ import { Select as SelectPrimitive } from "radix-ui"
 
 import { cn } from "@renderer/lib/utils"
 
-const SELECT_CLOSE_ANIMATION_MS = 150
-
 type SelectAnimationContextValue = {
   isClosing: boolean
+  onCloseAnimationEnd: () => void
 }
 
 const SelectAnimationContext = React.createContext<SelectAnimationContextValue>({
   isClosing: false,
+  onCloseAnimationEnd: () => {},
 })
 
 function Select({
@@ -24,32 +24,11 @@ function Select({
     () => openProp ?? defaultOpen ?? false
   )
   const [isClosing, setIsClosing] = React.useState(false)
-  const closeTimeoutRef = React.useRef<number | null>(null)
   const isControlled = openProp !== undefined
 
-  const clearCloseTimeout = React.useCallback(() => {
-    if (closeTimeoutRef.current !== null) {
-      window.clearTimeout(closeTimeoutRef.current)
-      closeTimeoutRef.current = null
-    }
+  const onCloseAnimationEnd = React.useCallback(() => {
+    setRenderOpen(false)
   }, [])
-
-  const scheduleClose = React.useCallback(() => {
-    clearCloseTimeout()
-    setIsClosing(true)
-
-    closeTimeoutRef.current = window.setTimeout(() => {
-      setRenderOpen(false)
-      setIsClosing(false)
-      closeTimeoutRef.current = null
-    }, SELECT_CLOSE_ANIMATION_MS)
-  }, [clearCloseTimeout])
-
-  React.useEffect(() => {
-    return () => {
-      clearCloseTimeout()
-    }
-  }, [clearCloseTimeout])
 
   React.useEffect(() => {
     if (!isControlled) {
@@ -57,35 +36,33 @@ function Select({
     }
 
     if (openProp) {
-      clearCloseTimeout()
       setIsClosing(false)
       setRenderOpen(true)
       return
     }
 
     if (renderOpen && !isClosing) {
-      scheduleClose()
+      setIsClosing(true)
     }
-  }, [clearCloseTimeout, isClosing, isControlled, openProp, renderOpen, scheduleClose])
+  }, [isClosing, isControlled, openProp, renderOpen])
 
   const handleOpenChange = React.useCallback(
     (nextOpen: boolean) => {
       if (nextOpen) {
-        clearCloseTimeout()
         setIsClosing(false)
         setRenderOpen(true)
       } else if (renderOpen && !isClosing) {
-        scheduleClose()
+        setIsClosing(true)
       }
 
       onOpenChange?.(nextOpen)
     },
-    [clearCloseTimeout, isClosing, onOpenChange, renderOpen, scheduleClose]
+    [isClosing, onOpenChange, renderOpen]
   )
 
   const contextValue = React.useMemo<SelectAnimationContextValue>(
-    () => ({ isClosing }),
-    [isClosing]
+    () => ({ isClosing, onCloseAnimationEnd }),
+    [isClosing, onCloseAnimationEnd]
   )
 
   return (
@@ -145,7 +122,8 @@ function SelectContent({
   align = "center",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content>) {
-  const { isClosing } = React.useContext(SelectAnimationContext)
+  const { isClosing, onCloseAnimationEnd } =
+    React.useContext(SelectAnimationContext)
 
   return (
     <SelectPrimitive.Portal>
@@ -155,7 +133,7 @@ function SelectContent({
         className={cn(
           "bg-card/50 backdrop-blur-xl text-foreground data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-2xl border border-stroke p-1.5 shadow-lg",
           isClosing
-            ? "animate-out fade-out-0 zoom-out-95 duration-150 pointer-events-none"
+            ? "animate-out fade-out-0 zoom-out-95 duration-150 fill-mode-forwards pointer-events-none"
             : "animate-in duration-150",
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
@@ -164,6 +142,11 @@ function SelectContent({
         position={position}
         align={align}
         {...props}
+        onAnimationEnd={(e) => {
+          if (isClosing && e.target === e.currentTarget) {
+            onCloseAnimationEnd()
+          }
+        }}
       >
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
