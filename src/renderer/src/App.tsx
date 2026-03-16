@@ -11,16 +11,15 @@ import {
   checkUpdate,
   needsFirstRunAdmin,
   restartAsAdmin,
-  setNativeTheme,
-  setTitleBarOverlay
+  setNativeTheme
 } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
-import { TitleBarOverlayOptions } from 'electron'
 import useSWR from 'swr'
 import ConfirmModal from '@renderer/components/base/base-confirm'
 import { SidebarProvider } from '@renderer/components/ui/sidebar'
 import AppSidebar from '@renderer/components/app-sidebar'
 import HwidLimitAlert from '@renderer/components/profiles/hwid-limit-alert'
+import WindowControls from '@renderer/components/window-controls'
 import mapDark from '@renderer/assets/map_darktheme.svg'
 import mapLight from '@renderer/assets/map_lighttheme.svg'
 
@@ -32,7 +31,6 @@ const App: React.FC = () => {
   const {
     appTheme = 'system',
     customTheme,
-    useWindowFrame = false,
     autoCheckUpdate
   } = appConfig || {}
   const { setTheme, systemTheme, resolvedTheme } = useTheme()
@@ -41,18 +39,6 @@ const App: React.FC = () => {
   const location = useLocation()
   const isHome = location.pathname === '/' || location.pathname.includes('/home')
   const page = useRoutes(routes)
-  const setTitlebar = (): void => {
-    if (!useWindowFrame && platform !== 'darwin') {
-      const options = { height: 48 } as TitleBarOverlayOptions
-      try {
-        options.color = window.getComputedStyle(document.documentElement).backgroundColor
-        options.symbolColor = window.getComputedStyle(document.documentElement).color
-        setTitleBarOverlay(options)
-      } catch {
-        // ignore
-      }
-    }
-  }
   const { data: latest } = useSWR(
     autoCheckUpdate ? ['checkUpdate'] : undefined,
     autoCheckUpdate ? checkUpdate : (): undefined => {},
@@ -77,13 +63,10 @@ const App: React.FC = () => {
   useEffect(() => {
     setNativeTheme(appTheme)
     setTheme(appTheme)
-    setTitlebar()
   }, [appTheme, systemTheme])
 
   useEffect(() => {
-    applyTheme(customTheme || 'default.css').then(() => {
-      setTitlebar()
-    })
+    applyTheme(customTheme || 'default.css')
   }, [customTheme])
 
   const [showQuitConfirm, setShowQuitConfirm] = useState(false)
@@ -234,6 +217,11 @@ const App: React.FC = () => {
         />
       )}
       <HwidLimitAlert />
+      {platform === 'darwin' && (
+        <div className="fixed top-0.5 -left-1 h-14.25 flex items-center pl-3 z-100 app-drag">
+          <WindowControls />
+        </div>
+      )}
       <AppSidebar latest={latest} />
       <div className="relative z-10 main grow h-full overflow-y-auto">{page}</div>
     </SidebarProvider>

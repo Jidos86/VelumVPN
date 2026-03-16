@@ -298,6 +298,109 @@
   -webkit-app-region: drag;
 }
 
+.wc-group {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.wc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: default;
+  padding: 0;
+  outline: none;
+  background: transparent;
+}
+
+.wc-mac {
+  gap: 7px;
+  padding-right: 8px;
+}
+
+.wc-mac .wc-btn {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  color: transparent;
+  transition: all 0.12s ease;
+}
+
+.wc-mac .wc-btn svg {
+  width: 6px;
+  height: 6px;
+}
+
+.wc-mac .wc-close {
+  background: #ff5f57;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+}
+
+.wc-mac .wc-minimize {
+  background: #febc2e;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+}
+
+.wc-mac .wc-maximize {
+  background: #28c840;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12);
+}
+
+.wc-mac.wc-blurred .wc-btn {
+  background: color-mix(in oklab, var(--muted-foreground) 30%, transparent);
+  box-shadow: none;
+}
+
+.wc-mac:hover .wc-close {
+  color: #4d0000;
+}
+
+.wc-mac:hover .wc-minimize {
+  color: #614a00;
+}
+
+.wc-mac:hover .wc-maximize {
+  color: #00590c;
+}
+
+.wc-mac .wc-btn:active {
+  filter: brightness(0.78);
+}
+
+.wc-win {
+  gap: 1px;
+  padding-left: 4px;
+}
+
+.wc-win .wc-btn {
+  width: 34px;
+  height: 26px;
+  border-radius: calc(var(--radius) - 4px);
+  color: var(--muted-foreground);
+  transition: all 0.12s ease;
+}
+
+.wc-win .wc-btn svg {
+  width: 10px;
+  height: 10px;
+}
+
+.wc-win .wc-btn:hover {
+  background: var(--accent);
+  color: var(--foreground);
+}
+
+.wc-win .wc-close:hover {
+  background: var(--destructive);
+  color: var(--destructive-foreground);
+}
+
+.wc-win .wc-btn:active {
+  opacity: 0.6;
+}
+
 * {
   user-select: none;
 }

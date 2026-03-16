@@ -302,6 +302,22 @@ export function registerIpcMainHandlers(): void {
     ipcMain.emit('updateTrayMenu')
     await updateApplicationMenu()
   })
+  ipcMain.handle('windowMinimize', () => {
+    mainWindow?.minimize()
+  })
+  ipcMain.handle('windowMaximize', () => {
+    if (mainWindow?.isMaximized()) {
+      mainWindow.unmaximize()
+    } else {
+      mainWindow?.maximize()
+    }
+  })
+  ipcMain.handle('windowClose', () => {
+    mainWindow?.close()
+  })
+  ipcMain.handle('windowIsMaximized', () => {
+    return mainWindow?.isMaximized() ?? false
+  })
   ipcMain.handle('needsFirstRunAdmin', () => needsFirstRunAdmin)
   ipcMain.handle('restartAsAdmin', async () => {
     if (process.platform !== 'win32') return

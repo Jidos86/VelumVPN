@@ -484,11 +484,7 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
       frame: useWindowFrame,
       fullscreenable: false,
       titleBarStyle: useWindowFrame ? 'default' : 'hidden',
-      titleBarOverlay: useWindowFrame
-        ? false
-        : {
-            height: 49
-          },
+      titleBarOverlay: false,
       autoHideMenuBar: true,
       ...(process.platform === 'linux' ? { icon: icon } : {}),
       webPreferences: {
@@ -498,6 +494,12 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
       }
     })
     mainWindowState.manage(mainWindow)
+    if (process.platform === 'darwin' && !useWindowFrame) {
+      mainWindow.setWindowButtonVisibility(false)
+    }
+    mainWindow.on('maximize', () => {
+      mainWindow?.webContents.send('window-maximized')
+    })
     mainWindow.on('ready-to-show', async () => {
       const { silentStart = false } = await getAppConfig()
       if (!silentStart) {
@@ -543,6 +545,7 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
 
     mainWindow.on('unmaximize', () => {
       if (mainWindow) mainWindowState.saveState(mainWindow)
+      mainWindow?.webContents.send('window-unmaximized')
     })
 
     mainWindow.on('move', () => {
