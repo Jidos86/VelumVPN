@@ -10,8 +10,8 @@ import icoIcon from '../../../resources/icon.ico?asset'
 import icoIconOff from '../../../resources/icon_off.ico?asset'
 import pngIcon from '../../../resources/icon.png?asset'
 import pngIconOff from '../../../resources/icon_off.png?asset'
-import templateIconOff from '../../../resources/iconTemplate.png?asset'
-import templateIcon from '../../../resources/iconTemplate123.png?asset'
+import macIconOn from '../../../resources/icon_on_mac.png?asset'
+import macIconOff from '../../../resources/icon_off_mac.png?asset'
 import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
@@ -351,7 +351,7 @@ export async function createTray(): Promise<void> {
     tray.setContextMenu(menu)
   }
   if (process.platform === 'darwin') {
-    const icon = nativeImage.createFromPath(templateIcon).resize({ height: 16 })
+    const icon = nativeImage.createFromPath(macIconOn).resize({ height: 16 })
     icon.setTemplateImage(true)
     tray = new Tray(icon)
   }
@@ -464,7 +464,7 @@ export async function updateTrayIcon(): Promise<void> {
 
   try {
     if (process.platform === 'darwin') {
-      const iconPath = proxyEnabled ? templateIcon : templateIconOff
+      const iconPath = proxyEnabled ? macIconOn : macIconOff
       const icon = nativeImage.createFromPath(iconPath).resize({ height: 16 })
       icon.setTemplateImage(true)
       tray.setImage(icon)
