@@ -137,8 +137,8 @@ const App: React.FC = () => {
       <img
         src={mapBg}
         alt=""
-        className={`pointer-events-none absolute inset-0 w-full h-full object-cover z-0 transition-[filter] duration-500 ${
-          isHome ? 'opacity-65' : 'blur-3xl'
+        className={`pointer-events-none absolute inset-0 opacity-65 w-full h-full object-cover z-0 transition-[filter] duration-500 ${
+          isHome ? '' : 'blur-3xl'
         }`}
       />
       {showQuitConfirm && (
