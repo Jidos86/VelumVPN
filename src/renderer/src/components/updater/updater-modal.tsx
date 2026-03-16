@@ -96,7 +96,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
             </div>
           )}
           {!updateStatus?.downloading && (
-            <div className="markdown-body select-text">
+            <div className="markdown-body">
               <ReactMarkdown
                 components={{
                   a: ({ ...props }) => <a target="_blank" className="text-primary" {...props} />,
