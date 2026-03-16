@@ -59,6 +59,7 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = (props) => {
   const navigate = useNavigate()
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
+    diffWorkDir = false,
     controlDns = true,
     controlSniff = true,
     pauseSSID,
@@ -274,6 +275,27 @@ const AdvancedSettings: React.FC<AdvancedSettingsProps> = (props) => {
             } catch (e) {
               toast.error(`${e}`)
             }
+          }}
+        />
+      </SettingItem>
+      <SettingItem
+        title={t('profile.separateWorkDir')}
+        actions={
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button size="icon-sm" variant="ghost">
+                <MessageCircleQuestionMark className="text-lg" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t('profile.separateWorkDirHelp')}</TooltipContent>
+          </Tooltip>
+        }
+        divider
+      >
+        <Switch
+          checked={diffWorkDir}
+          onCheckedChange={(v) => {
+            patchAppConfig({ diffWorkDir: v })
           }}
         />
       </SettingItem>

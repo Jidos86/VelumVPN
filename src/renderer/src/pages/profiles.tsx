@@ -15,9 +15,8 @@ import {
   DragEndEvent
 } from '@dnd-kit/core'
 import { SortableContext } from '@dnd-kit/sortable'
-import ProfileSettingModal from '@renderer/components/profiles/profile-setting-modal'
 import { useTranslation } from 'react-i18next'
-import { Plus, FileDown, RefreshCcw, SlidersHorizontal } from 'lucide-react'
+import { Plus, FileDown, RefreshCcw } from 'lucide-react'
 
 const emptyItems: ProfileItem[] = []
 
@@ -38,7 +37,6 @@ const Profiles: React.FC = () => {
   const [switching, setSwitching] = useState(false)
   const [fileOver, setFileOver] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<ProfileItem | null>(null)
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -188,20 +186,9 @@ const Profiles: React.FC = () => {
           >
             <RefreshCcw className={`text-lg ${updating ? 'animate-spin' : ''}`} />
           </Button>
-          <Button
-            size="icon-sm"
-            title={t('pages.profiles.profileSettings')}
-            className="app-nodrag"
-            variant="ghost"
-            aria-label={t('pages.profiles.profileSettings')}
-            onClick={() => setIsSettingModalOpen(true)}
-          >
-            <SlidersHorizontal className="text-lg" />
-          </Button>
         </>
       }
     >
-      {isSettingModalOpen && <ProfileSettingModal onClose={() => setIsSettingModalOpen(false)} />}
       {showEditModal && editingItem && (
         <EditInfoModal
           item={editingItem}
