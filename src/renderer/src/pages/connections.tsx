@@ -158,7 +158,8 @@ const Connections: React.FC = () => {
     >()
 
     const addToGroup = (conn: ControllerConnectionDetail, isActive: boolean) => {
-      const processPath = conn.metadata.processPath || conn.metadata.process || conn.metadata.sourceIP || ''
+      const processPath =
+        conn.metadata.processPath || conn.metadata.process || conn.metadata.sourceIP || ''
       const processName = conn.metadata.process || conn.metadata.sourceIP || ''
       const existing = groupMap.get(processPath)
       if (existing) {
@@ -215,9 +216,7 @@ const Connections: React.FC = () => {
   const filteredProcessGroups = useMemo(() => {
     if (filter === '') return processGroups
     return processGroups.filter((pg) => {
-      const searchable = [pg.processName, pg.displayName, pg.processPath]
-        .filter(Boolean)
-        .join(' ')
+      const searchable = [pg.processName, pg.displayName, pg.processPath].filter(Boolean).join(' ')
       return includesIgnoreCase(searchable, filter)
     })
   }, [processGroups, filter])
@@ -727,9 +726,15 @@ const Connections: React.FC = () => {
 
   return (
     <BasePage
-      title={isProcessListView ? t('pages.connections.title') : (isClassicMode ? t('pages.connections.title') : selectedProcessName)}
+      title={
+        isProcessListView
+          ? t('pages.connections.title')
+          : isClassicMode
+            ? t('pages.connections.title')
+            : selectedProcessName
+      }
       header={
-        <div className="flex h-8 items-center gap-1 self-start">
+        <div className="flex items-center gap-1">
           <div className="flex h-8 items-center gap-1 whitespace-nowrap">
             <span className="px-1 text-gray-400">
               {'\u2191'} {calcTraffic(connectionsInfo?.uploadTotal ?? 0)}
