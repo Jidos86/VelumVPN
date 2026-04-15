@@ -68,7 +68,20 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     const handleConnections = (_e: unknown, info: ControllerConnections): void => {
-      setConnectionsInfo(info)
+      setConnectionsInfo((prev) => {
+        if (
+          prev &&
+          prev.uploadTotal === info.uploadTotal &&
+          prev.downloadTotal === info.downloadTotal
+        ) {
+          return prev
+        }
+        return {
+          uploadTotal: info.uploadTotal,
+          downloadTotal: info.downloadTotal,
+          memory: info.memory
+        }
+      })
     }
     window.electron.ipcRenderer.on('mihomoConnections', handleConnections)
     return (): void => {
