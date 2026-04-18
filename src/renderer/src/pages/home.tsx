@@ -64,28 +64,30 @@ const Home: React.FC = () => {
     setShowEditModal(true)
   }
 
-  const [connectionsInfo, setConnectionsInfo] = useState<ControllerConnections>()
+  const [trafficInfo, setTrafficInfo] = useState<ControllerTraffic>({
+    up: 0,
+    down: 0,
+    upTotal: 0,
+    downTotal: 0
+  })
 
   useEffect(() => {
-    const handleConnections = (_e: unknown, info: ControllerConnections): void => {
-      setConnectionsInfo((prev) => {
-        if (
-          prev &&
-          prev.uploadTotal === info.uploadTotal &&
-          prev.downloadTotal === info.downloadTotal
-        ) {
+    const handleTraffic = (_e: unknown, info: ControllerTraffic): void => {
+      setTrafficInfo((prev) => {
+        if (prev.upTotal === info.upTotal && prev.downTotal === info.downTotal) {
           return prev
         }
         return {
-          uploadTotal: info.uploadTotal,
-          downloadTotal: info.downloadTotal,
-          memory: info.memory
+          up: info.up,
+          down: info.down,
+          upTotal: info.upTotal,
+          downTotal: info.downTotal
         }
       })
     }
-    window.electron.ipcRenderer.on('mihomoConnections', handleConnections)
+    window.electron.ipcRenderer.on('mihomoTraffic', handleTraffic)
     return (): void => {
-      window.electron.ipcRenderer.removeListener('mihomoConnections', handleConnections)
+      window.electron.ipcRenderer.removeListener('mihomoTraffic', handleTraffic)
     }
   }, [])
 
@@ -399,12 +401,12 @@ const Home: React.FC = () => {
             >
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <ArrowUp className="size-3.5 text-stroke-power-on" />
-                <span>{calcTraffic(connectionsInfo?.uploadTotal ?? 0)}</span>
+                <span>{calcTraffic(trafficInfo.upTotal)}</span>
               </div>
               <div className="h-3 w-px bg-stroke" />
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <ArrowDown className="size-3.5 text-stroke-power-on" />
-                <span>{calcTraffic(connectionsInfo?.downloadTotal ?? 0)}</span>
+                <span>{calcTraffic(trafficInfo.downTotal)}</span>
               </div>
             </div>
           </div>
