@@ -8,6 +8,7 @@ import { getRuntimeConfig } from './factory'
 import { floatingWindow } from '../resolve/floatingWindow'
 import { mihomoIpcPath } from '../utils/dirs'
 import { safeSend } from '../utils/safeSend'
+import { debounce } from '../utils/debounce'
 
 let axiosIns: AxiosInstance = null!
 let mihomoTrafficWs: WebSocket | null = null
@@ -374,7 +375,12 @@ export const startMihomoConnections = async (): Promise<void> => {
   await mihomoConnections()
 }
 
+const sendConnectionsDebounced = debounce((payload: ControllerConnections): void => {
+  safeSend(mainWindow, 'mihomoConnections', payload)
+}, 100)
+
 export const stopMihomoConnections = (): void => {
+  sendConnectionsDebounced.cancel()
   if (mihomoConnectionsWs) {
     mihomoConnectionsWs.removeAllListeners()
     if (mihomoConnectionsWs.readyState === WebSocket.OPEN) {
@@ -399,7 +405,7 @@ const mihomoConnections = async (): Promise<void> => {
     const data = e.data as string
     connectionsRetry = 10
     try {
-      safeSend(mainWindow, 'mihomoConnections', JSON.parse(data) as ControllerConnections)
+      sendConnectionsDebounced(JSON.parse(data) as ControllerConnections)
     } catch {
       // ignore
     }

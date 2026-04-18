@@ -22,6 +22,8 @@ import HwidLimitAlert from '@renderer/components/profiles/hwid-limit-alert'
 import WindowControls from '@renderer/components/window-controls'
 import mapDark from '@renderer/assets/map_darktheme.svg'
 import mapLight from '@renderer/assets/map_lighttheme.svg'
+import { attachConnectionsStore } from '@renderer/store/connections-store'
+import { attachTrafficStore } from '@renderer/store/traffic-store'
 
 let navigate: NavigateFunction
 
@@ -46,6 +48,15 @@ const App: React.FC = () => {
       refreshInterval: 1000 * 60 * 10
     }
   )
+
+  useEffect(() => {
+    const detachConnections = attachConnectionsStore()
+    const detachTraffic = attachTrafficStore()
+    return (): void => {
+      detachConnections()
+      detachTraffic()
+    }
+  }, [])
 
   useEffect(() => {
     const tourShown = window.localStorage.getItem('tourShown')

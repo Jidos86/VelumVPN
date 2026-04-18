@@ -1,5 +1,6 @@
 import BasePage from '@renderer/components/base/base-page'
 import { mihomoCloseAllConnections, mihomoCloseConnection } from '@renderer/utils/ipc'
+import { useConnectionsStore } from '@renderer/store/connections-store'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Badge } from '@renderer/components/ui/badge'
 import { Button } from '@renderer/components/ui/button'
@@ -51,8 +52,6 @@ import {
   X
 } from 'lucide-react'
 
-let cachedConnections: ControllerConnectionDetail[] = []
-
 const Connections: React.FC = () => {
   const { t } = useTranslation()
   const { controledMihomoConfig } = useControledMihomoConfig()
@@ -84,11 +83,14 @@ const Connections: React.FC = () => {
     displayIcon = true,
     displayAppName = true
   } = appConfig || {}
-  const [connectionsInfo, setConnectionsInfo] = useState<ControllerConnections>()
-  const [allConnections, setAllConnections] =
-    useState<ControllerConnectionDetail[]>(cachedConnections)
-  const [activeConnections, setActiveConnections] = useState<ControllerConnectionDetail[]>([])
-  const [closedConnections, setClosedConnections] = useState<ControllerConnectionDetail[]>([])
+  const info = useConnectionsStore((s) => s.info)
+  const activeConnections = useConnectionsStore((s) => s.active)
+  const closedConnections = useConnectionsStore((s) => s.closed)
+  const isPaused = useConnectionsStore((s) => s.isPaused)
+  const togglePause = useConnectionsStore((s) => s.togglePause)
+  const removeClosedById = useConnectionsStore((s) => s.removeClosedById)
+  const clearAllClosed = useConnectionsStore((s) => s.clearAllClosed)
+
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
   const [selected, setSelected] = useState<ControllerConnectionDetail>()
@@ -98,8 +100,6 @@ const Connections: React.FC = () => {
   const [firstItemRefreshTrigger, setFirstItemRefreshTrigger] = useState(0)
 
   const [tab, setTab] = useState('active')
-  const [isPaused, setIsPaused] = useState(false)
-  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
   const [viewMode, setViewMode] = useState<'list' | 'table'>(connectionViewMode)
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set(connectionTableColumns))
 
@@ -302,143 +302,24 @@ const Connections: React.FC = () => {
     selectedProcess
   ])
 
-  const trashAllClosedConnection = useCallback((): void => {
-    if (closedConnections.length === 0) return
-
-    const trashIds = closedConnections.map((conn) => conn.id)
-    setDeletedIds((prev) => new Set([...prev, ...trashIds]))
-    setAllConnections((allConns) => {
-      const updatedConnections = allConns.filter((conn) => !trashIds.includes(conn.id))
-      cachedConnections = updatedConnections
-      return updatedConnections
-    })
-    setClosedConnections([])
-  }, [closedConnections])
-
-  const trashClosedConnection = useCallback((id: string): void => {
-    setDeletedIds((prev) => new Set([...prev, id]))
-    setAllConnections((allConns) => {
-      const updatedConnections = allConns.filter((conn) => conn.id !== id)
-      cachedConnections = updatedConnections
-      return updatedConnections
-    })
-    setClosedConnections((closedConns) => closedConns.filter((conn) => conn.id !== id))
-  }, [])
-
   const closeAllConnections = useCallback((): void => {
-    tab === 'active' ? mihomoCloseAllConnections() : trashAllClosedConnection()
-  }, [tab, trashAllClosedConnection])
+    if (tab === 'active') {
+      mihomoCloseAllConnections()
+    } else {
+      clearAllClosed()
+    }
+  }, [tab, clearAllClosed])
 
   const closeConnection = useCallback(
     (id: string): void => {
-      tab === 'active' ? mihomoCloseConnection(id) : trashClosedConnection(id)
-    },
-    [tab, trashClosedConnection]
-  )
-
-  const allConnectionsRef = useRef(allConnections)
-  const activeConnectionsRef = useRef(activeConnections)
-  const deletedIdsRef = useRef(deletedIds)
-
-  useEffect(() => {
-    allConnectionsRef.current = allConnections
-  }, [allConnections])
-  useEffect(() => {
-    activeConnectionsRef.current = activeConnections
-  }, [activeConnections])
-  useEffect(() => {
-    deletedIdsRef.current = deletedIds
-  }, [deletedIds])
-
-  useEffect(() => {
-    if (isPaused) return
-    const handleConnections = (_e: unknown, info: ControllerConnections): void => {
-      setConnectionsInfo({
-        uploadTotal: info.uploadTotal,
-        downloadTotal: info.downloadTotal,
-        memory: info.memory
-      })
-
-      if (!info.connections) return
-
-      const prevAllConnections = allConnectionsRef.current
-      const prevActiveConnections = activeConnectionsRef.current
-      const currentDeletedIds = deletedIdsRef.current
-
-      const prevActiveMap = new Map(prevActiveConnections.map((conn) => [conn.id, conn]))
-      const existingConnectionIds = new Set(prevAllConnections.map((conn) => conn.id))
-
-      const activeConns = info.connections.map((conn) => {
-        const preConn = prevActiveMap.get(conn.id)
-        const downloadSpeed = preConn ? conn.download - preConn.download : 0
-        const uploadSpeed = preConn ? conn.upload - preConn.upload : 0
-        const metadata =
-          conn.metadata.type === 'Inner'
-            ? { ...conn.metadata, process: 'mihomo', processPath: 'mihomo' }
-            : conn.metadata
-
-        return {
-          ...conn,
-          metadata,
-          isActive: true,
-          downloadSpeed,
-          uploadSpeed
-        }
-      })
-
-      const newConnections = activeConns.filter(
-        (conn) => !existingConnectionIds.has(conn.id) && !currentDeletedIds.has(conn.id)
-      )
-
-      const activeConnMap = new Map(activeConns.map((conn) => [conn.id, conn]))
-
-      const baseAllConnections =
-        newConnections.length > 0 ? [...prevAllConnections, ...newConnections] : prevAllConnections
-
-      const allConns = baseAllConnections.map((conn) => {
-        const activeConn = activeConnMap.get(conn.id)
-        return activeConn || { ...conn, isActive: false, downloadSpeed: 0, uploadSpeed: 0 }
-      })
-
-      const closedConns = allConns.filter((conn) => !activeConnMap.has(conn.id))
-
-      const finalAllConnections =
-        newConnections.length > 0 ? allConns.slice(-(activeConns.length + 200)) : allConns
-
-      setActiveConnections(activeConns)
-      setClosedConnections(closedConns)
-      setAllConnections(finalAllConnections)
-      cachedConnections = finalAllConnections
-
-      if (currentDeletedIds.size > 0) {
-        const liveIds = new Set(finalAllConnections.map((conn) => conn.id))
-        let hasStale = false
-        for (const id of currentDeletedIds) {
-          if (!liveIds.has(id)) {
-            hasStale = true
-            break
-          }
-        }
-        if (hasStale) {
-          setDeletedIds((prev) => {
-            const next = new Set<string>()
-            for (const id of prev) {
-              if (liveIds.has(id)) next.add(id)
-            }
-            return next.size === prev.size ? prev : next
-          })
-        }
+      if (tab === 'active') {
+        mihomoCloseConnection(id)
+      } else {
+        removeClosedById(id)
       }
-    }
-    window.electron.ipcRenderer.on('mihomoConnections', handleConnections)
-
-    return (): void => {
-      window.electron.ipcRenderer.removeListener('mihomoConnections', handleConnections)
-    }
-  }, [isPaused])
-  const togglePause = useCallback(() => {
-    setIsPaused((prev) => !prev)
-  }, [])
+    },
+    [tab, removeClosedById]
+  )
 
   const handleColumnWidthChange = useCallback(
     async (widths: Record<string, number>) => {
@@ -767,10 +648,10 @@ const Connections: React.FC = () => {
         <div className="flex items-center gap-1">
           <div className="flex h-8 items-center gap-1 whitespace-nowrap">
             <span className="px-1 text-gray-400">
-              {'\u2191'} {calcTraffic(connectionsInfo?.uploadTotal ?? 0)}
+              {'\u2191'} {calcTraffic(info.uploadTotal)}
             </span>
             <span className="px-1 text-gray-400">
-              {'\u2193'} {calcTraffic(connectionsInfo?.downloadTotal ?? 0)}
+              {'\u2193'} {calcTraffic(info.downloadTotal)}
             </span>
           </div>
           {!isProcessListView && (
