@@ -90,6 +90,9 @@ export default {
     rules: 'Правила',
     connection: 'Подключения',
     logs: 'Логи',
+    myRules: 'Мои правила',
+    shop: 'Магазин',
+    support: 'Поддержка',
     domainSniffing: 'Определение доменов',
     coreSettings: 'Настройки ядра',
     systemProxy: 'Системный прокси',
@@ -436,6 +439,8 @@ export default {
     general: {
       autoStart: 'Автозапуск',
       silentStart: 'Тихий запуск',
+      expertMode: 'Режим Эксперта',
+      expertModeDesc: 'Открывает дополнительное меню для отладки приложения',
       autoCheckUpdate: 'Автоматическая проверка обновлений',
       disableGPU: 'Отключить ускорение GPU',
       disableGPUHelp:

@@ -164,6 +164,9 @@ export default {
     rules: '规则',
     connection: '连接',
     logs: '日志',
+    myRules: '我的规则',
+    shop: '商店',
+    support: '支持',
     domainSniffing: '域名嗅探',
     coreSettings: '内核设置',
     systemProxy: '系统代理',
@@ -503,6 +506,8 @@ export default {
     general: {
       autoStart: '开机自启',
       silentStart: '静默启动',
+      expertMode: '专家模式',
+      expertModeDesc: '显示用于调试应用程序的高级菜单',
       autoCheckUpdate: '自动检查更新',
       disableGPU: '禁用 GPU 加速',
       disableGPUHelp: '开启后，应用将禁用 GPU 加速，可能会提高稳定性，但会降低性能'
