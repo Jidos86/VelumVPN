@@ -1,10 +1,19 @@
-## 1.2.0
+## 1.0.1
 
-- reduced memory usage
-- fix problem with deeplink alert after restart with autostart enabled
-- implement hot reloading config
-- fix bug with adding a rule at the end
-- fixed an issue with retrieving data via a proxy
-- fixed an issue with profile updates (please test)
-- ui fixes
-- other optimizations
+### Новое
+- Страница **Мои правила** — добавляй домены и приложения через VPN прямо из интерфейса без редактирования конфигов
+- Голосовые звонки Discord теперь работают в режиме «Только заблокированные»
+
+### Исправления
+- Исправлен сбой интерфейса при повторном добавлении подписки
+- Исправлена загрузка сайтов с fake-ip DNS (thangs.com и подобные)
+- Исправлен порядок инициализации состояния geodataProgress
+
+## 1.0.0
+
+### Первый релиз VelumVPN
+- Три режима маршрутизации: только заблокированные, все зарубежные, всё через VPN
+- Геоданные от runetfreedom с актуальными базами заблокированных ресурсов РФ
+- Автозагрузка геоданных при первом запуске с прогресс-баром
+- Поддержка Windows и Linux
+- Автообновление приложения
