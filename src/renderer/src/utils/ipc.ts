@@ -515,3 +515,16 @@ async function alert<T>(msg: T): Promise<void> {
 }
 
 window.alert = alert
+
+export interface CustomRules {
+  domains: string[]
+  processes: string[]
+}
+
+export async function getCustomRules(): Promise<CustomRules> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getCustomRules'))
+}
+
+export async function setCustomRules(rules: CustomRules): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setCustomRules', rules))
+}

@@ -1,0 +1,110 @@
+mixed-port: 7897
+allow-lan: false
+mode: rule
+log-level: info
+ipv6: true
+geodata-mode: true
+geo-auto-update: true
+geo-update-interval: 24
+geox-url:
+  geoip: "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat"
+  geosite: "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat"
+  mmdb: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb"
+  asn: "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb"
+
+find-process-mode: always
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+tun:
+  enable: false
+  device: velumvpn
+  stack: mixed
+  auto-route: true
+  auto-detect-interface: true
+  strict-route: true
+  dns-hijack:
+    - any:53
+  mtu: 1500
+
+dns:
+  enable: true
+  ipv6: true
+  enhanced-mode: fake-ip
+  fake-ip-range: "198.18.0.1/16"
+  fake-ip-filter:
+    - "*.lan"
+    - "*.local"
+    - "time.*.com"
+    - "ntp.*.com"
+    - "+.market.xiaomi.com"
+  use-hosts: false
+  use-system-hosts: false
+  default-nameserver:
+    - "tls://1.1.1.1"
+    - "tls://8.8.8.8"
+  nameserver:
+    - "https://dns.google/dns-query"
+    - "https://dns.adguard-dns.com/dns-query"
+  direct-nameserver:
+    - "https://common.dot.dns.yandex.net/dns-query"
+  respect-rules: false
+
+sniffer:
+  enable: true
+  parse-pure-ip: true
+  force-dns-mapping: true
+  override-destination: true
+  sniff:
+    HTTP:
+      ports: [80, 443]
+      override-destination: true
+    TLS:
+      ports: [443]
+    QUIC:
+      ports: [443]
+  skip-dst-address:
+    - "91.105.192.0/23"
+    - "91.108.4.0/22"
+    - "91.108.8.0/21"
+    - "91.108.16.0/21"
+    - "91.108.56.0/22"
+    - "95.161.64.0/20"
+    - "149.154.160.0/20"
+    - "185.76.151.0/24"
+    - "2001:67c:4e8::/48"
+    - "2001:b28:f23c::/47"
+    - "2001:b28:f23f::/48"
+    - "2a0a:f280:203::/48"
+
+proxy-groups:
+  - name: "→ VelumVPN"
+    type: select
+    proxies:
+      - "Случайный сервер"
+      - "Без Proxy"
+    remnawave:
+      include-proxies: true
+
+  - name: "Без Proxy"
+    type: select
+    proxies:
+      - DIRECT
+
+  - name: "Случайный сервер"
+    type: url-test
+    url: "https://www.gstatic.com/generate_204"
+    interval: 300
+    tolerance: 50
+    proxies: []
+    remnawave:
+      include-proxies: true
+
+# Российские IP идут напрямую, всё остальное через VPN
+rules:
+  - GEOIP,private,DIRECT,no-resolve
+  - GEOSITE,private,DIRECT
+  - GEOSITE,category-ads-all,REJECT
+  - GEOIP,ru,DIRECT
+  - MATCH,→ VelumVPN

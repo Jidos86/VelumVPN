@@ -12,6 +12,7 @@ import {
   CollapsedIcon,
   ExpandedIcon
 } from '@renderer/components/icons/sidebar-icons'
+import { SlidersHorizontal } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -36,17 +37,22 @@ interface AppSidebarProps {
   }
 }
 
+const CustomRulesIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <SlidersHorizontal {...(props as React.ComponentProps<typeof SlidersHorizontal>)} />
+)
+
 const navItems = [
   { key: 'main', path: '/home', icon: HomeIcon, i18nKey: 'sider.home' },
   { key: 'profile', path: '/profiles', icon: ProfileIcon, i18nKey: 'sider.profileManagement' },
   { key: 'proxy', path: '/proxies', icon: ProxiesIcon, i18nKey: 'sider.proxyGroup' },
+  { key: 'custom-rules', path: '/custom-rules', icon: CustomRulesIcon, label: 'Мои правила' },
   { key: 'connection', path: '/connections', icon: ConnectionsIcon, i18nKey: 'sider.connection' },
   { key: 'rule', path: '/rules', icon: RulesIcon, i18nKey: 'sider.rules' },
   { key: 'log', path: '/logs', icon: LogsIcon, i18nKey: 'sider.logs' },
   { key: 'settings', path: '/settings', icon: SettingsIcon, i18nKey: 'common.settings' }
 ]
 
-const allowedWithoutProfiles = new Set(['main', 'profile', 'settings'])
+const allowedWithoutProfiles = new Set(['main', 'profile', 'settings', 'custom-rules'])
 
 const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
   const { t } = useTranslation()
@@ -88,11 +94,12 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
               {filteredNavItems.map((item) => {
                 const Icon = item.icon
                 const isActive = location.pathname.includes(item.path)
+                const label = 'label' in item ? item.label : t(item.i18nKey!)
                 return (
                   <SidebarMenuItem key={item.key}>
                     <SidebarMenuButton
                       className="cursor-pointer"
-                      tooltip={t(item.i18nKey)}
+                      tooltip={label}
                       isActive={isActive}
                       data-guide={item.key === 'main' ? 'sidebar-home-button' : undefined}
                       onClick={() => navigate(item.path)}
@@ -101,7 +108,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
                       }
                     >
                       <Icon className="size-4" />
-                      <span>{t(item.i18nKey)}</span>
+                      <span>{label}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )

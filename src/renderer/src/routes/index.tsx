@@ -12,6 +12,7 @@ import Resources from '@renderer/pages/resources'
 import DNS from '@renderer/pages/dns'
 import Sniffer from '@renderer/pages/sniffer'
 import Home from '@renderer/pages/home'
+import CustomRules from '@renderer/pages/custom-rules'
 const routes = [
   {
     path: '/mihomo',
@@ -68,6 +69,10 @@ const routes = [
   {
     path: '/home',
     element: <Home />
+  },
+  {
+    path: '/custom-rules',
+    element: <CustomRules />
   }
 ]
 
