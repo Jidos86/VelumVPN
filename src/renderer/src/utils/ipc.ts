@@ -519,6 +519,8 @@ window.alert = alert
 export interface CustomRules {
   domains: string[]
   processes: string[]
+  excluded: string[]
+  excludedProcesses: string[]
 }
 
 export async function getCustomRules(): Promise<CustomRules> {
