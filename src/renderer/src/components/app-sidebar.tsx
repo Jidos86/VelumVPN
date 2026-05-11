@@ -46,7 +46,7 @@ const navItems = [
   { key: 'main', path: '/home', icon: HomeIcon, i18nKey: 'sider.home' },
   { key: 'profile', path: '/profiles', icon: ProfileIcon, i18nKey: 'sider.profileManagement' },
   { key: 'proxy', path: '/proxies', icon: ProxiesIcon, i18nKey: 'sider.proxyGroup' },
-  { key: 'custom-rules', path: '/custom-rules', icon: CustomRulesIcon, label: 'Мои правила' },
+  { key: 'custom-rules', path: '/custom-rules', icon: CustomRulesIcon, i18nKey: 'sider.myRules' },
   { key: 'connection', path: '/connections', icon: ConnectionsIcon, i18nKey: 'sider.connection' },
   { key: 'rule', path: '/rules', icon: RulesIcon, i18nKey: 'sider.rules' },
   { key: 'log', path: '/logs', icon: LogsIcon, i18nKey: 'sider.logs' },
@@ -128,24 +128,24 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                tooltip="Магазин"
+                tooltip={t('sider.shop')}
                 className="cursor-pointer"
                 onClick={() => open('https://shop.cloudinform.store/')}
               >
                 <ShoppingBag className="size-4 shrink-0" style={{ color: 'oklch(0.82 0.16 196)' }} />
-                <span>Магазин</span>
+                <span>{t('sider.shop')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                tooltip="Поддержка Telegram"
+                tooltip={t('sider.support')}
                 className="cursor-pointer"
                 onClick={() => open('https://t.me/Veluum_support_bot')}
               >
                 <SiTelegram className="size-4 shrink-0" style={{ color: '#29b6f6' }} />
-                <span>Поддержка</span>
+                <span>{t('sider.support')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

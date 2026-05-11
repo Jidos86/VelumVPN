@@ -57,6 +57,22 @@ const GeneralConfig: React.FC<GeneralConfigProps> = (props) => {
         />
       )}
       <SettingCard>
+        <div className="flex items-center justify-between gap-4 py-1">
+          <div className="flex flex-col gap-1">
+            <span className="text-md leading-tight">{t('settings.general.expertMode')}</span>
+            <span className="text-xs text-muted-foreground">
+              {t('settings.general.expertModeDesc')}
+            </span>
+          </div>
+          <Switch
+            checked={expertMode}
+            onCheckedChange={(value) => {
+              patchAppConfig({ expertMode: value })
+            }}
+          />
+        </div>
+      </SettingCard>
+      <SettingCard>
         <SettingItem title={t('settings.general.autoStart')} divider>
           <Switch
             checked={enable}
@@ -80,24 +96,6 @@ const GeneralConfig: React.FC<GeneralConfigProps> = (props) => {
             checked={silentStart}
             onCheckedChange={(value) => {
               patchAppConfig({ silentStart: value })
-            }}
-          />
-        </SettingItem>
-        <SettingItem
-          title={
-            <div className="flex flex-col justify-center gap-0.5">
-              <span>Режим Эксперта</span>
-              <span className="text-xs text-muted-foreground font-normal">
-                Открывает дополнительное меню для отладки приложения
-              </span>
-            </div>
-          }
-          divider
-        >
-          <Switch
-            checked={expertMode}
-            onCheckedChange={(value) => {
-              patchAppConfig({ expertMode: value })
             }}
           />
         </SettingItem>

@@ -89,6 +89,9 @@ export default {
     rules: 'Rules',
     connection: 'Connections',
     logs: 'Logs',
+    myRules: 'My Rules',
+    shop: 'Shop',
+    support: 'Support',
     domainSniffing: 'Domain Sniffing',
     coreSettings: 'Core Settings',
     systemProxy: 'System Proxy',
@@ -436,6 +439,8 @@ export default {
     general: {
       autoStart: 'Auto Start',
       silentStart: 'Silent Start',
+      expertMode: 'Expert Mode',
+      expertModeDesc: 'Shows advanced menus for debugging the application',
       autoCheckUpdate: 'Auto Check Updates',
       disableGPU: 'Disable GPU Acceleration',
       disableGPUHelp:
