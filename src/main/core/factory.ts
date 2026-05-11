@@ -3,7 +3,8 @@ import {
   getProfileConfig,
   getProfile,
   getProfileStr,
-  getAppConfig
+  getAppConfig,
+  getCustomRules
 } from '../config'
 import {
   mihomoProfileWorkDir,
@@ -197,6 +198,21 @@ function injectProxiesIntoTemplate(
   }
 }
 
+function injectCustomRules(template: MihomoConfig, rules: { domains: string[]; processes: string[] }): void {
+  if (!Array.isArray(template.rules)) return
+  const rulesArr = template.rules as unknown as string[]
+  const matchIndex = rulesArr.findIndex((r) => r.startsWith('MATCH,'))
+  const insertAt = matchIndex >= 0 ? matchIndex : rulesArr.length
+
+  const entries: string[] = [
+    ...rules.domains.map((d) => `DOMAIN-SUFFIX,${d},→ VelumVPN`),
+    ...rules.processes.map((p) => `PROCESS-NAME,${p},→ VelumVPN`)
+  ]
+  if (entries.length > 0) {
+    rulesArr.splice(insertAt, 0, ...entries)
+  }
+}
+
 // 辅助函数：处理带偏移量的规则
 function processRulesWithOffset(ruleStrings: string[], currentRules: string[], isAppend = false) {
   const normalRules: string[] = []
@@ -357,6 +373,9 @@ async function generateFromTemplate(
 
   const proxies = (userProfile.proxies as Array<{ name: string }>) || []
   injectProxiesIntoTemplate(template, proxies)
+
+  const customRules = await getCustomRules()
+  injectCustomRules(template, customRules)
 
   // Apply TUN enable state from controlled config
   if (template.tun) {

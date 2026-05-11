@@ -1,4 +1,5 @@
 export { getAppConfig, patchAppConfig } from './app'
+export { getCustomRules, setCustomRules } from './customRules'
 export { getControledMihomoConfig, patchControledMihomoConfig } from './controledMihomo'
 export {
   getProfile,

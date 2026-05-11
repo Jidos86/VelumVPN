@@ -33,6 +33,8 @@ import {
   getProfileItem,
   addProfileItem,
   removeProfileItem,
+  getCustomRules,
+  setCustomRules,
   changeCurrentProfile,
   getProfileStr,
   getFileStr,
@@ -174,6 +176,8 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('disableAutoRun', ipcErrorWrapper(disableAutoRun))
   ipcMain.handle('getAppConfig', (_e, force) => ipcErrorWrapper(getAppConfig)(force))
   ipcMain.handle('patchAppConfig', (_e, config) => ipcErrorWrapper(patchAppConfig)(config))
+  ipcMain.handle('getCustomRules', ipcErrorWrapper(getCustomRules))
+  ipcMain.handle('setCustomRules', (_e, rules) => ipcErrorWrapper(setCustomRules)(rules))
   ipcMain.handle('getControledMihomoConfig', (_e, force) =>
     ipcErrorWrapper(getControledMihomoConfig)(force)
   )
