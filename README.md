@@ -17,8 +17,8 @@
 ## Скриншоты
 
 <div align="center">
-<img src="docs/screenshot-home.png" width="420" alt="Главный экран" />
-<img src="docs/screenshot-rules.png" width="420" alt="Мои правила" />
+<img src="docs/MainMenu.png" width="420" alt="Главный экран" />
+<img src="docs/MyRules.png" width="420" alt="Мои правила" />
 </div>
 
 ---
