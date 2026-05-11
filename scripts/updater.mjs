@@ -17,7 +17,7 @@ const badge = (format, label, logo) =>
   `https://img.shields.io/badge/${format}-default?style=flat&logo=${logo}&label=${encodeURIComponent(label)}`
 
 const link = (url, format, label, logo) =>
-  `<a href="${url}"><img src="${badge(format, label, logo)}"></a>`
+  `<a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${badge(format, label, logo)}"></a>`
 
 if (process.env.SKIP_CHANGELOG !== '1') {
   changelog += '\n### Скачать：\n\n#### Windows 10/11：\n\n'
