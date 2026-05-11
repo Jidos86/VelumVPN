@@ -57,6 +57,9 @@ const Home: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingItem, setEditingItem] = useState<ProfileItem | null>(null)
   const [updating, setUpdating] = useState(false)
+  const [geodataProgress, setGeodataProgress] = useState<number | null>(null)
+  const [geodataFile, setGeodataFile] = useState('')
+  const [geodataAuto, setGeodataAuto] = useState(false)
 
   const handleAddProfile = (): void => {
     const newProfile: ProfileItem = {
@@ -143,10 +146,6 @@ const Home: React.FC = () => {
       setUpdating(false)
     }
   }
-
-  const [geodataProgress, setGeodataProgress] = useState<number | null>(null)
-  const [geodataFile, setGeodataFile] = useState('')
-  const [geodataAuto, setGeodataAuto] = useState(false)
 
   // Listen for geodata progress from both auto-download (startup) and manual update
   useEffect(() => {
