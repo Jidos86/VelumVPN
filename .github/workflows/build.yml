@@ -206,8 +206,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
           git add package.json
-          git commit -m "update version to $CLEAN_VERSION"
-          git push
+          git diff --staged --quiet || (git commit -m "update version to $CLEAN_VERSION" && git push)
 
       - name: Install Dependencies and Updater
         run: |
