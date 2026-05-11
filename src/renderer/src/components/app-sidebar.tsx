@@ -12,7 +12,7 @@ import {
   CollapsedIcon,
   ExpandedIcon
 } from '@renderer/components/icons/sidebar-icons'
-import { SlidersHorizontal } from 'lucide-react'
+import { SlidersHorizontal, ShoppingBag } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -25,6 +25,7 @@ import {
   useSidebar
 } from '@renderer/components/ui/sidebar'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
 import UpdaterButton from '@renderer/components/updater/updater-button'
 import ConfigViewer from '@renderer/components/sider/config-viewer'
 import Logo from '@renderer/assets/velumvpn-logo.svg'
@@ -52,7 +53,8 @@ const navItems = [
   { key: 'settings', path: '/settings', icon: SettingsIcon, i18nKey: 'common.settings' }
 ]
 
-const allowedWithoutProfiles = new Set(['main', 'profile', 'settings', 'custom-rules'])
+const allowedWithoutProfiles = new Set(['main', 'profile', 'settings', 'custom-rules', 'shop'])
+const expertOnlyItems = new Set(['proxy', 'connection', 'rule', 'log'])
 
 const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
   const { t } = useTranslation()
@@ -62,10 +64,12 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
   const collapsed = state === 'collapsed'
   const [showRuntimeConfig, setShowRuntimeConfig] = useState(false)
   const { profileConfig } = useProfileConfig()
+  const { appConfig } = useAppConfig()
+  const expertMode = appConfig?.expertMode ?? false
   const hasProfiles = (profileConfig?.items?.length ?? 0) > 0
-  const filteredNavItems = hasProfiles
-    ? navItems
-    : navItems.filter((item) => allowedWithoutProfiles.has(item.key))
+  const filteredNavItems = navItems
+    .filter((item) => expertMode || !expertOnlyItems.has(item.key))
+    .filter((item) => hasProfiles || allowedWithoutProfiles.has(item.key))
 
   return (
     <Sidebar
@@ -121,6 +125,18 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
       <SidebarFooter>
         <div className="flex flex-col items-center gap-2">
           {latest && latest.version && <UpdaterButton iconOnly={collapsed} latest={latest} />}
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip="Магазин"
+                className="cursor-pointer"
+                onClick={() => open('https://shop.cloudinform.store/')}
+              >
+                <ShoppingBag className="size-4 shrink-0" style={{ color: 'oklch(0.82 0.16 196)' }} />
+                <span>Магазин</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton

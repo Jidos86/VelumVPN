@@ -23,6 +23,7 @@ const GeneralConfig: React.FC<GeneralConfigProps> = (props) => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     silentStart = false,
+    expertMode = false,
     autoCheckUpdate,
 
     disableGPU = false
@@ -79,6 +80,24 @@ const GeneralConfig: React.FC<GeneralConfigProps> = (props) => {
             checked={silentStart}
             onCheckedChange={(value) => {
               patchAppConfig({ silentStart: value })
+            }}
+          />
+        </SettingItem>
+        <SettingItem
+          title={
+            <div className="flex flex-col justify-center gap-0.5">
+              <span>Режим Эксперта</span>
+              <span className="text-xs text-muted-foreground font-normal">
+                Открывает дополнительное меню для отладки приложения
+              </span>
+            </div>
+          }
+          divider
+        >
+          <Switch
+            checked={expertMode}
+            onCheckedChange={(value) => {
+              patchAppConfig({ expertMode: value })
             }}
           />
         </SettingItem>

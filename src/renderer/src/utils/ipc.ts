@@ -530,3 +530,7 @@ export async function getCustomRules(): Promise<CustomRules> {
 export async function setCustomRules(rules: CustomRules): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setCustomRules', rules))
 }
+
+export async function openExternal(url: string): Promise<void> {
+  await window.electron.ipcRenderer.invoke('openExternal', url)
+}
