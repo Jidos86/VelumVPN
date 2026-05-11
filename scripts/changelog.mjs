@@ -17,7 +17,7 @@ export const extractVersionSection = (text, version) => {
     }
   }
 
-  if (start === -1) return trimmed
+  if (start === -1) return ''
 
   const boundaryRe = new RegExp(`^#{1,${level}}\\s`)
   let end = lines.length
