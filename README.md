@@ -1,101 +1,67 @@
-# Koala Clash
-<p align="center">
-  <img src="./build/icon.png" alt="Clash" width="128" />
-  <br>
-  <br>
-  <a href="https://github.com/coolcoala/koala-clash/releases">
-    <img src="https://img.shields.io/github/release/coolcoala/koala-clash/all.svg">
-  </a>
-</p>
-<h3 align="center">GUI client for <a href="https://github.com/MetaCubeX/mihomo">Mihomo</a></h3>
+<div align="center">
 
-## Features
+<img src="resources/VELUM_ICON.png" width="96" alt="VelumVPN" />
 
-- [x] Out-of-the-box Tun mode without service mode
-- [x] Multiple color themes
-- [x] Support for most Mihomo configuration options
-- [x] Built-in Mihomo cores (stable and alpha)
+# VelumVPN Desktop
 
-## Screenshots
-![Preview](./docs/preview.png)
+**Десктопный VPN-клиент для Windows и Linux на базе [Mihomo](https://github.com/MetaCubeX/mihomo)**
 
-## Development
+[![Release](https://img.shields.io/github/v/release/Jidos86/VelumVPN?style=flat-square&color=00d4ff)](https://github.com/Jidos86/VelumVPN/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Jidos86/VelumVPN/total?style=flat-square&color=00d4ff)](https://github.com/Jidos86/VelumVPN/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue?style=flat-square)](https://github.com/Jidos86/VelumVPN/releases)
 
-### Requirements
+</div>
 
-- **Node.js** >= 20.0.0
-- **pnpm** >= 9.0.0
-- **Git**
+---
 
-### Tech Stack
+## Особенности
 
-Koala Clash is built with Electron + React + TypeScript.
+- **Три режима маршрутизации** — переключение в один клик:
+  - 🔒 **Только заблокированные** — через VPN идут только сайты, заблокированные в РФ (Telegram, Discord и др.), остальное напрямую
+  - 🌍 **Все зарубежные** — весь иностранный трафик через VPN, российские сайты напрямую
+  - 🔁 **Всё через VPN** — полный туннель
 
-**Frontend:** React 19, shadcn/UI, Tailwind CSS, Monaco Editor
+- **Геоданные от [runetfreedom](https://github.com/runetfreedom/russia-v2ray-rules-dat)** — актуальные базы заблокированных ресурсов РФ (`ru-blocked`), обновляются прямо в приложении
 
-**Backend:** Electron, Mihomo Core, sysproxy-go
+- **Автозагрузка геоданных** — при первом запуске геофайлы скачиваются автоматически с прогресс-баром, VPN доступен сразу после загрузки
 
-### Quick Start
+- **Discord и Telegram** — голосовые звонки Discord (UDP + Cloudflare IP) и весь трафик Telegram работают через VPN в режиме "Только заблокированные"
 
-```bash
-git clone https://github.com/coolcoala/koala-clash.git
-cd koala-clash
-pnpm install
-pnpm dev
-```
+- **Интеграция с [Remnawave](https://remnawave.dev)** — подписка добавляется по ссылке, прокси подставляются автоматически
 
-If Electron fails to install:
+- **Тёмный интерфейс** в фирменном стиле VelumVPN
 
-```bash
-cd node_modules/electron && node install.js && cd ../..
-```
+---
 
-### Project Structure
+## Скачать
 
-```
-src/
-├── main/               # Electron main process
-│   ├── core/           # Mihomo core management
-│   ├── config/         # Configuration management
-│   ├── resolve/        # Tray, shortcuts, auto-updater, floating window
-│   ├── sys/            # System integration (sysproxy, autorun)
-│   └── utils/          # Utilities
-├── renderer/           # React frontend
-│   └── src/
-│       ├── components/ # React components
-│       ├── pages/      # Page components
-│       ├── hooks/      # Hooks and context providers
-│       └── utils/      # Frontend utilities
-├── preload/            # Preload scripts (IPC bridge)
-└── shared/types/       # Shared TypeScript types
-```
+Перейди в [Releases](https://github.com/Jidos86/VelumVPN/releases/latest) и скачай файл для своей платформы:
 
-### Commands
+| Платформа | Файл |
+|-----------|------|
+| Windows x64 (установщик) | `VelumVPN_x64-setup.exe` |
+| Windows x64 (портативный) | `VelumVPN_x64-portable.7z` |
+| Linux x64 | `VelumVPN_x64.deb` / `.rpm` |
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start dev server (renderer hot reloads, main requires restart) |
-| `pnpm lint` | Run ESLint |
-| `pnpm format` | Run Prettier |
-| `pnpm typecheck` | TypeScript type checking |
-| `pnpm build:win` | Build for Windows |
-| `pnpm build:mac` | Build for macOS |
-| `pnpm build:linux` | Build for Linux |
+---
 
-Architecture and format can be specified via flags:
+## Установка подписки
 
-```bash
-pnpm build:win nsis --x64
-pnpm build:mac pkg --arm64
-pnpm build:linux deb --x64
-```
+1. Получи ссылку на подписку в [боте поддержки](https://t.me/Veluum_support_bot)
+2. Открой приложение → нажми **+** или перейди в **Профили**
+3. Вставь ссылку → нажми **Сохранить**
+4. Выбери режим маршрутизации и нажми кнопку подключения
 
-### Build Artifacts
+---
 
-- **Windows**: `.exe` (NSIS installer), `.7z` (portable)
-- **macOS**: `.pkg`
-- **Linux**: `.deb`, `.rpm`, `.pkg.tar.xz` (pacman)
+## Поддержка
 
-## Credits
+Telegram: [@Veluum_support_bot](https://t.me/Veluum_support_bot)
 
-Based on [Sparkle](https://github.com/xishang0128/sparkle) by [xishang0128](https://github.com/xishang0128).
+---
+
+## Основано на
+
+- [koala-clash](https://github.com/coolcoala/koala-clash) — Electron-оболочка для Mihomo
+- [Mihomo](https://github.com/MetaCubeX/mihomo) — VPN ядро (Clash.Meta)
+- [runetfreedom/russia-v2ray-rules-dat](https://github.com/runetfreedom/russia-v2ray-rules-dat) — геоданные для РФ
