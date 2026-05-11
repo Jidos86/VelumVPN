@@ -1,0 +1,13 @@
+node_modules
+resources/files
+resources/sidecar
+dist
+out
+.DS_Store
+*.log*
+.idea
+*.ttf
+.serena
+.zed
+*.tsbuildinfo
+latest.yml
