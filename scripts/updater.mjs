@@ -7,7 +7,7 @@ const rawChangelog = readFileSync('changelog.md', 'utf-8')
 const { version } = JSON.parse(pkg)
 
 let changelog = extractVersionSection(rawChangelog, version)
-const downloadUrl = `https://github.com/VelumVPN/velumvpn-app/releases/download/${version}`
+const downloadUrl = `https://github.com/Jidos86/VelumVPN/releases/download/${version}`
 const latest = {
   version,
   changelog
@@ -20,19 +20,16 @@ const link = (url, format, label, logo) =>
   `<a href="${url}"><img src="${badge(format, label, logo)}"></a>`
 
 if (process.env.SKIP_CHANGELOG !== '1') {
-  changelog += '\n### Download link：\n\n#### Windows 10/11：\n\n'
-  changelog += link(`${downloadUrl}/VelumVPN_x64-setup.exe`, 'EXE', '64-bit', 'windows') + ' '
-  changelog += link(`${downloadUrl}/VelumVPN_arm64-setup.exe`, 'EXE', 'ARM64', 'windows') + '\n\n'
-  changelog += '\n#### macOS 11+：\n\n'
-  changelog += link(`${downloadUrl}/VelumVPN_x64.pkg`, 'PKG', 'Intel', 'apple') + ' '
-  changelog += link(`${downloadUrl}/VelumVPN_arm64.pkg`, 'PKG', 'Apple Silicon', 'apple') + '\n\n'
+  changelog += '\n### Скачать：\n\n#### Windows 10/11：\n\n'
+  changelog += link(`${downloadUrl}/VelumVPN_x64-setup.exe`, 'EXE', 'x64 Установщик', 'windows') + ' '
+  changelog += link(`${downloadUrl}/VelumVPN_x64-portable.7z`, '7Z', 'x64 Портативный', 'windows') + '\n\n'
+  changelog += link(`${downloadUrl}/VelumVPN_arm64-setup.exe`, 'EXE', 'ARM64 Установщик', 'windows') + ' '
+  changelog += link(`${downloadUrl}/VelumVPN_arm64-portable.7z`, '7Z', 'ARM64 Портативный', 'windows') + '\n\n'
   changelog += '\n#### Linux：\n\n'
-  changelog += link(`${downloadUrl}/VelumVPN_amd64.deb`, 'DEB', '64-bit', 'linux') + ' '
+  changelog += link(`${downloadUrl}/VelumVPN_amd64.deb`, 'DEB', 'x64', 'linux') + ' '
   changelog += link(`${downloadUrl}/VelumVPN_arm64.deb`, 'DEB', 'ARM64', 'linux') + '\n\n'
-  changelog += link(`${downloadUrl}/VelumVPN_x86_64.rpm`, 'RPM', '64-bit', 'linux') + ' '
-  changelog += link(`${downloadUrl}/VelumVPN_aarch64.rpm`, 'RPM', 'ARM64', 'linux') + '\n\n'
-  changelog += link(`${downloadUrl}/VelumVPN_x64.pkg.tar.xz`, 'PACMAN', '64-bit', 'archlinux') + ' '
-  changelog += link(`${downloadUrl}/VelumVPN_aarch64.pkg.tar.xz`, 'PACMAN', 'ARM64', 'archlinux')
+  changelog += link(`${downloadUrl}/VelumVPN_x86_64.rpm`, 'RPM', 'x64', 'linux') + ' '
+  changelog += link(`${downloadUrl}/VelumVPN_aarch64.rpm`, 'RPM', 'ARM64', 'linux')
 }
 writeFileSync('latest.yml', yaml.stringify(latest))
 writeFileSync('changelog.md', changelog)
