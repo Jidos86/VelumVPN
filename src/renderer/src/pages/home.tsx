@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import Power from '@renderer/assets/on_icon.svg'
 import Pause from '@renderer/assets/pause_icon.svg'
-import { InfinityIcon, WifiOff, PlusCircle, ChevronRight, Globe, ArrowUp, ArrowDown, RefreshCcw } from 'lucide-react'
+import { InfinityIcon, WifiOff, PlusCircle, ChevronRight, ArrowUp, ArrowDown, RefreshCcw } from 'lucide-react'
 import { SiTelegram } from 'react-icons/si'
 import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import { Spinner } from '@renderer/components/ui/spinner'
@@ -206,21 +206,6 @@ const Home: React.FC = () => {
     expireTimestamp > 0 ? Math.max(0, dayjs.unix(expireTimestamp).diff(dayjs(), 'day')) : 0
 
   const firstGroup = groups?.[0]
-  const supportUrl = currentProfile?.supportUrl || 'https://t.me/Veluum_support_bot'
-  const supportLinkInfo = useMemo(() => {
-    try {
-      const parsed = new URL(supportUrl)
-      const normalized = `${parsed.hostname}${parsed.pathname}`.toLowerCase()
-      return {
-        href: parsed.toString(),
-        isTelegram:
-          parsed.protocol === 'tg:' || normalized.includes('t.me') || normalized.includes('telegram')
-      }
-    } catch {
-      return null
-    }
-  }, [supportUrl])
-
   const onValueChange = async (enable: boolean): Promise<void> => {
     setLoading(true)
     setLoadingDirection(enable ? 'connecting' : 'disconnecting')
@@ -616,24 +601,18 @@ const Home: React.FC = () => {
           )}
 
           {/* ── Support link ── */}
-          {supportLinkInfo && (
-            <div className="flex justify-center">
-              <button
-                data-guide="home-support-link"
-                type="button"
-                onClick={() => open(supportLinkInfo.href)}
-                className="inline-flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
-                style={{ color: 'oklch(0.48 0.04 230)' }}
-              >
-                {supportLinkInfo.isTelegram ? (
-                  <SiTelegram className="size-3.5" />
-                ) : (
-                  <Globe className="size-3.5" />
-                )}
-                <span>{t('pages.profiles.support')}</span>
-              </button>
-            </div>
-          )}
+          <div className="flex justify-center">
+            <button
+              data-guide="home-support-link"
+              type="button"
+              onClick={() => open('https://t.me/Veluum_support_bot')}
+              className="inline-flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
+              style={{ color: 'oklch(0.48 0.04 230)' }}
+            >
+              <SiTelegram className="size-3.5" />
+              <span>{t('pages.profiles.support')}</span>
+            </button>
+          </div>
         </div>
       )}
     </BasePage>

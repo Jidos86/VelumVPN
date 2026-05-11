@@ -73,7 +73,7 @@ const routes = [
   {
     path: '/custom-rules',
     element: <CustomRules />
-  }
+  },
 ]
 
 export default routes
