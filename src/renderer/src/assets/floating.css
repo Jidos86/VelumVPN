@@ -13,7 +13,7 @@
   --muted-foreground: oklch(0.556 0 0);
   --stroke: oklch(0.985 0 0);
   --accent: oklch(0.985 0 0);
-  --gradient-end-power-on: oklch(0.7333 0.2018 150.03);
+  --gradient-end-power-on: oklch(0.78 0.16 200);
   --border: oklch(0.922 0 0);
 }
 
@@ -28,7 +28,7 @@
   --muted-foreground: oklch(0.708 0 0);
   --stroke: oklch(0.4903 0.0593 255.8);
   --accent: oklch(0.4289 0.0562 254.61);
-  --gradient-end-power-on: oklch(0.6958 0.1883 150.53);
+  --gradient-end-power-on: oklch(0.72 0.18 205);
   --border: oklch(1 0 0 / 10%);
 }
 
