@@ -71,7 +71,7 @@ jobs:
           else
             INPUT_VERSION="${{ github.event.inputs.version }}"
             CLEAN_VERSION=$(echo "$INPUT_VERSION" | sed 's/^v//')
-            if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
               echo "Invalid version format: $INPUT_VERSION"
               exit 1
             fi
@@ -197,7 +197,7 @@ jobs:
         run: |
           INPUT_VERSION="${{ github.event.inputs.version }}"
           CLEAN_VERSION=$(echo "$INPUT_VERSION" | sed 's/^v//')
-          if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
             echo "Invalid version format: $INPUT_VERSION"
             exit 1
           fi
