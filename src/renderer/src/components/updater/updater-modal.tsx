@@ -73,7 +73,7 @@ const UpdaterModal: React.FC<Props> = (props) => {
               variant="outline"
               className="app-nodrag"
               onClick={() => {
-                open(`https://github.com/coolcoala/koala-clash/releases/tag/${version}`)
+                open(`https://github.com/VelumVPN/velumvpn-app/releases/tag/${version}`)
               }}
             >
               {t('updater.goToDownload')}

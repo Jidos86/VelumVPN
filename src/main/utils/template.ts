@@ -28,7 +28,8 @@ export const defaultConfig: AppConfig = {
   groupDisplayLayout: 'double',
   autoLightweightMode: 'core',
   mainSwitchMode: 'tun',
-  useHotReloadProfile: true
+  useHotReloadProfile: true,
+  routeMode: 'blocked'
 }
 
 export const defaultControledMihomoConfig: Partial<MihomoConfig> = {
@@ -60,7 +61,7 @@ export const defaultControledMihomoConfig: Partial<MihomoConfig> = {
   'skip-auth-prefixes': ['127.0.0.1/32'],
   tun: {
     enable: false,
-    device: process.platform === 'darwin' ? undefined : 'mihomo',
+    device: process.platform === 'darwin' ? undefined : 'velumvpn',
     stack: 'mixed',
     'auto-route': true,
     'auto-redirect': false,
@@ -117,12 +118,12 @@ export const defaultControledMihomoConfig: Partial<MihomoConfig> = {
     'store-selected': true,
     'store-fake-ip': true
   },
-  'geo-auto-update': false,
+  'geo-auto-update': true,
   'geo-update-interval': 24,
   'geodata-mode': false,
   'geox-url': {
-    geoip: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat',
-    geosite: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat',
+    geoip: 'https://cdn.jsdelivr.net/gh/runetfreedom/russia-v2ray-rules-dat@release/geoip.dat',
+    geosite: 'https://cdn.jsdelivr.net/gh/runetfreedom/russia-v2ray-rules-dat@release/geosite.dat',
     mmdb: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb',
     asn: 'https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/GeoLite2-ASN.mmdb'
   }

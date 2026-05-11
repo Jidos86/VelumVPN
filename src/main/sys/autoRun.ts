@@ -6,7 +6,7 @@ import { existsSync } from 'fs'
 import { promisify } from 'util'
 import path from 'path'
 
-const appName = 'koala-clash'
+const appName = 'velumvpn'
 
 const taskXml = `<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
@@ -43,7 +43,7 @@ const taskXml = `<?xml version="1.0" encoding="UTF-16"?>
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>"${path.join(taskDir(), `koala-clash-run.exe`)}"</Command>
+      <Command>"${path.join(taskDir(), `velumvpn-run.exe`)}"</Command>
       <Arguments>"${exePath()}"</Arguments>
     </Exec>
   </Actions>
@@ -99,13 +99,13 @@ export async function enableAutoRun(): Promise<void> {
   if (process.platform === 'linux') {
     let desktop = `
 [Desktop Entry]
-Name=koala-clash
+Name=velumvpn
 Exec=${exePath()} %U
 Terminal=false
 Type=Application
-Icon=koala-clash
-StartupWMClass=koala-clash
-Comment=Koala Clash
+Icon=velumvpn
+StartupWMClass=velumvpn
+Comment=VelumVPN
 Categories=Utility;
 `
 

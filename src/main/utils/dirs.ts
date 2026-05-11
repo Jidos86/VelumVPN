@@ -53,22 +53,26 @@ export function resourcesFilesDir(): string {
   return path.join(resourcesDir(), 'files')
 }
 
+export function templatesDir(): string {
+  return path.join(resourcesDir(), 'templates')
+}
+
 export function themesDir(): string {
   return path.join(dataDir(), 'themes')
 }
 
 export function mihomoIpcPath(): string {
   if (process.platform === 'win32') {
-    return '\\\\.\\pipe\\Koala-Clash\\mihomo'
+    return '\\\\.\\pipe\\VelumVPN\\mihomo'
   }
   const { core = 'mihomo' } = getAppConfigSync()
   if (core === 'system') {
-    return '/tmp/koala-clash-mihomo-external.sock'
+    return '/tmp/velumvpn-mihomo-external.sock'
   }
   if (!checkCorePermissionSync(core as 'mihomo' | 'mihomo-alpha')) {
-    return '/tmp/koala-clash-mihomo-api-noperm.sock'
+    return '/tmp/velumvpn-mihomo-api-noperm.sock'
   }
-  return '/tmp/koala-clash-mihomo-api.sock'
+  return '/tmp/velumvpn-mihomo-api.sock'
 }
 
 export function serviceIpcPath(): string {

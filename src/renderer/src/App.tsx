@@ -1,7 +1,7 @@
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
 import React, { useEffect, useRef, useState } from 'react'
-import { NavigateFunction, useLocation, useNavigate, useRoutes } from 'react-router-dom'
+import { NavigateFunction, useNavigate, useRoutes } from 'react-router-dom'
 import './i18n'
 import { useTranslation } from 'react-i18next'
 import routes from '@renderer/routes'
@@ -20,8 +20,6 @@ import { SidebarProvider } from '@renderer/components/ui/sidebar'
 import AppSidebar from '@renderer/components/app-sidebar'
 import HwidLimitAlert from '@renderer/components/profiles/hwid-limit-alert'
 import WindowControls from '@renderer/components/window-controls'
-import mapDark from '@renderer/assets/map_darktheme.svg'
-import mapLight from '@renderer/assets/map_lighttheme.svg'
 import { attachConnectionsStore } from '@renderer/store/connections-store'
 import { attachTrafficStore } from '@renderer/store/traffic-store'
 import { attachLogsStore } from '@renderer/store/logs-store'
@@ -39,10 +37,7 @@ const App: React.FC = () => {
     autoCheckUpdate
   } = appConfig || {}
   const { setTheme, systemTheme, resolvedTheme } = useTheme()
-  const mapBg = resolvedTheme === 'dark' ? mapDark : mapLight
   navigate = useNavigate()
-  const location = useLocation()
-  const isHome = location.pathname === '/' || location.pathname.includes('/home')
   const page = useRoutes(routes)
   const { data: latest } = useSWR(
     autoCheckUpdate ? ['checkUpdate'] : undefined,
@@ -151,15 +146,16 @@ const App: React.FC = () => {
   return (
     <SidebarProvider
       defaultOpen={false}
-      className="relative w-full h-screen overflow-hidden"
-      style={{ backgroundColor: resolvedTheme === 'dark' ? '#080F16' : '#C5D4F1' }}
+      className="relative w-full h-screen overflow-hidden bg-background"
     >
-      <img
-        src={mapBg}
-        alt=""
-        className={`pointer-events-none absolute inset-0 opacity-65 w-full h-full object-cover z-0 transition-[filter] duration-500 ${
-          isHome ? '' : 'blur-3xl'
-        }`}
+      {/* Subtle radial glow — teal top-center */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0"
+        style={{
+          background: resolvedTheme === 'dark'
+            ? 'radial-gradient(ellipse 70% 50% at 60% 0%, oklch(0.75 0.19 196 / 8%) 0%, transparent 70%)'
+            : 'radial-gradient(ellipse 70% 50% at 60% 0%, oklch(0.75 0.19 196 / 6%) 0%, transparent 70%)'
+        }}
       />
       {showQuitConfirm && (
         <ConfirmModal

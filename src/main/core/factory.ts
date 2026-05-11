@@ -8,18 +8,194 @@ import {
 import {
   mihomoProfileWorkDir,
   mihomoWorkConfigPath,
-  mihomoWorkDir, rulePath
+  mihomoWorkDir,
+  mihomoTestDir,
+  rulePath,
+  templatesDir
 } from '../utils/dirs'
+import { mainWindow } from '..'
 import { parseYaml, stringifyYaml } from '../utils/yaml'
-import { copyFile, mkdir, readFile, writeFile } from 'fs/promises'
+import { copyFile, mkdir, readFile, writeFile, stat } from 'fs/promises'
 import { deepMerge } from '../utils/merge'
 import { existsSync } from 'fs'
 import path from 'path'
+import axios from 'axios'
 
 let runtimeConfigStr: string,
   rawProfileStr: string,
   currentProfileStr: string,
   runtimeConfig: MihomoConfig
+
+// runetfreedom geodata is larger than MetaCubeX lite — use size threshold to detect outdated files
+// runetfreedom geosite.dat ~10MB (MetaCubeX ~3MB), geoip.dat ~8MB (MetaCubeX ~4MB)
+const GEO_MIN_SIZE: Record<string, number> = {
+  'geosite.dat': 5 * 1024 * 1024,
+  'geoip.dat': 6 * 1024 * 1024
+}
+
+const RUNETFREEDOM_URLS = {
+  geosite:
+    'https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat',
+  geoip:
+    'https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat'
+}
+
+export async function forceUpdateGeodata(): Promise<void> {
+  const files = [
+    { url: RUNETFREEDOM_URLS.geosite, name: 'geosite.dat' },
+    { url: RUNETFREEDOM_URLS.geoip, name: 'geoip.dat' }
+  ]
+
+  let completedBytes = 0
+  const totalFiles = files.length
+
+  for (let i = 0; i < files.length; i++) {
+    const { url, name } = files[i]
+    const dest = path.join(mihomoWorkDir(), name)
+
+    mainWindow?.webContents.send('geodataProgress', { file: name, progress: 0, fileIndex: i, totalFiles })
+
+    const res = await axios.get<ArrayBuffer>(url, {
+      responseType: 'arraybuffer',
+      timeout: 120000,
+      onDownloadProgress: (e) => {
+        const fileProgress = e.total ? e.loaded / e.total : 0
+        const overall = (i + fileProgress) / totalFiles
+        mainWindow?.webContents.send('geodataProgress', {
+          file: name,
+          progress: Math.round(overall * 100),
+          fileIndex: i,
+          totalFiles
+        })
+      }
+    })
+
+    await writeFile(dest, Buffer.from(res.data))
+    completedBytes++
+
+    const testDest = path.join(mihomoTestDir(), name)
+    await copyFile(dest, testDest)
+  }
+
+  mainWindow?.webContents.send('geodataProgress', { file: '', progress: 100, fileIndex: totalFiles, totalFiles })
+}
+
+async function geoFileNeedsUpdate(filePath: string): Promise<boolean> {
+  if (!existsSync(filePath)) return true
+  try {
+    const { size } = await stat(filePath)
+    return size < (GEO_MIN_SIZE[path.basename(filePath)] ?? 0)
+  } catch {
+    return true
+  }
+}
+
+async function syncGeoToTestDir(fileName: string): Promise<void> {
+  const src = path.join(mihomoWorkDir(), fileName)
+  const dst = path.join(mihomoTestDir(), fileName)
+  if (!existsSync(src)) return
+  const srcStat = await stat(src)
+  const dstOutdated = await geoFileNeedsUpdate(dst)
+  if (dstOutdated || (existsSync(dst) && (await stat(dst)).size < srcStat.size)) {
+    await copyFile(src, dst)
+  }
+}
+
+async function ensureRunetfreedomGeodata(): Promise<void> {
+  const GEO_FILES = [
+    { url: RUNETFREEDOM_URLS.geosite, name: 'geosite.dat' },
+    { url: RUNETFREEDOM_URLS.geoip, name: 'geoip.dat' }
+  ]
+
+  const toDownload = (
+    await Promise.all(
+      GEO_FILES.map(async (f) => ({
+        ...f,
+        needed: await geoFileNeedsUpdate(path.join(mihomoWorkDir(), f.name))
+      }))
+    )
+  ).filter((f) => f.needed)
+
+  if (toDownload.length === 0) {
+    await Promise.all(GEO_FILES.map((f) => syncGeoToTestDir(f.name)))
+    return
+  }
+
+  const totalFiles = toDownload.length
+  mainWindow?.webContents.send('geodataProgress', {
+    file: toDownload[0].name, progress: 0, fileIndex: 0, totalFiles, auto: true
+  })
+
+  for (let i = 0; i < toDownload.length; i++) {
+    const { url, name } = toDownload[i]
+    const dest = path.join(mihomoWorkDir(), name)
+    const res = await axios.get<ArrayBuffer>(url, {
+      responseType: 'arraybuffer',
+      timeout: 120000,
+      onDownloadProgress: (e) => {
+        const fileProgress = e.total ? e.loaded / e.total : 0
+        const overall = (i + fileProgress) / totalFiles
+        mainWindow?.webContents.send('geodataProgress', {
+          file: name,
+          progress: Math.round(overall * 100),
+          fileIndex: i,
+          totalFiles,
+          auto: true
+        })
+      }
+    })
+    await writeFile(dest, Buffer.from(res.data))
+    await copyFile(dest, path.join(mihomoTestDir(), name))
+  }
+
+  mainWindow?.webContents.send('geodataProgress', {
+    file: '', progress: 100, fileIndex: totalFiles, totalFiles, auto: true
+  })
+
+  await Promise.all(GEO_FILES.map((f) => syncGeoToTestDir(f.name)))
+}
+
+const ROUTE_MODE_TEMPLATES: Record<string, string> = {
+  blocked: 'blocked-only.yaml',
+  'all-except-ru': 'all-foreign.yaml',
+  all: 'all-proxy.yaml'
+}
+
+async function loadRouteTemplate(routeMode: string): Promise<MihomoConfig | null> {
+  const templateFile = ROUTE_MODE_TEMPLATES[routeMode]
+  if (!templateFile) return null
+
+  const templatePath = path.join(templatesDir(), templateFile)
+  if (!existsSync(templatePath)) return null
+
+  const content = await readFile(templatePath, 'utf-8')
+  return parseYaml(content) as MihomoConfig
+}
+
+function injectProxiesIntoTemplate(
+  template: MihomoConfig,
+  proxies: Array<{ name: string }>
+): void {
+  const proxyNames = proxies.map((p) => p.name)
+  template.proxies = proxies as unknown as []
+
+  if (!Array.isArray(template['proxy-groups'])) return
+
+  for (const group of template['proxy-groups'] as Array<Record<string, unknown>>) {
+    const remnawave = group.remnawave as { 'include-proxies'?: boolean } | undefined
+    if (!remnawave?.['include-proxies']) continue
+
+    delete group.remnawave
+
+    const groupType = group.type as string
+    if (groupType === 'url-test' || groupType === 'load-balance' || groupType === 'fallback') {
+      group.proxies = proxyNames
+    } else {
+      const existing = (group.proxies as string[]) || []
+      group.proxies = [...existing, ...proxyNames]
+    }
+  }
+}
 
 // 辅助函数：处理带偏移量的规则
 function processRulesWithOffset(ruleStrings: string[], currentRules: string[], isAppend = false) {
@@ -36,11 +212,9 @@ function processRulesWithOffset(ruleStrings: string[], currentRules: string[], i
       const rule = parts.slice(1).join(',')
 
       if (isAppend) {
-        // 后置规则的插入位置计算
         const insertPosition = Math.max(0, rules.length - Math.min(offset, rules.length))
         rules.splice(insertPosition, 0, rule)
       } else {
-        // 前置规则的插入位置计算
         const insertPosition = Math.min(offset, rules.length)
         rules.splice(insertPosition, 0, rule)
       }
@@ -59,7 +233,8 @@ export async function generateProfile(): Promise<void> {
     diffWorkDir = false,
     controlDns = true,
     controlSniff = true,
-    controlTun = false
+    controlTun = false,
+    routeMode = 'all-except-ru'
   } = appConfig
   const proxyModeEnabled = appConfig.proxyMode ?? false
   const currentProfile = await getProfile(current)
@@ -67,6 +242,22 @@ export async function generateProfile(): Promise<void> {
   currentProfileStr = stringifyYaml(currentProfile)
   const controledMihomoConfig = await getControledMihomoConfig()
 
+  const template = await loadRouteTemplate(routeMode)
+
+  if (template) {
+    await generateFromTemplate(
+      template,
+      currentProfile,
+      controledMihomoConfig,
+      controlTun,
+      proxyModeEnabled,
+      diffWorkDir,
+      current
+    )
+    return
+  }
+
+  // Fallback: legacy profile-based generation
   const configToMerge = JSON.parse(JSON.stringify(controledMihomoConfig))
   if (!controlDns && currentProfile.dns) {
     delete configToMerge.dns
@@ -90,14 +281,12 @@ export async function generateProfile(): Promise<void> {
     } | null
 
     if (ruleData && typeof ruleData === 'object') {
-      // 确保 rules 数组存在
       if (!currentProfile.rules) {
         currentProfile.rules = [] as unknown as []
       }
 
       let rules = [...currentProfile.rules] as unknown as string[]
 
-      // 处理前置规则
       if (ruleData.prepend?.length) {
         const { normalRules: prependRules, insertRules } = processRulesWithOffset(
           ruleData.prepend,
@@ -106,7 +295,6 @@ export async function generateProfile(): Promise<void> {
         rules = [...prependRules, ...insertRules]
       }
 
-      // 处理后置规则
       if (ruleData.append?.length) {
         const { normalRules: appendRules, insertRules } = processRulesWithOffset(
           ruleData.append,
@@ -116,7 +304,6 @@ export async function generateProfile(): Promise<void> {
         rules = [...insertRules, ...appendRules]
       }
 
-      // 处理删除规则
       if (ruleData.delete?.length) {
         const deleteSet = new Set(ruleData.delete)
         rules = rules.filter((rule) => {
@@ -131,6 +318,10 @@ export async function generateProfile(): Promise<void> {
 
   const profile = deepMerge(JSON.parse(JSON.stringify(currentProfile)), configToMerge)
 
+  const proxyGroup =
+    (profile['proxy-groups'] as Array<{ name: string }>)?.[0]?.name || '→ VelumVPN'
+  applyRouteMode(profile, routeMode, proxyGroup)
+
   const tunEnabled = profile.tun?.enable ?? false
   if (!tunEnabled && !proxyModeEnabled) {
     profile.port = 0
@@ -144,6 +335,79 @@ export async function generateProfile(): Promise<void> {
 
   runtimeConfig = profile
   runtimeConfigStr = stringifyYaml(profile)
+  if (diffWorkDir) {
+    await prepareProfileWorkDir(current)
+  }
+  await writeFile(
+    diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work'),
+    runtimeConfigStr
+  )
+}
+
+async function generateFromTemplate(
+  template: MihomoConfig,
+  userProfile: MihomoConfig,
+  controledMihomoConfig: Partial<MihomoConfig>,
+  controlTun: boolean,
+  proxyModeEnabled: boolean,
+  diffWorkDir: boolean,
+  current: string | undefined
+): Promise<void> {
+  await ensureRunetfreedomGeodata()
+
+  const proxies = (userProfile.proxies as Array<{ name: string }>) || []
+  injectProxiesIntoTemplate(template, proxies)
+
+  // Apply TUN enable state from controlled config
+  if (template.tun) {
+    template.tun.enable = controledMihomoConfig.tun?.enable ?? false
+  }
+
+  // Apply port and controller settings from controlled config
+  const overrideKeys = [
+    'mixed-port',
+    'port',
+    'socks-port',
+    'redir-port',
+    'tproxy-port',
+    'external-controller',
+    'external-ui',
+    'external-ui-url',
+    'external-controller-cors',
+    'secret',
+    'bind-address',
+    'interface-name'
+  ] as const
+
+  for (const key of overrideKeys) {
+    const val = controledMihomoConfig[key]
+    if (val !== undefined) {
+      ;(template as Record<string, unknown>)[key] = val
+    }
+  }
+
+  const tunEnabled = template.tun?.enable ?? false
+
+  if (!tunEnabled && !proxyModeEnabled) {
+    template.port = 0
+    template['socks-port'] = 0
+    template['redir-port'] = 0
+    template['tproxy-port'] = 0
+    template['mixed-port'] = controledMihomoConfig['mixed-port'] ?? 7897
+  }
+
+  // Clean zero-value ports
+  ;(['port', 'socks-port', 'redir-port', 'tproxy-port'] as const).forEach((key) => {
+    if (template[key] === 0) delete (template as Partial<MihomoConfig>)[key]
+  })
+
+  if (!tunEnabled) {
+    delete (template as Partial<MihomoConfig>).tun
+  }
+
+  runtimeConfig = template
+  runtimeConfigStr = stringifyYaml(template)
+
   if (diffWorkDir) {
     await prepareProfileWorkDir(current)
   }
@@ -407,4 +671,42 @@ export async function getCurrentProfileStr(): Promise<string> {
 
 export async function getRuntimeConfig(): Promise<MihomoConfig> {
   return runtimeConfig
+}
+
+function applyRouteMode(
+  profile: MihomoConfig,
+  routeMode: string,
+  proxyGroup: string
+): void {
+  const base = [
+    'GEOIP,private,DIRECT,no-resolve',
+    'GEOSITE,private,DIRECT',
+    'GEOSITE,category-ads-all,REJECT'
+  ]
+
+  if (routeMode === 'blocked') {
+    profile.rules = [
+      ...base,
+      `AND,((NETWORK,UDP),(DST-PORT,50000-65535)),${proxyGroup}`,
+      `GEOSITE,youtube,${proxyGroup}`,
+      `GEOSITE,telegram,${proxyGroup}`,
+      `GEOSITE,google,${proxyGroup}`,
+      `GEOSITE,instagram,${proxyGroup}`,
+      `GEOSITE,facebook,${proxyGroup}`,
+      `GEOSITE,twitter,${proxyGroup}`,
+      `GEOSITE,discord,${proxyGroup}`,
+      'MATCH,DIRECT'
+    ] as unknown as []
+  } else if (routeMode === 'all-except-ru') {
+    profile.rules = [
+      ...base,
+      'GEOIP,ru,DIRECT',
+      `MATCH,${proxyGroup}`
+    ] as unknown as []
+  } else if (routeMode === 'all') {
+    profile.rules = [
+      ...base,
+      `MATCH,${proxyGroup}`
+    ] as unknown as []
+  }
 }

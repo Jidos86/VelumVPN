@@ -631,7 +631,7 @@ export async function startNetworkDetection(): Promise<void> {
     proxyMode = false
   } = await getAppConfig()
   const writeSysProxy = proxyMode && sysProxy.enable
-  const { tun: { device = process.platform === 'darwin' ? undefined : 'mihomo' } = {} } =
+  const { tun: { device = process.platform === 'darwin' ? undefined : 'velumvpn' } = {} } =
     await getControledMihomoConfig()
   if (networkDetectionTimer) {
     clearInterval(networkDetectionTimer)

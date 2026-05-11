@@ -88,10 +88,10 @@ if (
       } else {
         writeFileSync(path.join(taskDir(), 'param.txt'), 'empty')
       }
-      if (!existsSync(path.join(taskDir(), 'koala-clash-run.exe'))) {
-        throw new Error('koala-clash-run.exe not found')
+      if (!existsSync(path.join(taskDir(), 'velumvpn-run.exe'))) {
+        throw new Error('velumvpn-run.exe not found')
       } else {
-        execSync('%SystemRoot%\\System32\\schtasks.exe /run /tn koala-clash-run')
+        execSync('%SystemRoot%\\System32\\schtasks.exe /run /tn velumvpn-run')
       }
       app.exit()
     } catch {
@@ -144,7 +144,7 @@ if (syncConfig.disableGPU) {
 function getDeepLinkFromArgs(argv: string[]): string | undefined {
   return argv.find(
     (arg) =>
-      arg.startsWith('clash://') || arg.startsWith('mihomo://') || arg.startsWith('koala-clash://')
+      arg.startsWith('clash://') || arg.startsWith('mihomo://') || arg.startsWith('velumvpn://')
   )
 }
 
@@ -277,7 +277,7 @@ powerMonitor.on('shutdown', async () => {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('koala-clash.app')
+  electronApp.setAppUserModelId('velumvpn.app')
   try {
     await initPromise
   } catch (e) {
@@ -361,7 +361,7 @@ async function handleDeepLink(url: string): Promise<void> {
   if (
     !url.startsWith('clash://') &&
     !url.startsWith('mihomo://') &&
-    !url.startsWith('koala-clash://')
+    !url.startsWith('velumvpn://')
   )
     return
 

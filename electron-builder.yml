@@ -1,5 +1,5 @@
-appId: com.koala-clash
-productName: Koala Clash
+appId: com.velumvpn.app
+productName: VelumVPN
 directories:
   buildResources: build
 files:
@@ -19,11 +19,11 @@ extraResources:
   - from: './extra/'
     to: ''
 protocols:
-  name: 'Koala Clash URI Scheme'
+  name: 'VelumVPN URI Scheme'
   schemes:
     - 'clash'
     - 'mihomo'
-    - 'koala-clash'
+    - 'velumvpn'
 win:
   target:
     - nsis
@@ -53,19 +53,16 @@ mac:
 pkg:
   allowAnywhere: false
   allowCurrentUserHome: false
-  # background:
-  #   alignment: bottomleft
-  #   file: build/background.png
 linux:
   desktop:
     entry:
-      Name: Koala Clash
-      MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo;x-scheme-handler/koala-clash'
+      Name: VelumVPN
+      MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo;x-scheme-handler/velumvpn'
   target:
     - deb
     - rpm
     - pacman
-  maintainer: coolcoala
+  maintainer: VelumVPN
   category: Utility
   artifactName: ${productName}_${arch}.${ext}
 deb:

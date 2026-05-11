@@ -81,7 +81,8 @@ import {
   getRuntimeConfig,
   getRuntimeConfigStr,
   getRawProfileStr,
-  getCurrentProfileStr
+  getCurrentProfileStr,
+  forceUpdateGeodata
 } from '../core/factory'
 import { getInterfaces } from '../sys/interface'
 import { closeTrayIcon, copyEnv, setDockVisible, showTrayIcon, updateTrayIcon } from '../resolve/tray'
@@ -221,6 +222,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('findSystemMihomo', () => findSystemMihomo())
   ipcMain.handle('getFilePath', (_e, ext) => getFilePath(ext))
   ipcMain.handle('readTextFile', (_e, filePath) => ipcErrorWrapper(readTextFile)(filePath))
+  ipcMain.handle('updateGeodata', ipcErrorWrapper(forceUpdateGeodata))
   ipcMain.handle('getRuntimeConfigStr', ipcErrorWrapper(getRuntimeConfigStr))
   ipcMain.handle('getRawProfileStr', ipcErrorWrapper(getRawProfileStr))
   ipcMain.handle('getCurrentProfileStr', ipcErrorWrapper(getCurrentProfileStr))
@@ -283,7 +285,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('applyTheme', (_e, theme) => ipcErrorWrapper(applyTheme)(theme))
   ipcMain.handle('copyEnv', (_e, type) => ipcErrorWrapper(copyEnv)(type))
   ipcMain.handle('alert', (_e, msg) => {
-    showError('Koala Clash', msg)
+    showError('VelumVPN', msg)
   })
   ipcMain.handle('resetAppConfig', resetAppConfig)
   ipcMain.handle('relaunchApp', () => {

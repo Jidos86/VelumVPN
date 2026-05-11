@@ -370,7 +370,7 @@ export async function createTray(): Promise<void> {
   if (process.platform === 'win32') {
     tray = new Tray(icoIcon)
   }
-  tray?.setToolTip('Koala Clash')
+  tray?.setToolTip('VelumVPN')
   tray?.setIgnoreDoubleClickEvents(true)
   await updateTrayIcon()
   if (process.platform === 'darwin') {

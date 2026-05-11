@@ -300,7 +300,7 @@ const resolveSparkleService = () => {
 }
 const resolveRunner = () =>
   resolveResource({
-    file: 'koala-clash-run.exe',
+    file: 'velumvpn-run.exe',
     downloadURL: `https://github.com/coolcoala/koala-clash-run/releases/download/${arch}/koala-clash-run.exe`
   })
 

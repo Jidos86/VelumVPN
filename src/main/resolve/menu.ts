@@ -15,15 +15,15 @@ export async function createApplicationMenu(): Promise<void> {
 
   const template: Electron.MenuItemConstructorOptions[] = [
     {
-      label: 'Koala Clash',
+      label: 'VelumVPN',
       submenu: [
         {
-          label: t('menu.about') + ' ' + 'Koala Clash',
+          label: t('menu.about') + ' ' + 'VelumVPN',
           role: 'about'
         },
         { type: 'separator' },
         {
-          label: t('menu.hide') + ' ' + 'Koala Clash',
+          label: t('menu.hide') + ' ' + 'VelumVPN',
           accelerator: 'Command+H',
           role: 'hide'
         },
@@ -172,13 +172,13 @@ export async function createApplicationMenu(): Promise<void> {
         {
           label: t('menu.learnMore'),
           click: () => {
-            shell.openExternal('https://github.com/coolcoala/koala-clash')
+            shell.openExternal('https://github.com/VelumVPN/velumvpn-app')
           }
         },
         {
           label: t('menu.reportIssue'),
           click: () => {
-            shell.openExternal('https://github.com/coolcoala/koala-clash/issues')
+            shell.openExternal('https://github.com/VelumVPN/velumvpn-app/issues')
           }
         },
         { type: 'separator' },
@@ -188,7 +188,7 @@ export async function createApplicationMenu(): Promise<void> {
             dialog.showMessageBox(mainWindow!, {
               type: 'info',
               title: t('menu.aboutApp'),
-              message: 'Koala Clash',
+              message: 'VelumVPN',
               detail: `${t('menu.version')}：${app.getVersion()}\n${t('menu.electronProxyTool')}`,
               buttons: [t('menu.ok')]
             })

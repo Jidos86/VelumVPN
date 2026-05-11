@@ -39,21 +39,26 @@ export async function getProfileItem(id: string | undefined): Promise<ProfileIte
 
 export async function changeCurrentProfile(id: string): Promise<void> {
   const config = await getProfileConfig()
-  const current = config.current
+  const previous = config.current
   config.current = id
   await setProfileConfig(config)
   try {
     const { useHotReloadProfile = true } = await getAppConfig()
     if (useHotReloadProfile) {
-      await mihomoHotReloadConfig()
+      try {
+        await mihomoHotReloadConfig()
+      } catch {
+        // Hot reload failed (core not running or pipe unavailable) — fall back to full restart
+        await restartCore()
+      }
     } else {
       await restartCore()
     }
   } catch (e) {
-    config.current = current
-    throw e
-  } finally {
+    // Both hot reload and restart failed — revert current profile
+    config.current = previous
     await setProfileConfig(config)
+    throw e
   }
 }
 

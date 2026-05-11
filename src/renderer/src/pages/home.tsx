@@ -4,7 +4,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useGroups } from '@renderer/hooks/use-groups'
-import { triggerSysProxy, updateTrayIcon, mihomoHotReloadConfig } from '@renderer/utils/ipc'
+import { triggerSysProxy, updateTrayIcon, mihomoHotReloadConfig, updateGeodata, mihomoCloseAllConnections } from '@renderer/utils/ipc'
 import NumberFlow from '@number-flow/react'
 import { useTranslation } from 'react-i18next'
 import { useEffect, useMemo, useState } from 'react'
@@ -30,6 +30,10 @@ function formatBytes(bytes: number): string {
 // Module-level variable: persists across component mounts/unmounts
 let connectionStartTime: number | null = null
 
+const TEAL = 'oklch(0.82 0.16 196)'
+const TEAL_DIM = 'oklch(0.75 0.19 196 / 20%)'
+const TEAL_GLOW = '0 0 32px oklch(0.75 0.19 196 / 35%), 0 0 8px oklch(0.75 0.19 196 / 20%)'
+
 const Home: React.FC = () => {
   const { t } = useTranslation()
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -38,6 +42,7 @@ const Home: React.FC = () => {
     sysProxy,
     proxyMode = false,
     onlyActiveDevice = false,
+    routeMode = 'blocked'
   } = appConfig || {}
   const { enable: writeSysProxy = true, mode } = sysProxy || {}
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -101,6 +106,7 @@ const Home: React.FC = () => {
 
   const isDisabled =
     loading ||
+    geodataProgress !== null ||
     (mainSwitchMode === 'sysproxy' && writeSysProxy && mode == 'manual' && sysProxyDisabled)
 
   const status = loading
@@ -121,7 +127,6 @@ const Home: React.FC = () => {
   const elapsedMinutes = Math.floor((elapsed % 3600) / 60)
   const elapsedSeconds = elapsed % 60
 
-  // Current profile & subscription
   const currentProfile = useMemo(() => {
     if (!profileConfig?.current || !profileConfig?.items) return null
     return profileConfig.items.find((item) => item.id === profileConfig.current) ?? null
@@ -139,9 +144,62 @@ const Home: React.FC = () => {
     }
   }
 
+  const [geodataProgress, setGeodataProgress] = useState<number | null>(null)
+  const [geodataFile, setGeodataFile] = useState('')
+  const [geodataAuto, setGeodataAuto] = useState(false)
+
+  // Listen for geodata progress from both auto-download (startup) and manual update
+  useEffect(() => {
+    const handler = (_e: unknown, data: { file: string; progress: number; auto?: boolean }): void => {
+      if (data.progress >= 100) {
+        setGeodataProgress(null)
+        setGeodataFile('')
+        setGeodataAuto(false)
+        if (!data.auto) toast.success('Геоданные обновлены')
+      } else {
+        setGeodataProgress(data.progress)
+        setGeodataFile(data.file)
+        setGeodataAuto(data.auto ?? false)
+      }
+    }
+    window.electron.ipcRenderer.on('geodataProgress', handler)
+    return () => {
+      window.electron.ipcRenderer.removeListener('geodataProgress', handler)
+    }
+  }, [])
+
+  const handleUpdateGeodata = async (): Promise<void> => {
+    if (geodataProgress !== null) return
+    setGeodataProgress(0)
+    setGeodataAuto(false)
+    try {
+      await updateGeodata()
+    } catch (e) {
+      toast.error(`${e}`)
+      setGeodataProgress(null)
+      setGeodataFile('')
+    }
+  }
+
+  const [routeLoading, setRouteLoading] = useState(false)
+  const handleRouteModeChange = async (m: 'blocked' | 'all-except-ru' | 'all'): Promise<void> => {
+    if (m === routeMode || routeLoading) return
+    setRouteLoading(true)
+    try {
+      await patchAppConfig({ routeMode: m })
+      await mihomoHotReloadConfig()
+      await mihomoCloseAllConnections()
+    } catch (e) {
+      toast.error(`${e}`)
+    } finally {
+      setRouteLoading(false)
+    }
+  }
+
   const subscription = currentProfile?.extra
   const trafficUsed = (subscription?.upload ?? 0) + (subscription?.download ?? 0)
   const trafficTotal = subscription?.total ?? 0
+  const trafficPercent = trafficTotal > 0 ? Math.min(100, (trafficUsed / trafficTotal) * 100) : 0
   const trafficRemaining = trafficTotal > 0 ? trafficTotal - trafficUsed : 0
   const expireTimestamp = subscription?.expire ?? 0
   const expireDate = expireTimestamp > 0 ? dayjs.unix(expireTimestamp).format('L') : t('pages.home.never')
@@ -207,12 +265,25 @@ const Home: React.FC = () => {
     }
   }
 
+  const routeModeLabels: Record<string, string> = {
+    blocked: t('pages.home.routeMode.blocked'),
+    'all-except-ru': t('pages.home.routeMode.allExceptRu'),
+    all: t('pages.home.routeMode.all')
+  }
+
   return (
     <BasePage>
       {!hasProfiles ? (
+        /* ── Empty state ── */
         <div className="h-full w-full flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4 max-w-75 rounded-2xl border border-stroke bg-card/50 backdrop-blur-xl p-8">
-            <WifiOff className="size-16 text-muted-foreground" />
+          <div
+            className="flex flex-col items-center gap-4 max-w-75 rounded-2xl p-8"
+            style={{
+              background: 'oklch(0.175 0.03 240)',
+              border: '1px solid oklch(0.28 0.045 240)'
+            }}
+          >
+            <WifiOff className="size-16" style={{ color: TEAL }} />
             <h2 className="text-xl font-bold text-foreground">{t('pages.profiles.emptyTitle')}</h2>
             <p className="text-sm font-medium text-muted-foreground text-center">
               {t('pages.profiles.emptyDescription')}
@@ -220,10 +291,15 @@ const Home: React.FC = () => {
             <button
               onClick={handleAddProfile}
               data-guide="home-add-profile-btn"
-              className="flex items-center gap-2 rounded-xl border border-stroke bg-gradient-start-power-on/50 backdrop-blur-xl px-6 py-3 text-foreground hover:bg-gradient-start-power-on/40 transition-colors"
+              className="flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all cursor-pointer"
+              style={{
+                background: TEAL_DIM,
+                border: `1px solid ${TEAL}`,
+                color: TEAL
+              }}
             >
               <PlusCircle className="size-5" />
-              <span className="text-sm font-medium">{t('pages.profiles.addProfile')}</span>
+              <span>{t('pages.profiles.addProfile')}</span>
             </button>
           </div>
           {showEditModal && editingItem && (
@@ -243,185 +319,318 @@ const Home: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className="flex flex-col h-full px-2 pb-2 gap-3">
-          {/* Profile card */}
+        <div className="flex flex-col h-full px-3 pb-3 pt-1 gap-3">
+
+          {/* ── Profile + subscription card ── */}
           {currentProfile && (
-            <div className="rounded-2xl border border-stroke bg-card/50 backdrop-blur-xl p-4">
+            <div
+              className="rounded-2xl p-4"
+              style={{
+                background: 'oklch(0.175 0.03 240)',
+                border: '1px solid oklch(0.28 0.045 240)'
+              }}
+            >
+              {/* Profile name row */}
               <div
                 data-guide="home-profile-header"
-                className="flex items-center justify-center gap-3"
+                className="flex items-center gap-2 mb-3"
               >
                 {currentProfile.logo && (
                   <img
                     src={currentProfile.logo}
                     alt=""
-                    className="w-10 h-10 rounded-full"
+                    className="w-8 h-8 rounded-full shrink-0"
                     onError={(e) => {
                       ;(e.target as HTMLImageElement).style.display = 'none'
                     }}
                   />
                 )}
-                <span className="font-medium text-base">{currentProfile.name}</span>
+                <span className="font-semibold text-sm flex-1 truncate">{currentProfile.name}</span>
                 {currentProfile.type === 'remote' && (
                   <button
                     onClick={handleUpdateProfile}
                     disabled={updating}
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50 cursor-pointer"
+                    className="p-1.5 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                    style={{ color: 'oklch(0.58 0.04 230)' }}
+                    title="Обновить подписку"
                   >
-                    <RefreshCcw className={`size-4 ${updating ? 'animate-spin' : ''}`} />
+                    <RefreshCcw className={`size-3.5 ${updating ? 'animate-spin' : ''}`} />
                   </button>
                 )}
               </div>
-              {currentProfile.announce && (
-                <div
-                  data-guide="home-profile-announce"
-                  className="text-sm font-medium text-center mt-2 whitespace-pre-line"
-                >
-                  {currentProfile.announce}
-                </div>
+
+              {/* Subscription stats */}
+              {subscription && (
+                <>
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div
+                      className="flex flex-col items-center py-2 rounded-xl"
+                      style={{ background: 'oklch(0.13 0.025 240)' }}
+                    >
+                      <span className="text-[10px] text-muted-foreground mb-0.5">
+                        {t('pages.home.trafficRemaining')}
+                      </span>
+                      <span className="font-bold text-sm" style={{ color: TEAL }}>
+                        {trafficTotal > 0 ? formatBytes(trafficRemaining) : <InfinityIcon className="size-4" />}
+                      </span>
+                    </div>
+                    <div
+                      className="flex flex-col items-center py-2 rounded-xl"
+                      style={{ background: 'oklch(0.13 0.025 240)' }}
+                    >
+                      <span className="text-[10px] text-muted-foreground mb-0.5">
+                        {t('pages.home.daysRemaining')}
+                      </span>
+                      <span className="font-bold text-sm" style={{ color: TEAL }}>
+                        {expireTimestamp > 0 ? daysRemaining : <InfinityIcon className="size-4" />}
+                      </span>
+                    </div>
+                    <div
+                      className="flex flex-col items-center py-2 rounded-xl"
+                      style={{ background: 'oklch(0.13 0.025 240)' }}
+                    >
+                      <span className="text-[10px] text-muted-foreground mb-0.5">
+                        {t('pages.home.expires')}
+                      </span>
+                      <span className="font-bold text-sm text-foreground">{expireDate}</span>
+                    </div>
+                  </div>
+
+                  {/* Traffic progress bar */}
+                  {trafficTotal > 0 && (
+                    <div>
+                      <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                        <span>{formatBytes(trafficUsed)} использовано</span>
+                        <span>{formatBytes(trafficTotal)}</span>
+                      </div>
+                      <div
+                        className="h-1.5 rounded-full overflow-hidden"
+                        style={{ background: 'oklch(0.13 0.025 240)' }}
+                      >
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${trafficPercent}%`,
+                            background: `linear-gradient(90deg, oklch(0.75 0.19 196), oklch(0.68 0.22 210))`
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
-          {/* Subscription info */}
-          {subscription && (
-            <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center rounded-2xl border border-stroke bg-card/50 backdrop-blur-xl p-1">
-              <div className="flex flex-col items-center py-2 px-1">
-                <span className="text-sm text-foreground">{t('pages.home.trafficRemaining')}</span>
-                <span className="font-bold text-base mt-0.5">
-                  {trafficTotal > 0 ? formatBytes(trafficRemaining) : <InfinityIcon />}
-                </span>
-              </div>
-              <div className="h-8 w-px bg-stroke" />
-              <div className="flex flex-col items-center py-2 px-1">
-                <span className="text-sm text-foreground">{t('pages.home.daysRemaining')}</span>
-                <span className="text-base font-bold mt-0.5">
-                  {expireTimestamp > 0 ? daysRemaining : <InfinityIcon />}
-                </span>
-              </div>
-              <div className="h-8 w-px bg-stroke" />
-              <div className="flex flex-col items-center py-2 px-1">
-                <span className="text-sm text-foreground">{t('pages.home.expires')}</span>
-                <span className="text-base font-bold mt-0.5">{expireDate}</span>
-              </div>
-            </div>
-          )}
 
-          {/* Connection button */}
-          <div className="flex flex-col grow-3 items-center justify-center min-h-0">
-            <div className="mb-3 flex h-6 items-center justify-center">
+          {/* ── Connect button area ── */}
+          <div className="flex flex-col grow items-center justify-center min-h-0 gap-2">
+            {/* Status label */}
+            <div
+              className="flex h-5 items-center justify-center transition-colors duration-300"
+              style={{ color: isSelected ? TEAL : 'oklch(0.58 0.04 230)' }}
+            >
               <CharacterMorph
                 texts={[status]}
                 reserveTexts={statusWidthTexts}
                 interval={3000}
-                className="h-6 leading-none text-foreground font-semibold uppercase"
+                className="h-5 leading-none text-xs font-semibold uppercase tracking-widest"
               />
             </div>
+
+            {/* Power button */}
             <button
               disabled={isDisabled}
               onClick={() => onValueChange(!isSelected)}
               data-guide="home-power-toggle"
-              className="relative group transition-transform active:scale-95 cursor-pointer"
+              className="relative group transition-transform active:scale-95 cursor-pointer my-1"
             >
               <div
-                className={`w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 bg-radial-[at_30%_45%] backdrop-blur-xl border-2 ${
-                  isSelected
-                    ? 'from-gradient-start-power-on/60 to-gradient-end-power-on/60 border-stroke-power-on'
-                    : 'from-gradient-start-power-off/50 to-gradient-end-power-off/50 border-stroke-power-off'
-                } ${loading ? 'animate-none' : ''}`}
+                className="w-28 h-28 rounded-full flex items-center justify-center transition-all duration-400"
+                style={{
+                  background: isSelected
+                    ? `radial-gradient(circle at 35% 40%, oklch(0.28 0.08 196), oklch(0.16 0.04 220))`
+                    : `radial-gradient(circle at 35% 40%, oklch(0.22 0.04 240), oklch(0.14 0.025 240))`,
+                  border: isSelected
+                    ? `2px solid oklch(0.75 0.19 196 / 70%)`
+                    : `2px solid oklch(0.28 0.045 240)`,
+                  boxShadow: isSelected ? TEAL_GLOW : 'none'
+                }}
               >
-                <div className="relative size-16">
+                <div className="relative size-14">
                   <Spinner
-                    className={`absolute inset-0 m-auto size-16 text-[#FAFAFA] transition-all duration-300 ease-out ${
+                    className={`absolute inset-0 m-auto size-14 transition-all duration-300 ease-out ${
                       loading ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
                     }`}
+                    style={{ color: TEAL }}
                   />
                   <img
                     src={Pause}
                     alt=""
-                    className={`absolute inset-0 size-16 fill-foreground transition-all duration-300 ease-out ${
+                    className={`absolute inset-0 size-14 transition-all duration-300 ease-out ${
                       !loading && isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
                     }`}
                   />
                   <img
                     src={Power}
                     alt=""
-                    className={`absolute inset-0 size-16 fill-foreground transition-all duration-300 ease-out ${
+                    className={`absolute inset-0 size-14 transition-all duration-300 ease-out ${
                       !loading && !isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
                     }`}
                   />
                 </div>
               </div>
             </button>
-            <div className="mt-3 h-8 flex items-center justify-center">
+
+            {/* Timer */}
+            <div className="h-7 flex items-center justify-center">
               <div
                 aria-hidden={!showConnectedTimer}
-                className={`inline-flex items-center gap-0.5 text-base font-bold text-foreground tabular-nums transition-all duration-300 ease-out ${
+                className={`inline-flex items-center gap-0.5 text-lg font-bold tabular-nums transition-all duration-300 ease-out ${
                   showConnectedTimer ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
                 }`}
+                style={{ color: TEAL }}
               >
-                <NumberFlow
-                  value={elapsedHours}
-                  format={{ minimumIntegerDigits: 2, useGrouping: false }}
-                />
+                <NumberFlow value={elapsedHours} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
                 <span>:</span>
-                <NumberFlow
-                  value={elapsedMinutes}
-                  format={{ minimumIntegerDigits: 2, useGrouping: false }}
-                />
+                <NumberFlow value={elapsedMinutes} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
                 <span>:</span>
-                <NumberFlow
-                  value={elapsedSeconds}
-                  format={{ minimumIntegerDigits: 2, useGrouping: false }}
-                />
+                <NumberFlow value={elapsedSeconds} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
               </div>
             </div>
+
+            {/* Up/Down traffic */}
             <div
               aria-hidden={!showConnectedTimer}
-              className={`mt-2 flex items-center gap-4 tabular-nums transition-all duration-300 ease-out ${
+              className={`flex items-center gap-4 tabular-nums transition-all duration-300 ease-out ${
                 showConnectedTimer ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'
               }`}
             >
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <ArrowUp className="size-3.5 text-stroke-power-on" />
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <ArrowUp className="size-3" style={{ color: TEAL }} />
                 <span>{calcTraffic(trafficInfo.upTotal)}</span>
               </div>
-              <div className="h-3 w-px bg-stroke" />
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <ArrowDown className="size-3.5 text-stroke-power-on" />
+              <div className="h-3 w-px" style={{ background: 'oklch(0.28 0.045 240)' }} />
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <ArrowDown className="size-3" style={{ color: TEAL }} />
                 <span>{calcTraffic(trafficInfo.downTotal)}</span>
               </div>
             </div>
           </div>
 
-          {/* Group & Proxy selectors */}
-          {firstGroup && (
-            <div className="flag-emoji flex flex-col items-center mx-auto w-full max-w-3xs max-h-16">
+          {/* ── Route mode selector ── */}
+          {currentProfile && (
+            <div className="flex flex-col gap-2">
               <div
-                data-guide="home-group-selector"
-                className="w-full cursor-pointer"
-                onClick={() => navigate('/proxies', { state: { fromHome: true } })}
+                className="flex rounded-xl p-1 gap-1"
+                style={{
+                  background: 'oklch(0.175 0.03 240)',
+                  border: '1px solid oklch(0.28 0.045 240)'
+                }}
               >
-                <div className="flex items-center justify-between h-9 rounded-2xl border border-stroke pl-3 pr-1 py-3 backdrop-blur-xl bg-card/50 transition-colors hover:bg-card/70">
-                  <div className="flag-emoji text-sm truncate max-w-52">
-                    {firstGroup.now || firstGroup.name}
-                  </div>
-                  <ChevronRight />
-                </div>
+                {(['blocked', 'all-except-ru', 'all'] as const).map((m) => {
+                  const active = routeMode === m
+                  return (
+                    <button
+                      key={m}
+                      disabled={routeLoading}
+                      onClick={() => handleRouteModeChange(m)}
+                      className={`flex-1 text-xs py-1.5 px-1 rounded-lg transition-all duration-200 cursor-pointer font-medium ${
+                        routeLoading ? 'opacity-50' : ''
+                      }`}
+                      style={
+                        active
+                          ? {
+                              background: `linear-gradient(135deg, oklch(0.75 0.19 196 / 22%), oklch(0.68 0.22 210 / 22%))`,
+                              border: `1px solid oklch(0.75 0.19 196 / 50%)`,
+                              color: TEAL
+                            }
+                          : {
+                              background: 'transparent',
+                              border: '1px solid transparent',
+                              color: 'oklch(0.58 0.04 230)'
+                            }
+                      }
+                    >
+                      {routeModeLabels[m]}
+                    </button>
+                  )
+                })}
               </div>
+
+              {/* Geodata update */}
+              {geodataProgress !== null ? (
+                <div className="flex flex-col gap-1 px-1">
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span className="truncate">
+                      {geodataAuto
+                        ? `Загрузка геоданных: ${geodataFile || '...'}`
+                        : geodataFile || 'Загрузка...'}
+                    </span>
+                    <span>{geodataProgress}%</span>
+                  </div>
+                  <div
+                    className="h-1.5 rounded-full overflow-hidden"
+                    style={{ background: 'oklch(0.22 0.04 240)' }}
+                  >
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{
+                        width: `${geodataProgress}%`,
+                        background: `linear-gradient(90deg, oklch(0.75 0.19 196), oklch(0.68 0.22 210))`
+                      }}
+                    />
+                  </div>
+                  {geodataAuto && (
+                    <p className="text-[10px] text-center" style={{ color: 'oklch(0.48 0.04 230)' }}>
+                      VPN будет доступен после завершения загрузки
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={handleUpdateGeodata}
+                  className="flex items-center justify-center gap-1.5 text-[11px] transition-colors py-0.5 cursor-pointer"
+                  style={{ color: 'oklch(0.48 0.04 230)' }}
+                >
+                  <RefreshCcw className="size-3" />
+                  Обновить геоданные
+                </button>
+              )}
             </div>
           )}
+
+          {/* ── Server selector ── */}
+          {firstGroup && (
+            <div
+              className="flex items-center justify-between h-10 rounded-xl px-3 cursor-pointer transition-all"
+              data-guide="home-group-selector"
+              style={{
+                background: 'oklch(0.175 0.03 240)',
+                border: '1px solid oklch(0.28 0.045 240)'
+              }}
+              onClick={() => navigate('/proxies', { state: { fromHome: true } })}
+            >
+              <span className="flag-emoji text-sm truncate max-w-52 text-foreground">
+                {firstGroup.now || firstGroup.name}
+              </span>
+              <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+            </div>
+          )}
+
+          {/* ── Support link ── */}
           {supportLinkInfo && (
-            <div className="flex justify-center text-sm text-muted-foreground">
+            <div className="flex justify-center">
               <button
                 data-guide="home-support-link"
                 type="button"
                 onClick={() => open(supportLinkInfo.href)}
-                className="inline-flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
+                style={{ color: 'oklch(0.48 0.04 230)' }}
               >
                 {supportLinkInfo.isTelegram ? (
-                  <SiTelegram className="size-4" />
+                  <SiTelegram className="size-3.5" />
                 ) : (
-                  <Globe className="size-4" />
+                  <Globe className="size-3.5" />
                 )}
                 <span>{t('pages.profiles.support')}</span>
               </button>

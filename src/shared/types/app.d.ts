@@ -105,6 +105,7 @@ interface AppConfig {
   disableGPU: boolean
   mainSwitchMode?: 'tun' | 'sysproxy'
   useHotReloadProfile?: boolean
+  routeMode?: 'blocked' | 'all-except-ru' | 'all'
 }
 
 interface ProfileConfig {

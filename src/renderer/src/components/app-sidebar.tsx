@@ -23,10 +23,11 @@ import {
   SidebarMenuItem,
   useSidebar
 } from '@renderer/components/ui/sidebar'
-import OutboundModeSwitcher from '@renderer/components/sider/outbound-mode-switcher'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import UpdaterButton from '@renderer/components/updater/updater-button'
 import ConfigViewer from '@renderer/components/sider/config-viewer'
+import Logo from '@renderer/assets/velumvpn-logo.svg'
+import { SiTelegram } from 'react-icons/si'
 
 interface AppSidebarProps {
   latest?: {
@@ -68,6 +69,18 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
       variant="floating"
       className="pt-14.25"
     >
+      {/* Logo header */}
+      <div
+        className={`flex items-center gap-2.5 px-3 pb-3 pt-1 border-b border-sidebar-border ${collapsed ? 'justify-center' : ''}`}
+      >
+        <img src={Logo} alt="VelumVPN" className="size-7 shrink-0" />
+        {!collapsed && (
+          <span className="text-sm font-bold tracking-wide text-foreground">
+            Velum<span style={{ color: 'oklch(0.82 0.16 196)' }}>VPN</span>
+          </span>
+        )}
+      </div>
+
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
@@ -97,13 +110,29 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
       <SidebarFooter>
         <div className="flex flex-col items-center gap-2">
-          {hasProfiles && <OutboundModeSwitcher />}
           {latest && latest.version && <UpdaterButton iconOnly={collapsed} latest={latest} />}
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip={t('common.toggleSidebar')} onClick={toggleSidebar} className="cursor-pointer">
+              <SidebarMenuButton
+                tooltip="Поддержка Telegram"
+                className="cursor-pointer"
+                onClick={() => open('https://t.me/Veluum_support_bot')}
+              >
+                <SiTelegram className="size-4 shrink-0" style={{ color: '#29b6f6' }} />
+                <span>Поддержка</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip={t('common.toggleSidebar')}
+                onClick={toggleSidebar}
+                className="cursor-pointer"
+              >
                 {collapsed ? (
                   <ExpandedIcon className="size-4 shrink-0" />
                 ) : (
@@ -115,6 +144,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
           </SidebarMenu>
         </div>
       </SidebarFooter>
+
       {showRuntimeConfig && <ConfigViewer onClose={() => setShowRuntimeConfig(false)} />}
     </Sidebar>
   )

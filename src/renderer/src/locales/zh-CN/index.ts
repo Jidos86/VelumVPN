@@ -121,7 +121,7 @@ export default {
     sidebarHomeDesc: '点击侧边栏中的首页图标，返回首页并完成教程。',
     supportTitle: '技术支持',
     supportDesc: '点击这里可以联系服务提供方支持。',
-    welcome: '欢迎使用 Koala Clash',
+    welcome: '欢迎使用 VelumVPN',
     welcomeDesc:
       '这是一份交互式使用教程，如果您已经完全熟悉本软件的操作，可以直接点击右上角关闭按钮，后续您可以随时从设置中打开本教程',
     navbar: '导航栏',
@@ -136,7 +136,7 @@ export default {
       '订阅管理卡片展示当前运行的订阅配置信息，点击进入订阅管理页面可以在这里管理订阅配置',
     profileImport: '订阅导入',
     profileImportDesc:
-      'Koala Clash 支持多种订阅导入方式，在此输入订阅链接，点击导入即可导入您的订阅配置，如果您的订阅需要代理才能更新，请勾选"代理"再点击导入，当然这需要已经有一个可以正常使用的订阅才可以',
+      'VelumVPN 支持多种订阅导入方式，在此输入订阅链接，点击导入即可导入您的订阅配置，如果您的订阅需要代理才能更新，请勾选"代理"再点击导入，当然这需要已经有一个可以正常使用的订阅才可以',
     localProfile: '本地订阅',
     localProfileDesc: '点击"+"可以选择本地文件进行导入或者直接新建空白配置进行编辑',
     sysProxy: '系统代理',
@@ -150,7 +150,7 @@ export default {
       '虚拟网卡，即同类软件中常见的"Tun 模式"，对于某些不遵循系统代理的应用，您可以打开虚拟网卡以让内核接管所有流量',
     tunSettings: '虚拟网卡设置',
     tunSettingsDesc:
-      '这里可以更改虚拟网卡相关设置，Koala Clash 理论上已经完全解决权限问题，如果您的虚拟网卡仍然不可用，可以尝试重设防火墙（Windows）或手动授权内核（MacOS/Linux）后重启内核',
+      '这里可以更改虚拟网卡相关设置，VelumVPN 理论上已经完全解决权限问题，如果您的虚拟网卡仍然不可用，可以尝试重设防火墙（Windows）或手动授权内核（MacOS/Linux）后重启内核',
     dnsDesc:
       '软件默认接管了内核的 DNS 设置，如果您需要使用订阅配置中的 DNS 设置，可以到应用设置中关闭"接管 DNS 设置"，域名嗅探同理',
     tutorialEnd: '教程结束',
@@ -242,7 +242,12 @@ export default {
       proxy: '代理:',
       noProfile: '没有活动配置',
       unlimited: '无限',
-      never: '永不'
+      never: '永不',
+      routeMode: {
+        blocked: '仅封锁站点',
+        allExceptRu: '全部境外',
+        all: '全部经VPN'
+      }
     },
     settings: {
       title: '应用设置',
@@ -470,7 +475,7 @@ export default {
     pleaseConfirm: '请确认',
     confirmDelete: '确认删除',
     confirmImportProfile: '确定要导入订阅配置吗？',
-    confirmQuit: '确定要退出 Koala Clash 吗？',
+    confirmQuit: '确定要退出 VelumVPN 吗？',
     quitWarning: '退出后代理功能将停止工作',
     quickQuitHint: '快按两次或长按',
     canQuitDirectly: '可直接退出',
@@ -700,7 +705,7 @@ export default {
       registerTaskSchedule: '注册计划'
     },
     serviceModal: {
-      title: 'Koala Clash 服务管理',
+      title: 'VelumVPN 服务管理',
       serviceStatus: '服务状态',
       connectionStatus: '连接状态',
       checking: '检查中',

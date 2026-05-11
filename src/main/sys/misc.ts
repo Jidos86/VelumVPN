@@ -49,8 +49,8 @@ export async function setupFirewall(): Promise<void> {
   }
   `
   const createCommand = `
-  New-NetFirewallRule -DisplayName "mihomo" -Direction Inbound -Action Allow -Program "${mihomoCorePath('mihomo')}" -Enabled True -Profile Any -ErrorAction SilentlyContinue
-  New-NetFirewallRule -DisplayName "mihomo-alpha" -Direction Inbound -Action Allow -Program "${mihomoCorePath('mihomo-alpha')}" -Enabled True -Profile Any -ErrorAction SilentlyContinue
+  New-NetFirewallRule -DisplayName "VelumVPN Core" -Direction Inbound -Action Allow -Program "${mihomoCorePath('mihomo')}" -Enabled True -Profile Any -ErrorAction SilentlyContinue
+  New-NetFirewallRule -DisplayName "VelumVPN Core Alpha" -Direction Inbound -Action Allow -Program "${mihomoCorePath('mihomo-alpha')}" -Enabled True -Profile Any -ErrorAction SilentlyContinue
   New-NetFirewallRule -DisplayName "${appName}" -Direction Inbound -Action Allow -Program "${exePath()}" -Enabled True -Profile Any -ErrorAction SilentlyContinue
   `
 
@@ -94,7 +94,7 @@ const elevateTaskXml = `<?xml version="1.0" encoding="UTF-16"?>
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>"${path.join(taskDir(), `koala-clash-run.exe`)}"</Command>
+      <Command>"${path.join(taskDir(), `velumvpn-run.exe`)}"</Command>
       <Arguments>"${exePath()}"</Arguments>
     </Exec>
   </Actions>
@@ -102,20 +102,20 @@ const elevateTaskXml = `<?xml version="1.0" encoding="UTF-16"?>
 `
 
 export function createElevateTaskSync(): void {
-  const taskFilePath = path.join(taskDir(), `koala-clash-run.xml`)
+  const taskFilePath = path.join(taskDir(), `velumvpn-run.xml`)
   writeFileSync(taskFilePath, Buffer.from(`\ufeff${elevateTaskXml}`, 'utf-16le'))
   copyFileSync(
-    path.join(resourcesFilesDir(), 'koala-clash-run.exe'),
-    path.join(taskDir(), 'koala-clash-run.exe')
+    path.join(resourcesFilesDir(), 'velumvpn-run.exe'),
+    path.join(taskDir(), 'velumvpn-run.exe')
   )
   execSync(
-    `%SystemRoot%\\System32\\schtasks.exe /create /tn "koala-clash-run" /xml "${taskFilePath}" /f`
+    `%SystemRoot%\\System32\\schtasks.exe /create /tn "velumvpn-run" /xml "${taskFilePath}" /f`
   )
 }
 
 export async function deleteElevateTask(): Promise<void> {
   try {
-    execSync(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "koala-clash-run" /f`)
+    execSync(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "velumvpn-run" /f`)
   } catch {
     // ignore
   }
@@ -123,7 +123,7 @@ export async function deleteElevateTask(): Promise<void> {
 
 export async function checkElevateTask(): Promise<boolean> {
   try {
-    execSync(`%SystemRoot%\\System32\\schtasks.exe /query /tn "koala-clash-run"`, { stdio: 'pipe' })
+    execSync(`%SystemRoot%\\System32\\schtasks.exe /query /tn "velumvpn-run"`, { stdio: 'pipe' })
     return true
   } catch {
     return false
