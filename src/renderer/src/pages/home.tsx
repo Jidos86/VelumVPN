@@ -206,9 +206,8 @@ const Home: React.FC = () => {
     expireTimestamp > 0 ? Math.max(0, dayjs.unix(expireTimestamp).diff(dayjs(), 'day')) : 0
 
   const firstGroup = groups?.[0]
-  const supportUrl = currentProfile?.supportUrl
+  const supportUrl = currentProfile?.supportUrl || 'https://t.me/Veluum_support_bot'
   const supportLinkInfo = useMemo(() => {
-    if (!supportUrl) return null
     try {
       const parsed = new URL(supportUrl)
       const normalized = `${parsed.hostname}${parsed.pathname}`.toLowerCase()
