@@ -20,6 +20,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -42,22 +43,11 @@ jobs:
             arch: x64
             format: rpm
           - os: ubuntu-latest
-            arch: x64
-            format: pacman
-          - os: ubuntu-latest
             arch: arm64
             format: deb
           - os: ubuntu-latest
             arch: arm64
             format: rpm
-          - os: ubuntu-latest
-            arch: arm64
-            format: pacman
-
-          - os: macos-latest
-            arch: x64
-          - os: macos-latest
-            arch: arm64
 
     name: Build ${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
 
