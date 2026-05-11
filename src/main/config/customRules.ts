@@ -6,6 +6,8 @@ import { dataDir } from '../utils/dirs'
 export interface CustomRules {
   domains: string[]
   processes: string[]
+  excluded: string[]
+  excludedProcesses: string[]
 }
 
 function customRulesPath(): string {
@@ -14,16 +16,18 @@ function customRulesPath(): string {
 
 export async function getCustomRules(): Promise<CustomRules> {
   const p = customRulesPath()
-  if (!existsSync(p)) return { domains: [], processes: [] }
+  if (!existsSync(p)) return { domains: [], processes: [], excluded: [], excludedProcesses: [] }
   try {
     const data = await readFile(p, 'utf-8')
     const parsed = JSON.parse(data)
     return {
       domains: Array.isArray(parsed.domains) ? parsed.domains : [],
-      processes: Array.isArray(parsed.processes) ? parsed.processes : []
+      processes: Array.isArray(parsed.processes) ? parsed.processes : [],
+      excluded: Array.isArray(parsed.excluded) ? parsed.excluded : [],
+      excludedProcesses: Array.isArray(parsed.excludedProcesses) ? parsed.excludedProcesses : []
     }
   } catch {
-    return { domains: [], processes: [] }
+    return { domains: [], processes: [], excluded: [], excludedProcesses: [] }
   }
 }
 

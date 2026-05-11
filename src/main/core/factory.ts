@@ -198,16 +198,22 @@ function injectProxiesIntoTemplate(
   }
 }
 
-function injectCustomRules(template: MihomoConfig, rules: { domains: string[]; processes: string[] }): void {
+function injectCustomRules(template: MihomoConfig, rules: { domains: string[]; processes: string[]; excluded: string[]; excludedProcesses: string[] }): void {
   if (!Array.isArray(template.rules)) return
   const rulesArr = template.rules as unknown as string[]
   const matchIndex = rulesArr.findIndex((r) => r.startsWith('MATCH,'))
   const insertAt = matchIndex >= 0 ? matchIndex : rulesArr.length
 
-  const entries: string[] = [
+  // Исключения вставляются первыми — DIRECT имеет приоритет над VPN-правилами
+  const directEntries = [
+    ...(rules.excluded ?? []).map((d) => `DOMAIN-SUFFIX,${d},DIRECT`),
+    ...(rules.excludedProcesses ?? []).map((p) => `PROCESS-NAME,${p},DIRECT`)
+  ]
+  const vpnEntries = [
     ...rules.domains.map((d) => `DOMAIN-SUFFIX,${d},→ VelumVPN`),
     ...rules.processes.map((p) => `PROCESS-NAME,${p},→ VelumVPN`)
   ]
+  const entries = [...directEntries, ...vpnEntries]
   if (entries.length > 0) {
     rulesArr.splice(insertAt, 0, ...entries)
   }
