@@ -61,12 +61,6 @@
 
 ---
 
-## Поддержка
-
-Telegram: [@Veluum_support_bot](https://t.me/Veluum_support_bot)
-
----
-
 ## Основано на
 
 - [koala-clash](https://github.com/coolcoala/koala-clash) — Electron-оболочка для Mihomo
