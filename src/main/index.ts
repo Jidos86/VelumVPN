@@ -366,11 +366,22 @@ async function handleDeepLink(url: string): Promise<void> {
     return
 
   const urlObj = new URL(url)
+
+  // velumvpn://add/https://server/sub/token  (RemnaWave format)
+  let resolvedProfileUrl: string | null = null
+  let resolvedProfileName: string | null = null
+
+  if (urlObj.host === 'add' && urlObj.pathname.length > 1) {
+    resolvedProfileUrl = decodeURIComponent(urlObj.pathname.slice(1) + (urlObj.search || ''))
+    resolvedProfileName = null
+  }
+
   switch (urlObj.host) {
+    case 'add':
     case 'install-config': {
       try {
-        const profileUrl = urlObj.searchParams.get('url')
-        const profileName = urlObj.searchParams.get('name')
+        const profileUrl = resolvedProfileUrl ?? urlObj.searchParams.get('url')
+        const profileName = resolvedProfileName ?? urlObj.searchParams.get('name')
         if (!profileUrl) {
           throw new Error(t('error.missingUrlParam'))
         }
