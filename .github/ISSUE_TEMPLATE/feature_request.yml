@@ -1,0 +1,32 @@
+---
+body:
+  - attributes:
+      description: Before submitting, please complete and check all the following options to confirm that you have read and understood the requirements below. Otherwise, the issue will be closed.
+      label: Confirmation Steps
+      options:
+        - label: I have briefly described the features I require in the title.
+        - label: I have searched the [Issues](https://github.com/coolcoala/koala-clash/issues?q=is%3Aissue) but haven't found the functionality I need.
+        - label: This is a feature request for GUI programs, not kernel programs.
+        - label: I haven't found the feature I need in the latest version.
+    id: ensure
+    type: checkboxes
+  - attributes:
+      description: Please provide the operating system type.
+      label: Operating System
+      multiple: true
+      options:
+        - MacOS
+        - Windows
+        - Linux
+    type: dropdown
+    validations:
+      required: true
+  - attributes:
+      description: Please provide a detailed description of the required functionality.
+      label: Description
+    type: textarea
+    validations:
+      required: true
+description: Request for Koala Clash's non-implemented features
+name: Feature Request
+title: '[Feature] '
