@@ -965,5 +965,35 @@ export default {
   notifications: {
     taskScheduleManagement: '任务计划管理',
     coreAuthManagement: '内核授权管理'
+  },
+
+  customRules: {
+    pageTitle: '我的规则',
+    rulesApplied: '规则已应用',
+    activeProcesses: '活跃进程',
+    noActiveConnections: '暂无活跃连接',
+    importList: '导入列表',
+    importHintDomains: '粘贴域名——每行一个或用逗号分隔。',
+    importHintProcesses: '粘贴进程名——每行一个或用逗号分隔。',
+    cancel: '取消',
+    add: '添加',
+    selectFromActive: '从活跃进程中选择',
+    importBulk: '导入列表',
+    selectToDelete: '选择要删除的项目',
+    deselectAll: '取消全选',
+    selectAll: '全选',
+    deleteCount: '删除 ({{count}})',
+    vpnDomains: '通过 VPN 的网站',
+    vpnDomainDesc: '始终通过 VPN 的域名（例如：{{example}}）',
+    vpnProcesses: '通过 VPN 的应用',
+    vpnProcessDesc: '进程名称（例如：{{example}}）。需要 TUN 模式。',
+    directDomains: '绕过 VPN 的网站',
+    directDomainDesc: '始终直连、绕过 VPN 的域名（例如：{{example}}）',
+    directProcesses: '绕过 VPN 的应用',
+    directProcessDesc: '进程名称（例如：{{example}}）。需要 TUN 模式。',
+    emptyDomains: '未添加任何域名',
+    emptyProcesses: '未添加任何应用',
+    emptyExcludedDomains: '无排除域名',
+    emptyExcludedProcesses: '无排除应用'
   }
 }

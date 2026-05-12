@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import BasePage from '@renderer/components/base/base-page'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
@@ -16,6 +17,7 @@ interface ProcessPickerProps {
 }
 
 const ProcessPicker: React.FC<ProcessPickerProps> = ({ onSelect, onClose }) => {
+  const { t } = useTranslation()
   const active = useConnectionsStore((s) => s.active)
   const names = [...new Set(
     active
@@ -26,10 +28,10 @@ const ProcessPicker: React.FC<ProcessPickerProps> = ({ onSelect, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div className="bg-card border border-border rounded-lg w-72 max-h-80 flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="px-3 py-2 border-b border-border text-sm font-medium">Активные процессы</div>
+        <div className="px-3 py-2 border-b border-border text-sm font-medium">{t('customRules.activeProcesses')}</div>
         <div className="overflow-y-auto flex-1">
           {names.length === 0 && (
-            <p className="text-xs text-muted-foreground italic p-3">Нет активных подключений</p>
+            <p className="text-xs text-muted-foreground italic p-3">{t('customRules.noActiveConnections')}</p>
           )}
           {names.map((n) => (
             <button
@@ -42,7 +44,7 @@ const ProcessPicker: React.FC<ProcessPickerProps> = ({ onSelect, onClose }) => {
           ))}
         </div>
         <div className="px-3 py-2 border-t border-border">
-          <Button size="sm" variant="ghost" className="w-full h-7 text-xs" onClick={onClose}>Закрыть</Button>
+          <Button size="sm" variant="ghost" className="w-full h-7 text-xs" onClick={onClose}>{t('common.close')}</Button>
         </div>
       </div>
     </div>
@@ -56,6 +58,7 @@ interface ImportModalProps {
 }
 
 const ImportModal: React.FC<ImportModalProps> = ({ isDomain, onConfirm, onClose }) => {
+  const { t } = useTranslation()
   const [text, setText] = useState('')
   const taRef = useRef<HTMLTextAreaElement>(null)
 
@@ -74,8 +77,8 @@ const ImportModal: React.FC<ImportModalProps> = ({ isDomain, onConfirm, onClose 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div className="bg-card border border-border rounded-lg w-96 flex flex-col gap-3 p-4" onClick={(e) => e.stopPropagation()}>
-        <div className="text-sm font-medium">Импорт списка</div>
-        <p className="text-xs text-muted-foreground">Вставьте {isDomain ? 'домены' : 'имена процессов'} — каждый с новой строки или через запятую.</p>
+        <div className="text-sm font-medium">{t('customRules.importList')}</div>
+        <p className="text-xs text-muted-foreground">{isDomain ? t('customRules.importHintDomains') : t('customRules.importHintProcesses')}</p>
         <textarea
           ref={taRef}
           value={text}
@@ -84,8 +87,8 @@ const ImportModal: React.FC<ImportModalProps> = ({ isDomain, onConfirm, onClose 
           className="w-full h-40 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono resize-none focus:outline-none focus:ring-1 focus:ring-ring"
         />
         <div className="flex gap-2 justify-end">
-          <Button size="sm" variant="ghost" onClick={onClose}>Отмена</Button>
-          <Button size="sm" onClick={handleConfirm}>Добавить</Button>
+          <Button size="sm" variant="ghost" onClick={onClose}>{t('customRules.cancel')}</Button>
+          <Button size="sm" onClick={handleConfirm}>{t('customRules.add')}</Button>
         </div>
       </div>
     </div>
@@ -116,6 +119,7 @@ const RuleSection: React.FC<SectionProps> = ({
   icon, title, description, items, input, placeholder, saving, color, showPicker, isDomain,
   onInputChange, onAdd, onRemove, onPickerOpen, onBulkImport, onBulkRemove, emptyText
 }) => {
+  const { t } = useTranslation()
   const [showImport, setShowImport] = useState(false)
   const [selecting, setSelecting] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -157,15 +161,15 @@ const RuleSection: React.FC<SectionProps> = ({
         disabled={selecting}
       />
       {showPicker && onPickerOpen && (
-        <Button size="sm" variant="outline" onClick={onPickerOpen} disabled={saving || selecting} className="h-8 px-2 shrink-0" title="Выбрать из активных">
+        <Button size="sm" variant="outline" onClick={onPickerOpen} disabled={saving || selecting} className="h-8 px-2 shrink-0" title={t('customRules.selectFromActive')}>
           <ListTree className="size-3.5" />
         </Button>
       )}
-      <Button size="sm" variant="outline" onClick={() => setShowImport(true)} disabled={saving || selecting} className="h-8 px-2 shrink-0" title="Импортировать список">
+      <Button size="sm" variant="outline" onClick={() => setShowImport(true)} disabled={saving || selecting} className="h-8 px-2 shrink-0" title={t('customRules.importBulk')}>
         <Upload className="size-3.5" />
       </Button>
       {items.length > 0 && !selecting && (
-        <Button size="sm" variant="outline" onClick={() => setSelecting(true)} disabled={saving} className="h-8 px-2 shrink-0" title="Выбрать для удаления">
+        <Button size="sm" variant="outline" onClick={() => setSelecting(true)} disabled={saving} className="h-8 px-2 shrink-0" title={t('customRules.selectToDelete')}>
           <CheckSquare className="size-3.5" />
         </Button>
       )}
@@ -178,13 +182,13 @@ const RuleSection: React.FC<SectionProps> = ({
       <div className="flex items-center justify-between mb-2 px-1">
         <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors" onClick={toggleAll}>
           {allSelected ? <CheckSquare className="size-3.5" /> : <Square className="size-3.5" />}
-          {allSelected ? 'Снять всё' : 'Выбрать всё'}
+          {allSelected ? t('customRules.deselectAll') : t('customRules.selectAll')}
         </button>
         <div className="flex items-center gap-2">
           {selected.size > 0 && (
             <Button size="sm" variant="destructive" onClick={deleteSelected} disabled={saving} className="h-6 px-2 text-xs">
               <Trash2 className="size-3 mr-1" />
-              Удалить ({selected.size})
+              {t('customRules.deleteCount', { count: selected.size })}
             </Button>
           )}
           <button onClick={exitSelect} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -221,6 +225,7 @@ const RuleSection: React.FC<SectionProps> = ({
 }
 
 const CustomRules: React.FC = () => {
+  const { t } = useTranslation()
   const [domains, setDomains] = useState<string[]>([])
   const [processes, setProcesses] = useState<string[]>([])
   const [excluded, setExcluded] = useState<string[]>([])
@@ -246,7 +251,7 @@ const CustomRules: React.FC = () => {
     try {
       await setCustomRules({ domains: d, processes: p, excluded: e, excludedProcesses: ep })
       await restartCore()
-      toast.success('Правила применены')
+      toast.success(t('customRules.rulesApplied'))
     } catch (err) {
       toast.error(String(err))
     } finally {
@@ -258,7 +263,7 @@ const CustomRules: React.FC = () => {
     isDomain ? val.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '') : val.trim()
 
   return (
-    <BasePage title="Мои правила" contentClassName="overflow-y-auto">
+    <BasePage title={t('customRules.pageTitle')} contentClassName="overflow-y-auto">
       {picker && (
         <ProcessPicker
           onSelect={(name) => {
@@ -280,18 +285,18 @@ const CustomRules: React.FC = () => {
 
       <div className="p-4 flex flex-col gap-6 max-w-xl">
 
-        {/* Домены через VPN */}
+        {/* Sites via VPN */}
         <RuleSection
           icon={<Globe className="size-4" />}
-          title="Сайты через VPN"
+          title={t('customRules.vpnDomains')}
           color={TEAL}
-          description={<>Домены, которые всегда идут через VPN (например: <span className="font-mono">thangs.com</span>)</>}
+          description={t('customRules.vpnDomainDesc', { example: 'thangs.com' })}
           items={domains}
           input={domainInput}
           placeholder="example.com"
           saving={saving}
           isDomain
-          emptyText="Нет добавленных доменов"
+          emptyText={t('customRules.emptyDomains')}
           onInputChange={setDomainInput}
           onAdd={() => {
             const val = clean(domainInput, true)
@@ -315,18 +320,18 @@ const CustomRules: React.FC = () => {
           }}
         />
 
-        {/* Приложения через VPN */}
+        {/* Apps via VPN */}
         <RuleSection
           icon={<Monitor className="size-4" />}
-          title="Приложения через VPN"
+          title={t('customRules.vpnProcesses')}
           color={TEAL}
-          description={<>Имя процесса (например: <span className="font-mono">Discord.exe</span>). Требуется TUN-режим.</>}
+          description={t('customRules.vpnProcessDesc', { example: 'Discord.exe' })}
           items={processes}
           input={processInput}
           placeholder="App.exe"
           saving={saving}
           showPicker
-          emptyText="Нет добавленных приложений"
+          emptyText={t('customRules.emptyProcesses')}
           onInputChange={setProcessInput}
           onAdd={() => {
             const val = clean(processInput, false)
@@ -353,18 +358,18 @@ const CustomRules: React.FC = () => {
 
         <div className="border-t border-border" />
 
-        {/* Домены в обход VPN */}
+        {/* Sites bypassing VPN */}
         <RuleSection
           icon={<ShieldOff className="size-4" />}
-          title="Сайты в обход VPN"
+          title={t('customRules.directDomains')}
           color={RED}
-          description={<>Домены, которые всегда идут напрямую, минуя VPN (например: <span className="font-mono">work.example.com</span>)</>}
+          description={t('customRules.directDomainDesc', { example: 'work.example.com' })}
           items={excluded}
           input={excludedInput}
           placeholder="work.example.com"
           saving={saving}
           isDomain
-          emptyText="Нет исключённых доменов"
+          emptyText={t('customRules.emptyExcludedDomains')}
           onInputChange={setExcludedInput}
           onAdd={() => {
             const val = clean(excludedInput, true)
@@ -388,18 +393,18 @@ const CustomRules: React.FC = () => {
           }}
         />
 
-        {/* Приложения в обход VPN */}
+        {/* Apps bypassing VPN */}
         <RuleSection
           icon={<Monitor className="size-4" />}
-          title="Приложения в обход VPN"
+          title={t('customRules.directProcesses')}
           color={RED}
-          description={<>Имя процесса (например: <span className="font-mono">EpicGamesLauncher.exe</span>). Требуется TUN-режим.</>}
+          description={t('customRules.directProcessDesc', { example: 'EpicGamesLauncher.exe' })}
           items={excludedProcesses}
           input={excludedProcInput}
           placeholder="Launcher.exe"
           saving={saving}
           showPicker
-          emptyText="Нет исключённых приложений"
+          emptyText={t('customRules.emptyExcludedProcesses')}
           onInputChange={setExcludedProcInput}
           onAdd={() => {
             const val = clean(excludedProcInput, false)

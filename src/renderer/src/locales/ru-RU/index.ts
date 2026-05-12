@@ -991,5 +991,35 @@ export default {
     tutorialEnd: 'Готово!',
     tutorialEndDesc:
       'Вы освоили основы работы с приложением. Если остались вопросы — загляните в документацию.'
+  },
+
+  customRules: {
+    pageTitle: 'Мои правила',
+    rulesApplied: 'Правила применены',
+    activeProcesses: 'Активные процессы',
+    noActiveConnections: 'Нет активных подключений',
+    importList: 'Импорт списка',
+    importHintDomains: 'Вставьте домены — каждый с новой строки или через запятую.',
+    importHintProcesses: 'Вставьте имена процессов — каждый с новой строки или через запятую.',
+    cancel: 'Отмена',
+    add: 'Добавить',
+    selectFromActive: 'Выбрать из активных процессов',
+    importBulk: 'Импортировать список',
+    selectToDelete: 'Выбрать для удаления',
+    deselectAll: 'Снять всё',
+    selectAll: 'Выбрать всё',
+    deleteCount: 'Удалить ({{count}})',
+    vpnDomains: 'Сайты через VPN',
+    vpnDomainDesc: 'Домены, которые всегда идут через VPN (например: {{example}})',
+    vpnProcesses: 'Приложения через VPN',
+    vpnProcessDesc: 'Имя процесса (например: {{example}}). Требуется TUN-режим.',
+    directDomains: 'Сайты в обход VPN',
+    directDomainDesc: 'Домены, которые всегда идут напрямую, минуя VPN (например: {{example}})',
+    directProcesses: 'Приложения в обход VPN',
+    directProcessDesc: 'Имя процесса (например: {{example}}). Требуется TUN-режим.',
+    emptyDomains: 'Нет добавленных доменов',
+    emptyProcesses: 'Нет добавленных приложений',
+    emptyExcludedDomains: 'Нет исключённых доменов',
+    emptyExcludedProcesses: 'Нет исключённых приложений'
   }
 }

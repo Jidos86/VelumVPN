@@ -989,5 +989,35 @@ export default {
     tutorialEnd: 'Tutorial Complete',
     tutorialEndDesc:
       'Now you understand the basic usage of this software. If you have more questions, please refer to the official documentation.'
+  },
+
+  customRules: {
+    pageTitle: 'My Rules',
+    rulesApplied: 'Rules applied',
+    activeProcesses: 'Active Processes',
+    noActiveConnections: 'No active connections',
+    importList: 'Import List',
+    importHintDomains: 'Paste domains — one per line or comma-separated.',
+    importHintProcesses: 'Paste process names — one per line or comma-separated.',
+    cancel: 'Cancel',
+    add: 'Add',
+    selectFromActive: 'Select from active processes',
+    importBulk: 'Import list',
+    selectToDelete: 'Select items to delete',
+    deselectAll: 'Deselect all',
+    selectAll: 'Select all',
+    deleteCount: 'Delete ({{count}})',
+    vpnDomains: 'Sites via VPN',
+    vpnDomainDesc: 'Domains that always go through VPN (e.g. {{example}})',
+    vpnProcesses: 'Apps via VPN',
+    vpnProcessDesc: 'Process name (e.g. {{example}}). TUN mode required.',
+    directDomains: 'Sites bypassing VPN',
+    directDomainDesc: 'Domains that always go directly, bypassing VPN (e.g. {{example}})',
+    directProcesses: 'Apps bypassing VPN',
+    directProcessDesc: 'Process name (e.g. {{example}}). TUN mode required.',
+    emptyDomains: 'No domains added',
+    emptyProcesses: 'No apps added',
+    emptyExcludedDomains: 'No excluded domains',
+    emptyExcludedProcesses: 'No excluded apps'
   }
 }
