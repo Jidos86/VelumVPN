@@ -90,6 +90,7 @@ export default {
     connection: 'Connections',
     logs: 'Logs',
     myRules: 'My Rules',
+    diagnostics: 'Diagnostics',
     shop: 'Shop',
     support: 'Support',
     domainSniffing: 'Domain Sniffing',

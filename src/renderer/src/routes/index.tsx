@@ -13,6 +13,7 @@ import DNS from '@renderer/pages/dns'
 import Sniffer from '@renderer/pages/sniffer'
 import Home from '@renderer/pages/home'
 import CustomRules from '@renderer/pages/custom-rules'
+import Diagnostics from '@renderer/pages/diagnostics'
 const routes = [
   {
     path: '/mihomo',
@@ -73,6 +74,10 @@ const routes = [
   {
     path: '/custom-rules',
     element: <CustomRules />
+  },
+  {
+    path: '/diagnostics',
+    element: <Diagnostics />
   },
 ]
 

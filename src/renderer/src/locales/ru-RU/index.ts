@@ -91,6 +91,7 @@ export default {
     connection: 'Подключения',
     logs: 'Логи',
     myRules: 'Мои правила',
+    diagnostics: 'Диагностика',
     shop: 'Магазин',
     support: 'Поддержка',
     domainSniffing: 'Определение доменов',

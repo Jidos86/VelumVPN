@@ -165,6 +165,7 @@ export default {
     connection: '连接',
     logs: '日志',
     myRules: '我的规则',
+    diagnostics: '诊断',
     shop: '商店',
     support: '支持',
     domainSniffing: '域名嗅探',
