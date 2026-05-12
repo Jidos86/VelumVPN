@@ -80,6 +80,32 @@ const Diagnostics: React.FC = () => {
     finally { setActingHost(null) }
   }
 
+  const addIPToVpn = async (host: string) => {
+    const ip = host.replace(/:\d+$/, '').replace(/^\[(.+)\]$/, '$1')
+    setActingHost(ip)
+    try {
+      const rules = await getCustomRules()
+      if (rules.ips?.includes(ip)) { toast.info(`${ip} уже в VPN`); return }
+      await setCustomRules({ ...rules, ips: [...(rules.ips ?? []), ip] })
+      await restartCore()
+      toast.success(`${ip} → IP через VPN`, { action: toMyRulesAction })
+    } catch (e) { toast.error(String(e)) }
+    finally { setActingHost(null) }
+  }
+
+  const addIPToDirect = async (host: string) => {
+    const ip = host.replace(/:\d+$/, '').replace(/^\[(.+)\]$/, '$1')
+    setActingHost(ip)
+    try {
+      const rules = await getCustomRules()
+      if (rules.excludedIPs?.includes(ip)) { toast.info(`${ip} уже в обходе VPN`); return }
+      await setCustomRules({ ...rules, excludedIPs: [...(rules.excludedIPs ?? []), ip] })
+      await restartCore()
+      toast.success(`${ip} → IP в обход VPN`, { action: toMyRulesAction })
+    } catch (e) { toast.error(String(e)) }
+    finally { setActingHost(null) }
+  }
+
   const addProcessToVpn = async (process: string) => {
     if (!process || process === '—') return
     setActingProc(process)
@@ -204,25 +230,25 @@ const Diagnostics: React.FC = () => {
                 <span className="text-xs shrink-0" style={{ color: RED }}>⚠</span>
               )}
 
-              {/* Domain action buttons — only for real domains, not IPs */}
-              {!hostIsIP && host !== '—' && isDirect && (
+              {/* Host action buttons */}
+              {host !== '—' && isDirect && (
                 <Button
                   size="sm" variant="outline"
                   className="h-6 px-2 text-xs shrink-0"
                   disabled={actingHost === host}
-                  onClick={() => addDomainToVpn(host)}
-                  title="Домен → Сайты через VPN"
+                  onClick={() => hostIsIP ? addIPToVpn(host) : addDomainToVpn(host)}
+                  title={hostIsIP ? 'IP → VPN (IP-CIDR)' : 'Домен → Сайты через VPN'}
                 >
                   <ArrowRight className="size-3 mr-1" />VPN
                 </Button>
               )}
-              {!hostIsIP && host !== '—' && isVpn && (
+              {host !== '—' && isVpn && (
                 <Button
                   size="sm" variant="outline"
                   className="h-6 px-2 text-xs shrink-0"
                   disabled={actingHost === host}
-                  onClick={() => addDomainToDirect(host)}
-                  title="Домен → Сайты в обход VPN"
+                  onClick={() => hostIsIP ? addIPToDirect(host) : addDomainToDirect(host)}
+                  title={hostIsIP ? 'IP → Direct (IP-CIDR)' : 'Домен → Сайты в обход VPN'}
                 >
                   <ArrowLeft className="size-3 mr-1" />Direct
                 </Button>

@@ -1018,6 +1018,12 @@ export default {
     emptyDomains: 'No domains added',
     emptyProcesses: 'No apps added',
     emptyExcludedDomains: 'No excluded domains',
-    emptyExcludedProcesses: 'No excluded apps'
+    emptyExcludedProcesses: 'No excluded apps',
+    vpnIPs: 'IPs via VPN',
+    vpnIPDesc: 'Specific IP addresses always routed through VPN (e.g. {{example}})',
+    directIPs: 'IPs bypassing VPN',
+    directIPDesc: 'Specific IP addresses always going directly (e.g. {{example}})',
+    emptyIPs: 'No IPs added',
+    emptyExcludedIPs: 'No excluded IPs'
   }
 }

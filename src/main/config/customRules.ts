@@ -8,6 +8,8 @@ export interface CustomRules {
   processes: string[]
   excluded: string[]
   excludedProcesses: string[]
+  ips: string[]
+  excludedIPs: string[]
 }
 
 function customRulesPath(): string {
@@ -16,7 +18,7 @@ function customRulesPath(): string {
 
 export async function getCustomRules(): Promise<CustomRules> {
   const p = customRulesPath()
-  if (!existsSync(p)) return { domains: [], processes: [], excluded: [], excludedProcesses: [] }
+  if (!existsSync(p)) return { domains: [], processes: [], excluded: [], excludedProcesses: [], ips: [], excludedIPs: [] }
   try {
     const data = await readFile(p, 'utf-8')
     const parsed = JSON.parse(data)
@@ -24,10 +26,12 @@ export async function getCustomRules(): Promise<CustomRules> {
       domains: Array.isArray(parsed.domains) ? parsed.domains : [],
       processes: Array.isArray(parsed.processes) ? parsed.processes : [],
       excluded: Array.isArray(parsed.excluded) ? parsed.excluded : [],
-      excludedProcesses: Array.isArray(parsed.excludedProcesses) ? parsed.excludedProcesses : []
+      excludedProcesses: Array.isArray(parsed.excludedProcesses) ? parsed.excludedProcesses : [],
+      ips: Array.isArray(parsed.ips) ? parsed.ips : [],
+      excludedIPs: Array.isArray(parsed.excludedIPs) ? parsed.excludedIPs : []
     }
   } catch {
-    return { domains: [], processes: [], excluded: [], excludedProcesses: [] }
+    return { domains: [], processes: [], excluded: [], excludedProcesses: [], ips: [], excludedIPs: [] }
   }
 }
 

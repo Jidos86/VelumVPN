@@ -198,14 +198,21 @@ function injectProxiesIntoTemplate(
   }
 }
 
-function injectCustomRules(template: MihomoConfig, rules: { domains: string[]; processes: string[]; excluded: string[]; excludedProcesses: string[] }): void {
+function ipCidrRule(ip: string, target: string): string {
+  const clean = ip.replace(/:\d+$/, '').replace(/^\[(.+)\]$/, '$1')
+  const isV6 = clean.includes(':')
+  return isV6 ? `IP-CIDR6,${clean}/128,${target},no-resolve` : `IP-CIDR,${clean}/32,${target},no-resolve`
+}
+
+function injectCustomRules(template: MihomoConfig, rules: { domains: string[]; processes: string[]; excluded: string[]; excludedProcesses: string[]; ips: string[]; excludedIPs: string[] }): void {
   if (!Array.isArray(template.rules)) return
   const rulesArr = template.rules as unknown as string[]
 
   // Исключения (DIRECT) — в самое начало, они должны перекрывать любые гео-правила
   const directEntries = [
     ...(rules.excluded ?? []).map((d) => `DOMAIN-SUFFIX,${d},DIRECT`),
-    ...(rules.excludedProcesses ?? []).map((p) => `PROCESS-NAME,${p},DIRECT`)
+    ...(rules.excludedProcesses ?? []).map((p) => `PROCESS-NAME,${p},DIRECT`),
+    ...(rules.excludedIPs ?? []).map((ip) => ipCidrRule(ip, 'DIRECT'))
   ]
   if (directEntries.length > 0) {
     rulesArr.unshift(...directEntries)
@@ -216,7 +223,8 @@ function injectCustomRules(template: MihomoConfig, rules: { domains: string[]; p
   const insertAt = matchIndex >= 0 ? matchIndex : rulesArr.length
   const vpnEntries = [
     ...rules.domains.map((d) => `DOMAIN-SUFFIX,${d},→ VelumVPN`),
-    ...rules.processes.map((p) => `PROCESS-NAME,${p},→ VelumVPN`)
+    ...rules.processes.map((p) => `PROCESS-NAME,${p},→ VelumVPN`),
+    ...(rules.ips ?? []).map((ip) => ipCidrRule(ip, '→ VelumVPN'))
   ]
   if (vpnEntries.length > 0) {
     rulesArr.splice(insertAt, 0, ...vpnEntries)

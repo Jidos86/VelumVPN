@@ -5,7 +5,7 @@ import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { getCustomRules, setCustomRules, restartCore } from '@renderer/utils/ipc'
 import { useConnectionsStore } from '@renderer/store/connections-store'
-import { Globe, Monitor, Plus, ShieldOff, Trash2, ListTree, Upload, CheckSquare, Square, X } from 'lucide-react'
+import { Globe, Monitor, Plus, ShieldOff, Trash2, ListTree, Upload, CheckSquare, Square, X, Network } from 'lucide-react'
 import { toast } from 'sonner'
 
 const TEAL = 'oklch(0.82 0.16 196)'
@@ -230,10 +230,14 @@ const CustomRules: React.FC = () => {
   const [processes, setProcesses] = useState<string[]>([])
   const [excluded, setExcluded] = useState<string[]>([])
   const [excludedProcesses, setExcludedProcesses] = useState<string[]>([])
+  const [ips, setIPs] = useState<string[]>([])
+  const [excludedIPs, setExcludedIPs] = useState<string[]>([])
   const [domainInput, setDomainInput] = useState('')
   const [processInput, setProcessInput] = useState('')
   const [excludedInput, setExcludedInput] = useState('')
   const [excludedProcInput, setExcludedProcInput] = useState('')
+  const [ipInput, setIPInput] = useState('')
+  const [excludedIPInput, setExcludedIPInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [picker, setPicker] = useState<'vpn' | 'direct' | null>(null)
 
@@ -243,13 +247,15 @@ const CustomRules: React.FC = () => {
       setProcesses(rules.processes ?? [])
       setExcluded(rules.excluded ?? [])
       setExcludedProcesses(rules.excludedProcesses ?? [])
+      setIPs(rules.ips ?? [])
+      setExcludedIPs(rules.excludedIPs ?? [])
     })
   }, [])
 
-  const save = async (d: string[], p: string[], e: string[], ep: string[]) => {
+  const save = async (d: string[], p: string[], e: string[], ep: string[], i: string[] = ips, ei: string[] = excludedIPs) => {
     setSaving(true)
     try {
-      await setCustomRules({ domains: d, processes: p, excluded: e, excludedProcesses: ep })
+      await setCustomRules({ domains: d, processes: p, excluded: e, excludedProcesses: ep, ips: i, excludedIPs: ei })
       await restartCore()
       toast.success(t('customRules.rulesApplied'))
     } catch (err) {
@@ -356,6 +362,38 @@ const CustomRules: React.FC = () => {
           }}
         />
 
+        {/* IPs via VPN */}
+        <RuleSection
+          icon={<Network className="size-4" />}
+          title={t('customRules.vpnIPs')}
+          color={TEAL}
+          description={t('customRules.vpnIPDesc', { example: '149.154.167.41' })}
+          items={ips}
+          input={ipInput}
+          placeholder="149.154.167.41"
+          saving={saving}
+          emptyText={t('customRules.emptyIPs')}
+          onInputChange={setIPInput}
+          onAdd={() => {
+            const val = ipInput.trim()
+            if (!val || ips.includes(val)) { setIPInput(''); return }
+            const next = [...ips, val]; setIPs(next); setIPInput('')
+            save(domains, processes, excluded, excludedProcesses, next, excludedIPs)
+          }}
+          onRemove={(ip) => {
+            const next = ips.filter((x) => x !== ip); setIPs(next)
+            save(domains, processes, excluded, excludedProcesses, next, excludedIPs)
+          }}
+          onBulkImport={(newItems) => {
+            const next = [...new Set([...ips, ...newItems])]; setIPs(next)
+            save(domains, processes, excluded, excludedProcesses, next, excludedIPs)
+          }}
+          onBulkRemove={(toRemove) => {
+            const next = ips.filter((x) => !toRemove.includes(x)); setIPs(next)
+            save(domains, processes, excluded, excludedProcesses, next, excludedIPs)
+          }}
+        />
+
         <div className="border-t border-border" />
 
         {/* Sites bypassing VPN */}
@@ -426,6 +464,38 @@ const CustomRules: React.FC = () => {
             const next = excludedProcesses.filter((x) => !toRemove.includes(x))
             setExcludedProcesses(next)
             save(domains, processes, excluded, next)
+          }}
+        />
+
+        {/* IPs bypassing VPN */}
+        <RuleSection
+          icon={<Network className="size-4" />}
+          title={t('customRules.directIPs')}
+          color={RED}
+          description={t('customRules.directIPDesc', { example: '192.168.1.1' })}
+          items={excludedIPs}
+          input={excludedIPInput}
+          placeholder="192.168.1.1"
+          saving={saving}
+          emptyText={t('customRules.emptyExcludedIPs')}
+          onInputChange={setExcludedIPInput}
+          onAdd={() => {
+            const val = excludedIPInput.trim()
+            if (!val || excludedIPs.includes(val)) { setExcludedIPInput(''); return }
+            const next = [...excludedIPs, val]; setExcludedIPs(next); setExcludedIPInput('')
+            save(domains, processes, excluded, excludedProcesses, ips, next)
+          }}
+          onRemove={(ip) => {
+            const next = excludedIPs.filter((x) => x !== ip); setExcludedIPs(next)
+            save(domains, processes, excluded, excludedProcesses, ips, next)
+          }}
+          onBulkImport={(newItems) => {
+            const next = [...new Set([...excludedIPs, ...newItems])]; setExcludedIPs(next)
+            save(domains, processes, excluded, excludedProcesses, ips, next)
+          }}
+          onBulkRemove={(toRemove) => {
+            const next = excludedIPs.filter((x) => !toRemove.includes(x)); setExcludedIPs(next)
+            save(domains, processes, excluded, excludedProcesses, ips, next)
           }}
         />
 

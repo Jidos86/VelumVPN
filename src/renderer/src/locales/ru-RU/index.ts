@@ -1020,6 +1020,12 @@ export default {
     emptyDomains: 'Нет добавленных доменов',
     emptyProcesses: 'Нет добавленных приложений',
     emptyExcludedDomains: 'Нет исключённых доменов',
-    emptyExcludedProcesses: 'Нет исключённых приложений'
+    emptyExcludedProcesses: 'Нет исключённых приложений',
+    vpnIPs: 'IP-адреса через VPN',
+    vpnIPDesc: 'Конкретные IP-адреса, которые всегда идут через VPN (например: {{example}})',
+    directIPs: 'IP-адреса в обход VPN',
+    directIPDesc: 'Конкретные IP-адреса, которые всегда идут напрямую (например: {{example}})',
+    emptyIPs: 'Нет добавленных IP',
+    emptyExcludedIPs: 'Нет исключённых IP'
   }
 }

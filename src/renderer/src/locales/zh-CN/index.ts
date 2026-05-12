@@ -994,6 +994,12 @@ export default {
     emptyDomains: '未添加任何域名',
     emptyProcesses: '未添加任何应用',
     emptyExcludedDomains: '无排除域名',
-    emptyExcludedProcesses: '无排除应用'
+    emptyExcludedProcesses: '无排除应用',
+    vpnIPs: '通过 VPN 的 IP',
+    vpnIPDesc: '始终通过 VPN 的特定 IP 地址（例如：{{example}}）',
+    directIPs: '绕过 VPN 的 IP',
+    directIPDesc: '始终直连的特定 IP 地址（例如：{{example}}）',
+    emptyIPs: '未添加任何 IP',
+    emptyExcludedIPs: '无排除 IP'
   }
 }
