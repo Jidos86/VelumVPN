@@ -4,13 +4,14 @@ import BasePage from '@renderer/components/base/base-page'
 import { useConnectionsStore } from '@renderer/store/connections-store'
 import { getCustomRules, setCustomRules, restartCore } from '@renderer/utils/ipc'
 import { Button } from '@renderer/components/ui/button'
-import { ArrowRight, ArrowLeft, Trash2 } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Trash2, ArrowUpDown } from 'lucide-react'
 import { toast } from 'sonner'
 
 const TEAL = 'oklch(0.82 0.16 196)'
 const RED = 'oklch(0.65 0.2 25)'
 
 type Filter = 'all' | 'errors' | 'direct' | 'vpn'
+type SortBy = 'time-desc' | 'time-asc' | 'process' | 'host' | 'errors-first'
 type SelTarget = 'process' | 'host'
 
 interface Selected {
@@ -33,6 +34,7 @@ const Diagnostics: React.FC = () => {
   const closed = useConnectionsStore((s) => s.closed)
   const clearAllClosed = useConnectionsStore((s) => s.clearAllClosed)
   const [filter, setFilter] = useState<Filter>('all')
+  const [sortBy, setSortBy] = useState<SortBy>('time-desc')
   const [sel, setSel] = useState<Selected | null>(null)
   const [acting, setActing] = useState<string | null>(null)
 
@@ -52,13 +54,20 @@ const Diagnostics: React.FC = () => {
   const errorCount = useMemo(() => rows.filter((r) => r.hasError).length, [rows])
 
   const filtered = useMemo(() => {
+    let result = rows
     switch (filter) {
-      case 'errors': return rows.filter((r) => r.hasError)
-      case 'direct': return rows.filter((r) => r.isDirect)
-      case 'vpn': return rows.filter((r) => r.isVpn)
-      default: return rows
+      case 'errors': result = rows.filter((r) => r.hasError); break
+      case 'direct': result = rows.filter((r) => r.isDirect); break
+      case 'vpn':    result = rows.filter((r) => r.isVpn);   break
     }
-  }, [rows, filter])
+    switch (sortBy) {
+      case 'time-asc':     return [...result].reverse()
+      case 'process':      return [...result].sort((a, b) => a.process.localeCompare(b.process))
+      case 'host':         return [...result].sort((a, b) => a.host.localeCompare(b.host))
+      case 'errors-first': return [...result].sort((a, b) => Number(b.hasError) - Number(a.hasError))
+      default:             return result
+    }
+  }, [rows, filter, sortBy])
 
   const clickCell = (connId: string, target: SelTarget) => {
     setSel((prev) => prev?.connId === connId && prev?.target === target ? null : { connId, target })
@@ -130,15 +139,30 @@ const Diagnostics: React.FC = () => {
     { key: 'vpn', label: 'VPN', count: rows.filter((r) => r.isVpn).length },
   ]
 
+  const sortLabels: Record<SortBy, string> = {
+    'time-desc':   'Новые',
+    'time-asc':    'Старые',
+    'process':     'Процесс',
+    'host':        'Хост',
+    'errors-first':'Ошибки ↑'
+  }
+  const sortOptions: SortBy[] = ['time-desc', 'time-asc', 'process', 'host', 'errors-first']
+  const nextSort = () => setSortBy((s) => sortOptions[(sortOptions.indexOf(s) + 1) % sortOptions.length])
+
   return (
     <BasePage
       title="Диагностика"
-      contentClassName="overflow-y-auto"
       header={
-        <Button size="sm" variant="ghost" onClick={clearAllClosed} className="h-7 px-2 text-xs text-muted-foreground">
-          <Trash2 className="size-3.5 mr-1" />
-          Очистить
-        </Button>
+        <div className="flex items-center gap-1 app-nodrag">
+          <Button size="sm" variant="ghost" onClick={nextSort} className="h-7 px-2 text-xs text-muted-foreground gap-1">
+            <ArrowUpDown className="size-3" />
+            {sortLabels[sortBy]}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => { clearAllClosed(); setSel(null) }} className="h-7 px-2 text-xs text-muted-foreground">
+            <Trash2 className="size-3.5 mr-1" />
+            Очистить
+          </Button>
+        </div>
       }
     >
       <div className="p-4 flex flex-col gap-3">
