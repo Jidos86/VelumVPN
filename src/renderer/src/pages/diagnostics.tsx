@@ -4,13 +4,19 @@ import BasePage from '@renderer/components/base/base-page'
 import { useConnectionsStore } from '@renderer/store/connections-store'
 import { getCustomRules, setCustomRules, restartCore } from '@renderer/utils/ipc'
 import { Button } from '@renderer/components/ui/button'
-import { ArrowRight, ArrowLeft, Trash2, Monitor } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 const TEAL = 'oklch(0.82 0.16 196)'
 const RED = 'oklch(0.65 0.2 25)'
 
 type Filter = 'all' | 'errors' | 'direct' | 'vpn'
+type SelTarget = 'process' | 'host'
+
+interface Selected {
+  connId: string
+  target: SelTarget
+}
 
 function isIPAddress(host: string): boolean {
   if (/^\d{1,3}(\.\d{1,3}){3}(:\d+)?$/.test(host)) return true
@@ -18,13 +24,17 @@ function isIPAddress(host: string): boolean {
   return false
 }
 
+function stripPort(ip: string): string {
+  return ip.replace(/:\d+$/, '').replace(/^\[(.+)\]$/, '$1')
+}
+
 const Diagnostics: React.FC = () => {
   const navigate = useNavigate()
   const closed = useConnectionsStore((s) => s.closed)
   const clearAllClosed = useConnectionsStore((s) => s.clearAllClosed)
   const [filter, setFilter] = useState<Filter>('all')
-  const [actingHost, setActingHost] = useState<string | null>(null)
-  const [actingProc, setActingProc] = useState<string | null>(null)
+  const [sel, setSel] = useState<Selected | null>(null)
+  const [acting, setActing] = useState<string | null>(null)
 
   const rows = useMemo(() => {
     return closed.map((conn) => {
@@ -50,87 +60,68 @@ const Diagnostics: React.FC = () => {
     }
   }, [rows, filter])
 
+  const clickCell = (connId: string, target: SelTarget) => {
+    setSel((prev) => prev?.connId === connId && prev?.target === target ? null : { connId, target })
+  }
+
   const toMyRulesAction = { label: 'Мои правила →', onClick: () => navigate('/custom-rules') }
 
-  const addDomainToVpn = async (host: string) => {
-    if (!host || host === '—') return
+  const run = async (key: string, fn: () => Promise<void>) => {
+    setActing(key)
+    try { await fn() } finally { setActing(null); setSel(null) }
+  }
+
+  const addDomainVpn = (host: string) => run(host, async () => {
     const domain = host.replace(/^https?:\/\//, '').replace(/\/.*$/, '')
-    setActingHost(domain)
-    try {
-      const rules = await getCustomRules()
-      if (rules.domains.includes(domain)) { toast.info(`${domain} уже в VPN`); return }
-      await setCustomRules({ ...rules, domains: [...rules.domains, domain] })
-      await restartCore()
-      toast.success(`${domain} → Сайты через VPN`, { action: toMyRulesAction })
-    } catch (e) { toast.error(String(e)) }
-    finally { setActingHost(null) }
-  }
+    const rules = await getCustomRules()
+    if (rules.domains.includes(domain)) { toast.info(`${domain} уже в VPN`); return }
+    await setCustomRules({ ...rules, domains: [...rules.domains, domain] })
+    await restartCore()
+    toast.success(`${domain} → Сайты через VPN`, { action: toMyRulesAction })
+  })
 
-  const addDomainToDirect = async (host: string) => {
-    if (!host || host === '—') return
+  const addDomainDirect = (host: string) => run(host, async () => {
     const domain = host.replace(/^https?:\/\//, '').replace(/\/.*$/, '')
-    setActingHost(domain)
-    try {
-      const rules = await getCustomRules()
-      if (rules.excluded?.includes(domain)) { toast.info(`${domain} уже в обходе VPN`); return }
-      await setCustomRules({ ...rules, excluded: [...(rules.excluded ?? []), domain] })
-      await restartCore()
-      toast.success(`${domain} → Сайты в обход VPN`, { action: toMyRulesAction })
-    } catch (e) { toast.error(String(e)) }
-    finally { setActingHost(null) }
-  }
+    const rules = await getCustomRules()
+    if (rules.excluded?.includes(domain)) { toast.info(`${domain} уже в обходе`); return }
+    await setCustomRules({ ...rules, excluded: [...(rules.excluded ?? []), domain] })
+    await restartCore()
+    toast.success(`${domain} → Сайты в обход VPN`, { action: toMyRulesAction })
+  })
 
-  const addIPToVpn = async (host: string) => {
-    const ip = host.replace(/:\d+$/, '').replace(/^\[(.+)\]$/, '$1')
-    setActingHost(ip)
-    try {
-      const rules = await getCustomRules()
-      if (rules.ips?.includes(ip)) { toast.info(`${ip} уже в VPN`); return }
-      await setCustomRules({ ...rules, ips: [...(rules.ips ?? []), ip] })
-      await restartCore()
-      toast.success(`${ip} → IP через VPN`, { action: toMyRulesAction })
-    } catch (e) { toast.error(String(e)) }
-    finally { setActingHost(null) }
-  }
+  const addIPVpn = (host: string) => run(host, async () => {
+    const ip = stripPort(host)
+    const rules = await getCustomRules()
+    if (rules.ips?.includes(ip)) { toast.info(`${ip} уже в VPN`); return }
+    await setCustomRules({ ...rules, ips: [...(rules.ips ?? []), ip] })
+    await restartCore()
+    toast.success(`${ip} → IP через VPN`, { action: toMyRulesAction })
+  })
 
-  const addIPToDirect = async (host: string) => {
-    const ip = host.replace(/:\d+$/, '').replace(/^\[(.+)\]$/, '$1')
-    setActingHost(ip)
-    try {
-      const rules = await getCustomRules()
-      if (rules.excludedIPs?.includes(ip)) { toast.info(`${ip} уже в обходе VPN`); return }
-      await setCustomRules({ ...rules, excludedIPs: [...(rules.excludedIPs ?? []), ip] })
-      await restartCore()
-      toast.success(`${ip} → IP в обход VPN`, { action: toMyRulesAction })
-    } catch (e) { toast.error(String(e)) }
-    finally { setActingHost(null) }
-  }
+  const addIPDirect = (host: string) => run(host, async () => {
+    const ip = stripPort(host)
+    const rules = await getCustomRules()
+    if (rules.excludedIPs?.includes(ip)) { toast.info(`${ip} уже в обходе`); return }
+    await setCustomRules({ ...rules, excludedIPs: [...(rules.excludedIPs ?? []), ip] })
+    await restartCore()
+    toast.success(`${ip} → IP в обход VPN`, { action: toMyRulesAction })
+  })
 
-  const addProcessToVpn = async (process: string) => {
-    if (!process || process === '—') return
-    setActingProc(process)
-    try {
-      const rules = await getCustomRules()
-      if (rules.processes?.includes(process)) { toast.info(`${process} уже в VPN`); return }
-      await setCustomRules({ ...rules, processes: [...(rules.processes ?? []), process] })
-      await restartCore()
-      toast.success(`${process} → Приложения через VPN`, { action: toMyRulesAction })
-    } catch (e) { toast.error(String(e)) }
-    finally { setActingProc(null) }
-  }
+  const addProcVpn = (process: string) => run(process, async () => {
+    const rules = await getCustomRules()
+    if (rules.processes?.includes(process)) { toast.info(`${process} уже в VPN`); return }
+    await setCustomRules({ ...rules, processes: [...(rules.processes ?? []), process] })
+    await restartCore()
+    toast.success(`${process} → Приложения через VPN`, { action: toMyRulesAction })
+  })
 
-  const addProcessToDirect = async (process: string) => {
-    if (!process || process === '—') return
-    setActingProc(process)
-    try {
-      const rules = await getCustomRules()
-      if (rules.excludedProcesses?.includes(process)) { toast.info(`${process} уже в обходе VPN`); return }
-      await setCustomRules({ ...rules, excludedProcesses: [...(rules.excludedProcesses ?? []), process] })
-      await restartCore()
-      toast.success(`${process} → Приложения в обход VPN`, { action: toMyRulesAction })
-    } catch (e) { toast.error(String(e)) }
-    finally { setActingProc(null) }
-  }
+  const addProcDirect = (process: string) => run(process, async () => {
+    const rules = await getCustomRules()
+    if (rules.excludedProcesses?.includes(process)) { toast.info(`${process} уже в обходе`); return }
+    await setCustomRules({ ...rules, excludedProcesses: [...(rules.excludedProcesses ?? []), process] })
+    await restartCore()
+    toast.success(`${process} → Приложения в обход VPN`, { action: toMyRulesAction })
+  })
 
   const tabs: { key: Filter; label: string; count?: number }[] = [
     { key: 'all', label: 'Все', count: rows.length },
@@ -151,11 +142,12 @@ const Diagnostics: React.FC = () => {
       }
     >
       <div className="p-4 flex flex-col gap-3">
+        {/* Filter tabs */}
         <div className="flex gap-1">
           {tabs.map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setFilter(tab.key)}
+              onClick={() => { setFilter(tab.key); setSel(null) }}
               className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                 filter === tab.key ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'
               }`}
@@ -175,86 +167,107 @@ const Diagnostics: React.FC = () => {
         )}
 
         <div className="flex flex-col gap-1.5">
-          {filtered.map(({ conn, process, host, isVpn, isDirect, isReject, hasError, hostIsIP }) => (
-            <div
-              key={conn.id}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm ${
-                hasError ? 'border-destructive/40 bg-destructive/5' : 'border-border bg-card'
-              }`}
-            >
-              {/* Process cell + process action buttons */}
-              <div className="flex items-center gap-1 w-40 shrink-0 min-w-0">
-                <Monitor className="size-3 text-muted-foreground shrink-0" />
-                <span className="text-xs font-mono text-muted-foreground truncate flex-1" title={process}>
-                  {process}
-                </span>
-                {process !== '—' && (
-                  <>
-                    <button
-                      className="shrink-0 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
-                      disabled={actingProc === process}
-                      onClick={() => addProcessToVpn(process)}
-                      title={`${process} → Приложения через VPN`}
-                    >
-                      <ArrowRight className="size-3" style={{ color: TEAL }} />
-                    </button>
-                    <button
-                      className="shrink-0 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
-                      disabled={actingProc === process}
-                      onClick={() => addProcessToDirect(process)}
-                      title={`${process} → Приложения в обход VPN`}
-                    >
-                      <ArrowLeft className="size-3" style={{ color: RED }} />
-                    </button>
-                  </>
-                )}
-              </div>
+          {filtered.map(({ conn, process, host, isVpn, isDirect, isReject, hasError, hostIsIP }) => {
+            const selProc = sel?.connId === conn.id && sel?.target === 'process'
+            const selHost = sel?.connId === conn.id && sel?.target === 'host'
+            const isActing = acting === process || acting === host
 
-              {/* Host */}
-              <span className="font-mono flex-1 truncate text-xs" title={host}>
-                {host}
-                {hostIsIP && (
-                  <span className="ml-1 text-muted-foreground/50 text-[10px]">IP</span>
-                )}
-              </span>
-
-              {/* Route badge */}
-              <span
-                className="text-xs font-medium shrink-0 w-12 text-right"
-                style={{ color: isReject ? RED : isVpn ? TEAL : 'oklch(0.6 0 0)' }}
+            return (
+              <div
+                key={conn.id}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm transition-colors ${
+                  hasError ? 'border-destructive/40 bg-destructive/5' : 'border-border bg-card'
+                }`}
+                onClick={(e) => {
+                  if ((e.target as HTMLElement).closest('button[data-cell]')) return
+                  setSel(null)
+                }}
               >
-                {isReject ? 'REJECT' : isVpn ? 'VPN' : 'DIRECT'}
-              </span>
-
-              {hasError && (
-                <span className="text-xs shrink-0" style={{ color: RED }}>⚠</span>
-              )}
-
-              {/* Host action buttons */}
-              {host !== '—' && isDirect && (
-                <Button
-                  size="sm" variant="outline"
-                  className="h-6 px-2 text-xs shrink-0"
-                  disabled={actingHost === host}
-                  onClick={() => hostIsIP ? addIPToVpn(host) : addDomainToVpn(host)}
-                  title={hostIsIP ? 'IP → VPN (IP-CIDR)' : 'Домен → Сайты через VPN'}
+                {/* Process — clickable cell */}
+                <button
+                  data-cell
+                  disabled={process === '—'}
+                  onClick={() => clickCell(conn.id, 'process')}
+                  className={`flex items-center gap-1 w-36 shrink-0 min-w-0 rounded px-1 py-0.5 text-left transition-colors ${
+                    selProc
+                      ? 'bg-primary/10 ring-1 ring-primary/40 text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  } disabled:pointer-events-none`}
+                  title={process}
                 >
-                  <ArrowRight className="size-3 mr-1" />VPN
-                </Button>
-              )}
-              {host !== '—' && isVpn && (
-                <Button
-                  size="sm" variant="outline"
-                  className="h-6 px-2 text-xs shrink-0"
-                  disabled={actingHost === host}
-                  onClick={() => hostIsIP ? addIPToDirect(host) : addDomainToDirect(host)}
-                  title={hostIsIP ? 'IP → Direct (IP-CIDR)' : 'Домен → Сайты в обход VPN'}
+                  <span className="text-xs font-mono truncate">{process}</span>
+                </button>
+
+                {/* Host — clickable cell */}
+                <button
+                  data-cell
+                  disabled={host === '—'}
+                  onClick={() => clickCell(conn.id, 'host')}
+                  className={`flex-1 min-w-0 rounded px-1 py-0.5 text-left transition-colors ${
+                    selHost
+                      ? 'bg-primary/10 ring-1 ring-primary/40 text-foreground'
+                      : 'hover:text-foreground'
+                  } disabled:pointer-events-none`}
+                  title={host}
                 >
-                  <ArrowLeft className="size-3 mr-1" />Direct
-                </Button>
-              )}
-            </div>
-          ))}
+                  <span className="font-mono text-xs truncate block">
+                    {host}
+                    {hostIsIP && <span className="ml-1 text-muted-foreground/40 text-[10px]">IP</span>}
+                  </span>
+                </button>
+
+                {/* Route badge */}
+                <span
+                  className="text-xs font-medium shrink-0 w-12 text-right"
+                  style={{ color: isReject ? RED : isVpn ? TEAL : 'oklch(0.6 0 0)' }}
+                >
+                  {isReject ? 'REJECT' : isVpn ? 'VPN' : 'DIRECT'}
+                </span>
+
+                {hasError && (
+                  <span className="text-xs shrink-0" style={{ color: RED }}>⚠</span>
+                )}
+
+                {/* Action buttons — appear based on selected cell */}
+                <div className="flex items-center gap-1 shrink-0 w-24 justify-end">
+                  {selProc && process !== '—' && !isReject && (
+                    <>
+                      {isDirect && (
+                        <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
+                          onClick={() => addProcVpn(process)} title="Процесс → VPN">
+                          <ArrowRight className="size-3 mr-1" style={{ color: TEAL }} />VPN
+                        </Button>
+                      )}
+                      {isVpn && (
+                        <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
+                          onClick={() => addProcDirect(process)} title="Процесс → Напрямую">
+                          <ArrowLeft className="size-3 mr-1" style={{ color: RED }} />Direct
+                        </Button>
+                      )}
+                    </>
+                  )}
+                  {selHost && host !== '—' && !isReject && (
+                    <>
+                      {isDirect && (
+                        <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
+                          onClick={() => hostIsIP ? addIPVpn(host) : addDomainVpn(host)}
+                          title={hostIsIP ? 'IP → VPN' : 'Домен → VPN'}>
+                          <ArrowRight className="size-3 mr-1" style={{ color: TEAL }} />VPN
+                        </Button>
+                      )}
+                      {isVpn && (
+                        <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
+                          onClick={() => hostIsIP ? addIPDirect(host) : addDomainDirect(host)}
+                          title={hostIsIP ? 'IP → Direct' : 'Домен → Direct'}>
+                          <ArrowLeft className="size-3 mr-1" style={{ color: RED }} />Direct
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
     </BasePage>
