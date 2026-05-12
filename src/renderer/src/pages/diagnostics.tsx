@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 
 const TEAL = 'oklch(0.82 0.16 196)'
 const RED = 'oklch(0.65 0.2 25)'
+const AMBER = 'oklch(0.78 0.16 70)'
 
 type Filter = 'all' | 'errors' | 'direct' | 'vpn'
 type SortBy = 'time-desc' | 'time-asc' | 'process' | 'host' | 'errors-first'
@@ -46,17 +47,18 @@ const Diagnostics: React.FC = () => {
       const isDirect = conn.chains.includes('DIRECT')
       const isReject = conn.chains.includes('REJECT')
       const hasError = !isReject && conn.upload === 0 && conn.download === 0
+      const isSuspect = !isReject && !hasError && conn.upload > 0 && conn.download === 0
       const hostIsIP = isIPAddress(host)
-      return { conn, process, host, isVpn, isDirect, isReject, hasError, hostIsIP }
+      return { conn, process, host, isVpn, isDirect, isReject, hasError, isSuspect, hostIsIP }
     }).reverse()
   }, [closed])
 
-  const errorCount = useMemo(() => rows.filter((r) => r.hasError).length, [rows])
+  const errorCount = useMemo(() => rows.filter((r) => r.hasError || r.isSuspect).length, [rows])
 
   const filtered = useMemo(() => {
     let result = rows
     switch (filter) {
-      case 'errors': result = rows.filter((r) => r.hasError); break
+      case 'errors': result = rows.filter((r) => r.hasError || r.isSuspect); break
       case 'direct': result = rows.filter((r) => r.isDirect); break
       case 'vpn':    result = rows.filter((r) => r.isVpn);   break
     }
@@ -64,7 +66,9 @@ const Diagnostics: React.FC = () => {
       case 'time-asc':     return [...result].reverse()
       case 'process':      return [...result].sort((a, b) => a.process.localeCompare(b.process))
       case 'host':         return [...result].sort((a, b) => a.host.localeCompare(b.host))
-      case 'errors-first': return [...result].sort((a, b) => Number(b.hasError) - Number(a.hasError))
+      case 'errors-first': return [...result].sort((a, b) =>
+        (Number(b.hasError) * 2 + Number(b.isSuspect)) - (Number(a.hasError) * 2 + Number(a.isSuspect))
+      )
       default:             return result
     }
   }, [rows, filter, sortBy])
@@ -191,7 +195,7 @@ const Diagnostics: React.FC = () => {
         )}
 
         <div className="flex flex-col gap-1.5">
-          {filtered.map(({ conn, process, host, isVpn, isDirect, isReject, hasError, hostIsIP }) => {
+          {filtered.map(({ conn, process, host, isVpn, isDirect, isReject, hasError, isSuspect, hostIsIP }) => {
             const selProc = sel?.connId === conn.id && sel?.target === 'process'
             const selHost = sel?.connId === conn.id && sel?.target === 'host'
             const isActing = acting === process || acting === host
@@ -200,7 +204,11 @@ const Diagnostics: React.FC = () => {
               <div
                 key={conn.id}
                 className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm transition-colors ${
-                  hasError ? 'border-destructive/40 bg-destructive/5' : 'border-border bg-card'
+                  hasError
+                    ? 'border-destructive/40 bg-destructive/5'
+                    : isSuspect
+                      ? 'border-amber-500/30 bg-amber-500/5'
+                      : 'border-border bg-card'
                 }`}
                 onClick={(e) => {
                   if ((e.target as HTMLElement).closest('button[data-cell]')) return
@@ -249,7 +257,14 @@ const Diagnostics: React.FC = () => {
                 </span>
 
                 {hasError && (
-                  <span className="text-xs shrink-0" style={{ color: RED }}>⚠</span>
+                  <span className="text-[10px] font-medium shrink-0 px-1 py-0.5 rounded" style={{ color: RED, background: 'oklch(0.65 0.2 25 / 0.12)' }}>
+                    нет связи
+                  </span>
+                )}
+                {isSuspect && (
+                  <span className="text-[10px] font-medium shrink-0 px-1 py-0.5 rounded" style={{ color: AMBER, background: 'oklch(0.78 0.16 70 / 0.12)' }}>
+                    нет ответа
+                  </span>
                 )}
 
                 {/* Action buttons — appear based on selected cell */}
