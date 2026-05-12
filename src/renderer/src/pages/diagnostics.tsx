@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BasePage from '@renderer/components/base/base-page'
 import { useConnectionsStore } from '@renderer/store/connections-store'
@@ -38,6 +38,10 @@ const Diagnostics: React.FC = () => {
   const [sortBy, setSortBy] = useState<SortBy>('time-desc')
   const [sel, setSel] = useState<Selected | null>(null)
   const [acting, setActing] = useState<string | null>(null)
+  const [rules, setRules] = useState<Awaited<ReturnType<typeof getCustomRules>> | null>(null)
+
+  const refreshRules = (): void => { getCustomRules().then(setRules) }
+  useEffect(() => { refreshRules() }, [])
 
   const rows = useMemo(() => {
     return closed.map((conn) => {
@@ -81,7 +85,7 @@ const Diagnostics: React.FC = () => {
 
   const run = async (key: string, fn: () => Promise<void>) => {
     setActing(key)
-    try { await fn() } finally { setActing(null); setSel(null) }
+    try { await fn() } finally { setActing(null); setSel(null); refreshRules() }
   }
 
   const addDomainVpn = (host: string) => run(host, async () => {
@@ -200,6 +204,13 @@ const Diagnostics: React.FC = () => {
             const selHost = sel?.connId === conn.id && sel?.target === 'host'
             const isActing = acting === process || acting === host
 
+            // Cross-reference with current rules
+            const ip = hostIsIP ? stripPort(host) : null
+            const procRuleVpn = rules?.processes?.includes(process) ?? false
+            const procRuleDirect = rules?.excludedProcesses?.includes(process) ?? false
+            const hostRuleVpn = rules?.domains?.includes(host) || (ip ? rules?.ips?.includes(ip) : false) || false
+            const hostRuleDirect = rules?.excluded?.includes(host) || (ip ? rules?.excludedIPs?.includes(ip) : false) || false
+
             return (
               <div
                 key={conn.id}
@@ -220,13 +231,22 @@ const Diagnostics: React.FC = () => {
                   data-cell
                   disabled={process === '—'}
                   onClick={() => clickCell(conn.id, 'process')}
-                  className={`flex items-center gap-1 w-36 shrink-0 min-w-0 rounded px-1 py-0.5 text-left transition-colors ${
+                  className={`flex items-center gap-1.5 w-36 shrink-0 min-w-0 rounded px-1 py-0.5 text-left transition-colors ${
                     selProc
                       ? 'bg-primary/10 ring-1 ring-primary/40 text-foreground'
                       : 'text-muted-foreground hover:text-foreground'
                   } disabled:pointer-events-none`}
-                  title={process}
+                  title={
+                    procRuleVpn ? `${process} — в правилах VPN` :
+                    procRuleDirect ? `${process} — в обходе VPN` : process
+                  }
                 >
+                  {(procRuleVpn || procRuleDirect) && (
+                    <span
+                      className="size-1.5 rounded-full shrink-0"
+                      style={{ background: procRuleVpn ? TEAL : RED }}
+                    />
+                  )}
                   <span className="text-xs font-mono truncate">{process}</span>
                 </button>
 
@@ -240,11 +260,20 @@ const Diagnostics: React.FC = () => {
                       ? 'bg-primary/10 ring-1 ring-primary/40 text-foreground'
                       : 'hover:text-foreground'
                   } disabled:pointer-events-none`}
-                  title={host}
+                  title={
+                    hostRuleVpn ? `${host} — в правилах VPN` :
+                    hostRuleDirect ? `${host} — в обходе VPN` : host
+                  }
                 >
-                  <span className="font-mono text-xs truncate block">
+                  <span className="font-mono text-xs truncate flex items-center gap-1.5">
+                    {(hostRuleVpn || hostRuleDirect) && (
+                      <span
+                        className="size-1.5 rounded-full shrink-0"
+                        style={{ background: hostRuleVpn ? TEAL : RED }}
+                      />
+                    )}
                     {host}
-                    {hostIsIP && <span className="ml-1 text-muted-foreground/40 text-[10px]">IP</span>}
+                    {hostIsIP && <span className="text-muted-foreground/40 text-[10px]">IP</span>}
                   </span>
                 </button>
 
@@ -268,38 +297,60 @@ const Diagnostics: React.FC = () => {
                 )}
 
                 {/* Action buttons — appear based on selected cell */}
-                <div className="flex items-center gap-1 shrink-0 w-24 justify-end">
+                <div className="flex items-center gap-1 shrink-0 w-28 justify-end">
                   {selProc && process !== '—' && !isReject && (
                     <>
-                      {isDirect && (
-                        <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
-                          onClick={() => addProcVpn(process)} title="Процесс → VPN">
-                          <ArrowRight className="size-3 mr-1" style={{ color: TEAL }} />VPN
-                        </Button>
-                      )}
-                      {isVpn && (
-                        <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
-                          onClick={() => addProcDirect(process)} title="Процесс → Напрямую">
-                          <ArrowLeft className="size-3 mr-1" style={{ color: RED }} />Direct
-                        </Button>
+                      {procRuleVpn ? (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ color: TEAL, background: 'oklch(0.82 0.16 196 / 0.12)' }}>
+                          ✓ в VPN
+                        </span>
+                      ) : procRuleDirect ? (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ color: RED, background: 'oklch(0.65 0.2 25 / 0.12)' }}>
+                          ✓ в обходе
+                        </span>
+                      ) : (
+                        <>
+                          {isDirect && (
+                            <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
+                              onClick={() => addProcVpn(process)}>
+                              <ArrowRight className="size-3 mr-1" style={{ color: TEAL }} />VPN
+                            </Button>
+                          )}
+                          {isVpn && (
+                            <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
+                              onClick={() => addProcDirect(process)}>
+                              <ArrowLeft className="size-3 mr-1" style={{ color: RED }} />Direct
+                            </Button>
+                          )}
+                        </>
                       )}
                     </>
                   )}
                   {selHost && host !== '—' && !isReject && (
                     <>
-                      {isDirect && (
-                        <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
-                          onClick={() => hostIsIP ? addIPVpn(host) : addDomainVpn(host)}
-                          title={hostIsIP ? 'IP → VPN' : 'Домен → VPN'}>
-                          <ArrowRight className="size-3 mr-1" style={{ color: TEAL }} />VPN
-                        </Button>
-                      )}
-                      {isVpn && (
-                        <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
-                          onClick={() => hostIsIP ? addIPDirect(host) : addDomainDirect(host)}
-                          title={hostIsIP ? 'IP → Direct' : 'Домен → Direct'}>
-                          <ArrowLeft className="size-3 mr-1" style={{ color: RED }} />Direct
-                        </Button>
+                      {hostRuleVpn ? (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ color: TEAL, background: 'oklch(0.82 0.16 196 / 0.12)' }}>
+                          ✓ в VPN
+                        </span>
+                      ) : hostRuleDirect ? (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ color: RED, background: 'oklch(0.65 0.2 25 / 0.12)' }}>
+                          ✓ в обходе
+                        </span>
+                      ) : (
+                        <>
+                          {isDirect && (
+                            <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
+                              onClick={() => hostIsIP ? addIPVpn(host) : addDomainVpn(host)}>
+                              <ArrowRight className="size-3 mr-1" style={{ color: TEAL }} />VPN
+                            </Button>
+                          )}
+                          {isVpn && (
+                            <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
+                              onClick={() => hostIsIP ? addIPDirect(host) : addDomainDirect(host)}>
+                              <ArrowLeft className="size-3 mr-1" style={{ color: RED }} />Direct
+                            </Button>
+                          )}
+                        </>
                       )}
                     </>
                   )}
