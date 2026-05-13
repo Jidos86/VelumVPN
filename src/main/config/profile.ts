@@ -4,6 +4,7 @@ import { restartCore } from '../core/manager'
 import { getRuntimeConfig } from '../core/factory'
 import { mihomoHotReloadConfig } from '../core/mihomoApi'
 import { getAppConfig } from './app'
+import { mainWindow } from '..'
 import { existsSync } from 'fs'
 import axios, { AxiosResponse } from 'axios'
 import https from 'https'
@@ -47,6 +48,7 @@ export async function changeCurrentProfile(id: string): Promise<void> {
     if (useHotReloadProfile) {
       try {
         await mihomoHotReloadConfig()
+        mainWindow?.webContents.send('groupsUpdated')
       } catch {
         // Hot reload failed (core not running or pipe unavailable) — fall back to full restart
         await restartCore()

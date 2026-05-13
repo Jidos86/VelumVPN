@@ -259,12 +259,12 @@ const resolveMetadb = () =>
 const resolveGeosite = () =>
   resolveResource({
     file: 'geosite.dat',
-    downloadURL: `https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat`
+    downloadURL: `https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat`
   })
 const resolveGeoIP = () =>
   resolveResource({
     file: 'geoip.dat',
-    downloadURL: `https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat`
+    downloadURL: `https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat`
   })
 const resolveASN = () =>
   resolveResource({
