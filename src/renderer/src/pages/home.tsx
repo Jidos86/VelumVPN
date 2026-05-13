@@ -347,8 +347,9 @@ const Home: React.FC = () => {
                 <>
                   <div className="grid grid-cols-3 gap-2 mb-3">
                     <div
-                      className="flex flex-col items-center py-2 rounded-xl"
+                      className="flex flex-col items-center py-2 rounded-xl cursor-default"
                       style={{ background: 'oklch(0.13 0.025 240)' }}
+                      title={t('pages.home.trafficRemainingHint')}
                     >
                       <span className="text-[10px] text-muted-foreground mb-0.5">
                         {t('pages.home.trafficRemaining')}
