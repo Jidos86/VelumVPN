@@ -534,3 +534,19 @@ export async function setCustomRules(rules: CustomRules): Promise<void> {
 export async function openExternal(url: string): Promise<void> {
   await window.electron.ipcRenderer.invoke('openExternal', url)
 }
+
+export async function getRouteTemplate(mode: string): Promise<string> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getRouteTemplate', mode))
+}
+
+export async function setRouteTemplate(mode: string, content: string): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setRouteTemplate', mode, content))
+}
+
+export async function resetRouteTemplate(mode: string): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('resetRouteTemplate', mode))
+}
+
+export async function getBrand(): Promise<{ geositeUrl?: string; geoipUrl?: string }> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getBrand'))
+}

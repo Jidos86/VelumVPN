@@ -106,8 +106,12 @@ import {
   resolveThemes,
   writeTheme
 } from '../resolve/theme'
-import { logDir } from './dirs'
+import { logDir, templatesDir, userTemplatesDir } from './dirs'
+import { getBrand } from './brand'
+import { ROUTE_MODE_TEMPLATES } from '../core/factory'
 import path from 'path'
+import { existsSync } from 'fs'
+import { readFile, writeFile, unlink, mkdir } from 'fs/promises'
 import v8 from 'v8'
 import { getIconDataURL, getImageDataURL } from './icon'
 import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../resolve/floatingWindow'
@@ -342,4 +346,32 @@ export function registerIpcMainHandlers(): void {
     setNotQuitDialog()
     app.quit()
   })
+
+  // Route template IPC
+  ipcMain.handle('getRouteTemplate', ipcErrorWrapper(async (_e: unknown, mode: string) => {
+    const file = ROUTE_MODE_TEMPLATES[mode]
+    if (!file) throw new Error(`Unknown route mode: ${mode}`)
+    const userPath = path.join(userTemplatesDir(), file)
+    const bundledPath = path.join(templatesDir(), file)
+    const p = existsSync(userPath) ? userPath : bundledPath
+    if (!existsSync(p)) return ''
+    return readFile(p, 'utf-8')
+  }))
+
+  ipcMain.handle('setRouteTemplate', ipcErrorWrapper(async (_e: unknown, mode: string, content: string) => {
+    const file = ROUTE_MODE_TEMPLATES[mode]
+    if (!file) throw new Error(`Unknown route mode: ${mode}`)
+    const dir = userTemplatesDir()
+    await mkdir(dir, { recursive: true })
+    await writeFile(path.join(dir, file), content, 'utf-8')
+  }))
+
+  ipcMain.handle('resetRouteTemplate', ipcErrorWrapper(async (_e: unknown, mode: string) => {
+    const file = ROUTE_MODE_TEMPLATES[mode]
+    if (!file) throw new Error(`Unknown route mode: ${mode}`)
+    const userPath = path.join(userTemplatesDir(), file)
+    if (existsSync(userPath)) await unlink(userPath)
+  }))
+
+  ipcMain.handle('getBrand', () => getBrand())
 }

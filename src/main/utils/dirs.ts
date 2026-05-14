@@ -57,6 +57,14 @@ export function templatesDir(): string {
   return path.join(resourcesDir(), 'templates')
 }
 
+export function userTemplatesDir(): string {
+  return path.join(dataDir(), 'templates')
+}
+
+export function brandFilePath(): string {
+  return path.join(resourcesDir(), 'brand.json')
+}
+
 export function themesDir(): string {
   return path.join(dataDir(), 'themes')
 }

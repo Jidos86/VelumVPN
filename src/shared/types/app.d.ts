@@ -107,6 +107,9 @@ interface AppConfig {
   mainSwitchMode?: 'tun' | 'sysproxy'
   useHotReloadProfile?: boolean
   routeMode?: 'blocked' | 'all-except-ru' | 'all'
+  routeModeNames?: { blocked?: string; 'all-except-ru'?: string; all?: string }
+  geositeUrl?: string
+  geoipUrl?: string
 }
 
 interface ProfileConfig {

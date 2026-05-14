@@ -611,6 +611,21 @@ export default {
       mihomoSettings: '内核设置',
       appVersion: '应用版本'
     },
+    geoTemplates: {
+      geositeUrl: '站点规则库 URL (geosite)',
+      geoipUrl: 'IP 规则库 URL (geoip)',
+      geoUrlPlaceholder: '留空使用默认源',
+      saveUrls: '保存 URL',
+      geoUrlsSaved: '地理数据 URL 已保存',
+      routeTemplates: '路由模板',
+      saveTemplate: '保存',
+      resetTemplate: '重置',
+      templateSaved: '模板已保存',
+      templateReset: '模板已重置',
+      modeName: '模式名称（默认：{{default}}）',
+      saveModeNames: '保存名称',
+      modeNamesSaved: '模式名称已保存'
+    },
     sider: {
       title: '侧边栏配置',
       siderSettings: '侧边栏设置',

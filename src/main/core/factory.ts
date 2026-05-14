@@ -12,8 +12,10 @@ import {
   mihomoWorkDir,
   mihomoTestDir,
   rulePath,
-  templatesDir
+  templatesDir,
+  userTemplatesDir
 } from '../utils/dirs'
+import { getBrand } from '../utils/brand'
 import { mainWindow } from '..'
 import { parseYaml, stringifyYaml } from '../utils/yaml'
 import { copyFile, mkdir, readFile, writeFile, stat } from 'fs/promises'
@@ -41,13 +43,36 @@ const RUNETFREEDOM_URLS = {
     'https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat'
 }
 
+function resolveGeoUrls(): { geositeUrl: string; geoipUrl: string } {
+  const brand = getBrand()
+  // Priority: AppConfig (user) > brand.json (reseller) > runetfreedom (default)
+  // AppConfig is async so we read it lazily; here we use brand for sync access.
+  // Caller should pass resolved values when available (see ensureRunetfreedomGeodata).
+  return {
+    geositeUrl: brand.geositeUrl || RUNETFREEDOM_URLS.geosite,
+    geoipUrl: brand.geoipUrl || RUNETFREEDOM_URLS.geoip
+  }
+}
+
 export async function forceUpdateGeodata(): Promise<void> {
+  const { geositeUrl, geoipUrl } = await (async () => {
+    try {
+      const cfg = await getAppConfig()
+      const brand = getBrand()
+      return {
+        geositeUrl: cfg.geositeUrl || brand.geositeUrl || RUNETFREEDOM_URLS.geosite,
+        geoipUrl: cfg.geoipUrl || brand.geoipUrl || RUNETFREEDOM_URLS.geoip
+      }
+    } catch {
+      return resolveGeoUrls()
+    }
+  })()
+
   const files = [
-    { url: RUNETFREEDOM_URLS.geosite, name: 'geosite.dat' },
-    { url: RUNETFREEDOM_URLS.geoip, name: 'geoip.dat' }
+    { url: geositeUrl, name: 'geosite.dat' },
+    { url: geoipUrl, name: 'geoip.dat' }
   ]
 
-  let completedBytes = 0
   const totalFiles = files.length
 
   for (let i = 0; i < files.length; i++) {
@@ -72,7 +97,6 @@ export async function forceUpdateGeodata(): Promise<void> {
     })
 
     await writeFile(dest, Buffer.from(res.data))
-    completedBytes++
 
     const testDest = path.join(mihomoTestDir(), name)
     await copyFile(dest, testDest)
@@ -103,9 +127,20 @@ async function syncGeoToTestDir(fileName: string): Promise<void> {
 }
 
 async function ensureRunetfreedomGeodata(): Promise<void> {
+  let geositeUrl = RUNETFREEDOM_URLS.geosite
+  let geoipUrl = RUNETFREEDOM_URLS.geoip
+  try {
+    const cfg = await getAppConfig()
+    const brand = getBrand()
+    geositeUrl = cfg.geositeUrl || brand.geositeUrl || RUNETFREEDOM_URLS.geosite
+    geoipUrl = cfg.geoipUrl || brand.geoipUrl || RUNETFREEDOM_URLS.geoip
+  } catch {
+    // use defaults
+  }
+
   const GEO_FILES = [
-    { url: RUNETFREEDOM_URLS.geosite, name: 'geosite.dat' },
-    { url: RUNETFREEDOM_URLS.geoip, name: 'geoip.dat' }
+    { url: geositeUrl, name: 'geosite.dat' },
+    { url: geoipUrl, name: 'geoip.dat' }
   ]
 
   const toDownload = (
@@ -166,12 +201,17 @@ async function loadRouteTemplate(routeMode: string): Promise<MihomoConfig | null
   const templateFile = ROUTE_MODE_TEMPLATES[routeMode]
   if (!templateFile) return null
 
-  const templatePath = path.join(templatesDir(), templateFile)
+  // User-edited template takes priority over bundled one
+  const userPath = path.join(userTemplatesDir(), templateFile)
+  const bundledPath = path.join(templatesDir(), templateFile)
+  const templatePath = existsSync(userPath) ? userPath : bundledPath
   if (!existsSync(templatePath)) return null
 
   const content = await readFile(templatePath, 'utf-8')
   return parseYaml(content) as MihomoConfig
 }
+
+export { ROUTE_MODE_TEMPLATES }
 
 function injectProxiesIntoTemplate(
   template: MihomoConfig,

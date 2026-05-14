@@ -32,7 +32,7 @@ const App: React.FC = () => {
   const { t } = useTranslation()
   const { appConfig } = useAppConfig()
   const {
-    appTheme = 'system',
+    appTheme = 'dark',
     customTheme,
     autoCheckUpdate
   } = appConfig || {}

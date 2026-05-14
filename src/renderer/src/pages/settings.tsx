@@ -7,6 +7,7 @@ import ShortcutConfig from '@renderer/components/settings/shortcut-config'
 import AppearanceConfig from '@renderer/components/settings/appearance-confis'
 import LanguageConfig from '@renderer/components/settings/language-config'
 import ProxySwitches from '@renderer/components/settings/proxy-switches'
+import GeoAndTemplatesConfig from '@renderer/components/settings/geo-templates-config'
 import { useTranslation } from 'react-i18next'
 import { Github } from 'lucide-react'
 import { useState } from 'react'
@@ -39,6 +40,7 @@ const Settings: React.FC = () => {
       <LanguageConfig />
       <AppearanceConfig showHiddenSettings={showHiddenSettings} />
       <AdvancedSettings showHiddenSettings={showHiddenSettings} />
+      <GeoAndTemplatesConfig />
       <ShortcutConfig />
       <Actions
         showHiddenSettings={showHiddenSettings}

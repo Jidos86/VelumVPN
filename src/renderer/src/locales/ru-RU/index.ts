@@ -547,6 +547,21 @@ export default {
       mihomoSettings: 'Настройки ядра',
       appVersion: 'Версия приложения'
     },
+    geoTemplates: {
+      geositeUrl: 'URL базы сайтов (geosite)',
+      geoipUrl: 'URL базы IP (geoip)',
+      geoUrlPlaceholder: 'Оставьте пустым для использования по умолчанию',
+      saveUrls: 'Сохранить URL',
+      geoUrlsSaved: 'URL геоданных сохранены',
+      routeTemplates: 'Шаблоны маршрутизации',
+      saveTemplate: 'Сохранить',
+      resetTemplate: 'Сбросить',
+      templateSaved: 'Шаблон сохранён',
+      templateReset: 'Шаблон сброшен',
+      modeName: 'Название режима (по умолчанию: {{default}})',
+      saveModeNames: 'Сохранить названия',
+      modeNamesSaved: 'Названия режимов сохранены'
+    },
     sider: {
       title: 'Настройка боковой панели',
       siderSettings: 'Настройки боковой панели',

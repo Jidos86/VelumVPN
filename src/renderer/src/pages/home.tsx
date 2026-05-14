@@ -42,7 +42,8 @@ const Home: React.FC = () => {
     sysProxy,
     proxyMode = false,
     onlyActiveDevice = false,
-    routeMode = 'blocked'
+    routeMode = 'blocked',
+    routeModeNames = {}
   } = appConfig || {}
   const { enable: writeSysProxy = true, mode } = sysProxy || {}
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
@@ -249,9 +250,9 @@ const Home: React.FC = () => {
   }
 
   const routeModeLabels: Record<string, string> = {
-    blocked: t('pages.home.routeMode.blocked'),
-    'all-except-ru': t('pages.home.routeMode.allExceptRu'),
-    all: t('pages.home.routeMode.all')
+    blocked: routeModeNames?.blocked || t('pages.home.routeMode.blocked'),
+    'all-except-ru': routeModeNames?.['all-except-ru'] || t('pages.home.routeMode.allExceptRu'),
+    all: routeModeNames?.all || t('pages.home.routeMode.all')
   }
 
   return (

@@ -547,6 +547,21 @@ export default {
       mihomoSettings: 'Core settings',
       appVersion: 'App Version'
     },
+    geoTemplates: {
+      geositeUrl: 'Geosite URL',
+      geoipUrl: 'GeoIP URL',
+      geoUrlPlaceholder: 'Leave empty to use default',
+      saveUrls: 'Save URLs',
+      geoUrlsSaved: 'Geo URLs saved',
+      routeTemplates: 'Routing templates',
+      saveTemplate: 'Save',
+      resetTemplate: 'Reset',
+      templateSaved: 'Template saved',
+      templateReset: 'Template reset',
+      modeName: 'Mode name (default: {{default}})',
+      saveModeNames: 'Save names',
+      modeNamesSaved: 'Mode names saved'
+    },
     sider: {
       title: 'Sidebar Configuration',
       siderSettings: 'Sidebar Settings',
