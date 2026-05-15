@@ -22,11 +22,9 @@ import {
   startMihomoTraffic,
   startMihomoConnections,
   startMihomoLogs,
-  startMihomoMemory,
   stopMihomoConnections,
   stopMihomoTraffic,
   stopMihomoLogs,
-  stopMihomoMemory,
   patchMihomoConfig,
   mihomoGroups
 } from './mihomoApi'
@@ -266,7 +264,6 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
         await startMihomoTraffic()
         await startMihomoConnections()
         await startMihomoLogs()
-        await startMihomoMemory()
         retry = 10
       }
     })
@@ -287,7 +284,6 @@ export async function stopCore(force = false): Promise<void> {
   stopMihomoTraffic()
   stopMihomoConnections()
   stopMihomoLogs()
-  stopMihomoMemory()
 
   if (child && !child.killed) {
     await stopChildProcess(child)

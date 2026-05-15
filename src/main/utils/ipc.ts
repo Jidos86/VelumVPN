@@ -20,7 +20,8 @@ import {
   mihomoVersion,
   mihomoConfig,
   patchMihomoConfig,
-  restartMihomoConnections
+  restartMihomoConnections,
+  setLogsForwarding
 } from '../core/mihomoApi'
 import { checkAutoRun, disableAutoRun, enableAutoRun } from '../sys/autoRun'
 import {
@@ -207,6 +208,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('removeProfileItem', (_e, id) => ipcErrorWrapper(removeProfileItem)(id))
   ipcMain.handle('restartCore', ipcErrorWrapper(restartCore))
   ipcMain.handle('restartMihomoConnections', ipcErrorWrapper(restartMihomoConnections))
+  ipcMain.handle('setLogsForwarding', (_e, enabled: boolean) => setLogsForwarding(enabled))
   ipcMain.handle('triggerSysProxy', (_e, enable, onlyActiveDevice) =>
     ipcErrorWrapper(triggerSysProxy)(enable, onlyActiveDevice)
   )

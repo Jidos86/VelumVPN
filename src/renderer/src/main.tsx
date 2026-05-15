@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
+import { SWRConfig } from 'swr'
 import { init, platform } from '@renderer/utils/init'
 import '@renderer/assets/main.css'
 import App from '@renderer/App'
@@ -39,7 +40,8 @@ init().then(() => {
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
+    <SWRConfig value={{ revalidateOnFocus: false, revalidateOnReconnect: false }}>
+      <NextThemesProvider attribute="class" enableSystem defaultTheme="dark">
         <BaseErrorBoundary>
           <HashRouter>
             <AppConfigProvider>
@@ -57,5 +59,6 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
           </HashRouter>
         </BaseErrorBoundary>
       </NextThemesProvider>
+    </SWRConfig>
   </React.StrictMode>
 )

@@ -8,7 +8,7 @@ import { cn } from '@renderer/lib/utils'
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import { useTranslation } from 'react-i18next'
 
-import { useLogsStore } from '@renderer/store/logs-store'
+import { useLogsStore, attachLogsStore } from '@renderer/store/logs-store'
 import { includesIgnoreCase } from '@renderer/utils/includes'
 import { MapPin, Trash2 } from 'lucide-react'
 
@@ -21,6 +21,16 @@ const Logs: React.FC = () => {
   const traceRef = useRef(trace)
 
   const virtuosoRef = useRef<VirtuosoHandle>(null)
+
+  useEffect(() => {
+    const detach = attachLogsStore()
+    window.electron.ipcRenderer.invoke('setLogsForwarding', true)
+    return (): void => {
+      detach()
+      window.electron.ipcRenderer.invoke('setLogsForwarding', false)
+    }
+  }, [])
+
   const filteredLogs = useMemo(() => {
     if (filter === '') return logs
     return logs.filter((log) => {

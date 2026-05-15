@@ -13,12 +13,15 @@ import { debounce } from '../utils/debounce'
 let axiosIns: AxiosInstance = null!
 let mihomoTrafficWs: WebSocket | null = null
 let trafficRetry = 10
-let mihomoMemoryWs: WebSocket | null = null
-let memoryRetry = 10
 let mihomoLogsWs: WebSocket | null = null
 let logsRetry = 10
+let logsForwardingEnabled = false
 let mihomoConnectionsWs: WebSocket | null = null
 let connectionsRetry = 10
+
+export const setLogsForwarding = (enabled: boolean): void => {
+  logsForwardingEnabled = enabled
+}
 
 export const getAxios = async (force: boolean = false): Promise<AxiosInstance> => {
   const currentSocketPath = mihomoIpcPath()
@@ -299,48 +302,6 @@ const mihomoTraffic = async (): Promise<void> => {
   }
 }
 
-export const startMihomoMemory = async (): Promise<void> => {
-  await mihomoMemory()
-}
-
-export const stopMihomoMemory = (): void => {
-  if (mihomoMemoryWs) {
-    mihomoMemoryWs.removeAllListeners()
-    if (mihomoMemoryWs.readyState === WebSocket.OPEN) {
-      mihomoMemoryWs.close()
-    }
-    mihomoMemoryWs = null
-  }
-}
-
-const mihomoMemory = async (): Promise<void> => {
-  mihomoMemoryWs = new WebSocket(`ws+unix:${mihomoIpcPath()}:/memory`)
-
-  mihomoMemoryWs.onmessage = (e): void => {
-    const data = e.data as string
-    memoryRetry = 10
-    try {
-      safeSend(mainWindow, 'mihomoMemory', JSON.parse(data) as ControllerMemory)
-    } catch {
-      // ignore
-    }
-  }
-
-  mihomoMemoryWs.onclose = (): void => {
-    if (memoryRetry) {
-      memoryRetry--
-      mihomoMemory()
-    }
-  }
-
-  mihomoMemoryWs.onerror = (): void => {
-    if (mihomoMemoryWs) {
-      mihomoMemoryWs.close()
-      mihomoMemoryWs = null
-    }
-  }
-}
-
 export const startMihomoLogs = async (): Promise<void> => {
   await mihomoLogs()
 }
@@ -361,10 +322,10 @@ const mihomoLogs = async (): Promise<void> => {
   mihomoLogsWs = new WebSocket(`ws+unix:${mihomoIpcPath()}:/logs?level=${logLevel}`)
 
   mihomoLogsWs.onmessage = (e): void => {
-    const data = e.data as string
     logsRetry = 10
+    if (!logsForwardingEnabled) return
     try {
-      safeSend(mainWindow, 'mihomoLogs', JSON.parse(data) as ControllerLog)
+      safeSend(mainWindow, 'mihomoLogs', JSON.parse(e.data as string) as ControllerLog)
     } catch {
       // ignore
     }
@@ -391,7 +352,7 @@ export const startMihomoConnections = async (): Promise<void> => {
 
 const sendConnectionsDebounced = debounce((payload: ControllerConnections): void => {
   safeSend(mainWindow, 'mihomoConnections', payload)
-}, 100)
+}, 300)
 
 export const stopMihomoConnections = (): void => {
   sendConnectionsDebounced.cancel()
@@ -410,7 +371,7 @@ export const restartMihomoConnections = async (): Promise<void> => {
 }
 
 const mihomoConnections = async (): Promise<void> => {
-  const { connectionInterval = 500 } = await getAppConfig()
+  const { connectionInterval = 1000 } = await getAppConfig()
   mihomoConnectionsWs = new WebSocket(
     `ws+unix:${mihomoIpcPath()}:/connections?interval=${connectionInterval}`
   )

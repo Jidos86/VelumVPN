@@ -22,7 +22,6 @@ import HwidLimitAlert from '@renderer/components/profiles/hwid-limit-alert'
 import WindowControls from '@renderer/components/window-controls'
 import { attachConnectionsStore } from '@renderer/store/connections-store'
 import { attachTrafficStore } from '@renderer/store/traffic-store'
-import { attachLogsStore } from '@renderer/store/logs-store'
 import { attachUpdaterStore } from '@renderer/store/updater-store'
 import { attachCoreLifecycleStore } from '@renderer/store/core-lifecycle-store'
 
@@ -50,13 +49,11 @@ const App: React.FC = () => {
   useEffect(() => {
     const detachConnections = attachConnectionsStore()
     const detachTraffic = attachTrafficStore()
-    const detachLogs = attachLogsStore()
     const detachUpdater = attachUpdaterStore()
     const detachCoreLifecycle = attachCoreLifecycleStore()
     return (): void => {
       detachConnections()
       detachTraffic()
-      detachLogs()
       detachUpdater()
       detachCoreLifecycle()
     }
