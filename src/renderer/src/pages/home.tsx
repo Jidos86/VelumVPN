@@ -21,15 +21,24 @@ import { calcTraffic } from '@renderer/utils/calc'
 import { useTrafficStore } from '@renderer/store/traffic-store'
 
 function extractFlag(name: string): string | null {
-  if (name.length < 4) return null
-  const cp0 = name.codePointAt(0)
-  const cp1 = name.codePointAt(2)
-  if (
-    cp0 !== undefined && cp1 !== undefined &&
-    cp0 >= 0x1F1E6 && cp0 <= 0x1F1FF &&
-    cp1 >= 0x1F1E6 && cp1 <= 0x1F1FF
-  ) {
-    return name.slice(0, 4)
+  // 1. Flag emoji at start (two regional indicator chars = 4 JS chars)
+  if (name.length >= 4) {
+    const cp0 = name.codePointAt(0)
+    const cp1 = name.codePointAt(2)
+    if (
+      cp0 !== undefined && cp1 !== undefined &&
+      cp0 >= 0x1F1E6 && cp0 <= 0x1F1FF &&
+      cp1 >= 0x1F1E6 && cp1 <= 0x1F1FF
+    ) {
+      return name.slice(0, 4)
+    }
+  }
+  // 2. ISO 3166-1 alpha-2 code at start, followed by non-letter separator
+  // Handles: "DE-Frankfurt", "[US] NY", "JP | Tokyo", "NL_01", "GB 1"
+  const m = name.match(/^[\s[【（]?([A-Z]{2})(?=[\s\]||\-_\d】）])/)
+  if (m) {
+    const base = 0x1F1A5
+    return String.fromCodePoint(base + m[1].charCodeAt(0), base + m[1].charCodeAt(1))
   }
   return null
 }
