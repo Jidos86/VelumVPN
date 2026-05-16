@@ -547,6 +547,10 @@ export async function resetRouteTemplate(mode: string): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('resetRouteTemplate', mode))
 }
 
+export async function openRouteTemplateFile(mode: string): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('openRouteTemplateFile', mode))
+}
+
 export async function getBrand(): Promise<{ geositeUrl?: string; geoipUrl?: string }> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getBrand'))
 }

@@ -618,6 +618,7 @@ export default {
       saveUrls: '保存 URL',
       geoUrlsSaved: '地理数据 URL 已保存',
       routeTemplates: '路由模板',
+      openInEditor: '在编辑器中打开',
       saveTemplate: '保存',
       resetTemplate: '重置',
       templateSaved: '模板已保存',

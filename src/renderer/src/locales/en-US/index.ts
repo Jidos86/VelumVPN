@@ -554,6 +554,7 @@ export default {
       saveUrls: 'Save URLs',
       geoUrlsSaved: 'Geo URLs saved',
       routeTemplates: 'Routing templates',
+      openInEditor: 'Open in editor',
       saveTemplate: 'Save',
       resetTemplate: 'Reset',
       templateSaved: 'Template saved',

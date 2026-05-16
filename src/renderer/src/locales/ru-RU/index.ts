@@ -554,6 +554,7 @@ export default {
       saveUrls: 'Сохранить URL',
       geoUrlsSaved: 'URL геоданных сохранены',
       routeTemplates: 'Шаблоны маршрутизации',
+      openInEditor: 'Открыть в редакторе',
       saveTemplate: 'Сохранить',
       resetTemplate: 'Сбросить',
       templateSaved: 'Шаблон сохранён',
