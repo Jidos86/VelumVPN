@@ -21,21 +21,19 @@ import { calcTraffic } from '@renderer/utils/calc'
 import { useTrafficStore } from '@renderer/store/traffic-store'
 
 function extractFlag(name: string): string | null {
-  // 1. Flag emoji at start (two regional indicator chars = 4 JS chars)
-  if (name.length >= 4) {
-    const cp0 = name.codePointAt(0)
-    const cp1 = name.codePointAt(2)
-    if (
-      cp0 !== undefined && cp1 !== undefined &&
-      cp0 >= 0x1F1E6 && cp0 <= 0x1F1FF &&
-      cp1 >= 0x1F1E6 && cp1 <= 0x1F1FF
-    ) {
-      return name.slice(0, 4)
+  // 1. Flag emoji anywhere in the name (two regional indicator chars = 4 JS chars each)
+  for (let i = 0; i < name.length - 3; i++) {
+    const cp0 = name.codePointAt(i)
+    if (cp0 !== undefined && cp0 >= 0x1F1E6 && cp0 <= 0x1F1FF) {
+      const cp1 = name.codePointAt(i + 2)
+      if (cp1 !== undefined && cp1 >= 0x1F1E6 && cp1 <= 0x1F1FF) {
+        return name.slice(i, i + 4)
+      }
     }
   }
-  // 2. ISO 3166-1 alpha-2 code at start, followed by non-letter separator
-  // Handles: "DE-Frankfurt", "[US] NY", "JP | Tokyo", "NL_01", "GB 1"
-  const m = name.match(/^[\s[【（]?([A-Z]{2})(?=[\s\]||\-_\d】）])/)
+  // 2. ISO 3166-1 alpha-2 code surrounded by separators, anywhere in name
+  // Handles: "DE-Frankfurt", "[US] NY", "JP | Tokyo", "Германия | DE", "NL_01"
+  const m = name.match(/(?:^|[\s|,\-_([【（])([A-Z]{2})(?=[\s|,\-_)\]】）]|$)/)
   if (m) {
     const base = 0x1F1A5
     return String.fromCodePoint(base + m[1].charCodeAt(0), base + m[1].charCodeAt(1))
