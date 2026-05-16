@@ -4,42 +4,21 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useGroups } from '@renderer/hooks/use-groups'
-import { triggerSysProxy, updateTrayIcon, mihomoHotReloadConfig, updateGeodata, mihomoCloseAllConnections, changeCurrentProfile, mihomoChangeProxy } from '@renderer/utils/ipc'
+import { triggerSysProxy, updateTrayIcon, mihomoHotReloadConfig, updateGeodata, mihomoCloseAllConnections } from '@renderer/utils/ipc'
 import NumberFlow from '@number-flow/react'
 import { useTranslation } from 'react-i18next'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import Power from '@renderer/assets/on_icon.svg'
 import Pause from '@renderer/assets/pause_icon.svg'
-import { InfinityIcon, WifiOff, PlusCircle, ChevronRight, ChevronDown, ArrowUp, ArrowDown, RefreshCcw } from 'lucide-react'
+import { InfinityIcon, WifiOff, PlusCircle, ChevronRight, ArrowUp, ArrowDown, RefreshCcw } from 'lucide-react'
 import { SiTelegram } from 'react-icons/si'
 import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import { Spinner } from '@renderer/components/ui/spinner'
 import { CharacterMorph } from '@renderer/components/ui/character-morph'
 import { calcTraffic } from '@renderer/utils/calc'
 import { useTrafficStore } from '@renderer/store/traffic-store'
-
-function extractFlag(name: string): string | null {
-  // 1. Flag emoji anywhere in the name (two regional indicator chars = 4 JS chars each)
-  for (let i = 0; i < name.length - 3; i++) {
-    const cp0 = name.codePointAt(i)
-    if (cp0 !== undefined && cp0 >= 0x1F1E6 && cp0 <= 0x1F1FF) {
-      const cp1 = name.codePointAt(i + 2)
-      if (cp1 !== undefined && cp1 >= 0x1F1E6 && cp1 <= 0x1F1FF) {
-        return name.slice(i, i + 4)
-      }
-    }
-  }
-  // 2. ISO 3166-1 alpha-2 code surrounded by separators, anywhere in name
-  // Handles: "DE-Frankfurt", "[US] NY", "JP | Tokyo", "Германия | DE", "NL_01"
-  const m = name.match(/(?:^|[\s|,\-_([【（])([A-Z]{2})(?=[\s|,\-_)\]】）]|$)/)
-  if (m) {
-    const base = 0x1F1A5
-    return String.fromCodePoint(base + m[1].charCodeAt(0), base + m[1].charCodeAt(1))
-  }
-  return null
-}
 
 function formatBytes(bytes: number): string {
   if (bytes <= 0) return '0 B'
@@ -73,14 +52,12 @@ const Home: React.FC = () => {
   const sysProxyDisabled = mixedPort == 0
 
   const { profileConfig, addProfileItem } = useProfileConfig()
-  const { groups, mutate: mutateGroups } = useGroups()
+  const { groups } = useGroups()
   const navigate = useNavigate()
   const hasProfiles = (profileConfig?.items?.length ?? 0) > 0
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingItem, setEditingItem] = useState<ProfileItem | null>(null)
   const [updating, setUpdating] = useState(false)
-  const [profileOpen, setProfileOpen] = useState(false)
-  const profileDropdownRef = useRef<HTMLDivElement>(null)
   const [geodataProgress, setGeodataProgress] = useState<number | null>(null)
   const [geodataFile, setGeodataFile] = useState('')
   const [geodataAuto, setGeodataAuto] = useState(false)
@@ -219,55 +196,6 @@ const Home: React.FC = () => {
     }
   }
 
-  // Close profile dropdown on outside click
-  useEffect(() => {
-    if (!profileOpen) return
-    const handler = (e: MouseEvent): void => {
-      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target as Node)) {
-        setProfileOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [profileOpen])
-
-  const handleSwitchProfile = async (id: string): Promise<void> => {
-    setProfileOpen(false)
-    if (id === profileConfig?.current) return
-    try {
-      await changeCurrentProfile(id)
-    } catch (e) {
-      toast.error(`${e}`)
-    }
-  }
-
-  const handleSelectCountry = async (proxyName: string): Promise<void> => {
-    if (!firstGroup) return
-    try {
-      await mihomoChangeProxy(firstGroup.name, proxyName)
-      mutateGroups()
-    } catch (e) {
-      toast.error(`${e}`)
-    }
-  }
-
-  const firstGroup = groups?.[0]
-
-  // Unique countries from first group proxies (flag → first proxy name with that flag)
-  const countries = useMemo(() => {
-    if (!firstGroup) return []
-    const seen = new Map<string, string>()
-    for (const proxy of firstGroup.all) {
-      const name = proxy.name
-      const flag = extractFlag(name)
-      if (flag && !seen.has(flag)) seen.set(flag, name)
-    }
-    return Array.from(seen.entries())
-  }, [firstGroup])
-
-  const currentFlag = firstGroup ? extractFlag(firstGroup.now) : null
-  const multipleProfiles = (profileConfig?.items?.length ?? 0) > 1
-
   const subscription = currentProfile?.extra
   const trafficUsed = (subscription?.upload ?? 0) + (subscription?.download ?? 0)
   const trafficTotal = subscription?.total ?? 0
@@ -278,6 +206,7 @@ const Home: React.FC = () => {
   const daysRemaining =
     expireTimestamp > 0 ? Math.max(0, dayjs.unix(expireTimestamp).diff(dayjs(), 'day')) : 0
 
+  const firstGroup = groups?.[0]
   const onValueChange = async (enable: boolean): Promise<void> => {
     setLoading(true)
     setLoadingDirection(enable ? 'connecting' : 'disconnecting')
@@ -479,7 +408,7 @@ const Home: React.FC = () => {
           )}
 
           {/* ── Connect button area ── */}
-          <div className="flex flex-col grow items-center justify-center min-h-0 gap-2 relative">
+          <div className="flex flex-col grow items-center justify-center min-h-0 gap-2">
             {/* Status label */}
             <div
               className="flex h-5 items-center justify-center transition-colors duration-300"
@@ -571,54 +500,6 @@ const Home: React.FC = () => {
                 <span>{calcTraffic(trafficInfo.downTotal)}</span>
               </div>
             </div>
-
-            {/* Profile switcher — right of button */}
-            {multipleProfiles && (
-              <div className="absolute right-0 top-1/2 -translate-y-1/2" ref={profileDropdownRef}>
-                <button
-                  onClick={() => setProfileOpen((o) => !o)}
-                  className="flex items-center gap-1 text-[11px] px-2 py-1.5 rounded-lg cursor-pointer transition-all"
-                  style={{
-                    background: profileOpen ? 'oklch(0.22 0.04 240)' : 'oklch(0.175 0.03 240)',
-                    border: `1px solid ${profileOpen ? 'oklch(0.75 0.19 196 / 40%)' : 'oklch(0.28 0.045 240)'}`,
-                    color: 'oklch(0.68 0.04 230)'
-                  }}
-                >
-                  <span className="max-w-[5.5rem] truncate">{currentProfile?.name}</span>
-                  <ChevronDown
-                    className={`size-3 shrink-0 transition-transform duration-200 ${profileOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
-                {profileOpen && (
-                  <div
-                    className="absolute right-0 top-full mt-1 rounded-xl overflow-hidden z-50 min-w-40 py-1"
-                    style={{
-                      background: 'oklch(0.2 0.035 240)',
-                      border: '1px solid oklch(0.28 0.045 240)',
-                      boxShadow: '0 8px 24px oklch(0 0 0 / 40%)'
-                    }}
-                  >
-                    {profileConfig?.items?.map((item) => {
-                      const active = item.id === profileConfig.current
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => handleSwitchProfile(item.id)}
-                          className="flex items-center gap-2 w-full px-3 py-2 text-xs cursor-pointer text-left transition-colors hover:bg-accent"
-                          style={{ color: active ? TEAL : 'oklch(0.75 0.04 230)' }}
-                        >
-                          <span
-                            className="size-1.5 rounded-full shrink-0"
-                            style={{ background: active ? TEAL : 'transparent', border: active ? 'none' : '1px solid oklch(0.38 0.04 230)' }}
-                          />
-                          <span className="truncate">{item.name}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           {/* ── Route mode selector ── */}
@@ -703,57 +584,18 @@ const Home: React.FC = () => {
             </div>
           )}
 
-          {/* ── Country selector ── */}
-          {firstGroup && countries.length > 0 && (
-            <div
-              className="flex gap-2 overflow-x-auto pb-0.5"
-              style={{ scrollbarWidth: 'none' }}
-              data-guide="home-group-selector"
-            >
-              {countries.map(([flag, proxyName]) => {
-                const active = flag === currentFlag
-                return (
-                  <button
-                    key={flag}
-                    onClick={() => handleSelectCountry(proxyName)}
-                    className="flex flex-col items-center justify-center shrink-0 w-12 h-12 rounded-xl cursor-pointer transition-all duration-200"
-                    style={
-                      active
-                        ? {
-                            background: `linear-gradient(135deg, oklch(0.75 0.19 196 / 22%), oklch(0.68 0.22 210 / 22%))`,
-                            border: `1px solid oklch(0.75 0.19 196 / 55%)`,
-                            boxShadow: `0 0 12px oklch(0.75 0.19 196 / 20%)`
-                          }
-                        : {
-                            background: 'oklch(0.175 0.03 240)',
-                            border: '1px solid oklch(0.28 0.045 240)'
-                          }
-                    }
-                  >
-                    <span className="text-xl leading-none">{flag}</span>
-                  </button>
-                )
-              })}
-              <button
-                onClick={() => navigate('/proxies', { state: { fromHome: true } })}
-                className="flex flex-col items-center justify-center shrink-0 w-12 h-12 rounded-xl cursor-pointer transition-all"
-                style={{
-                  background: 'oklch(0.175 0.03 240)',
-                  border: '1px solid oklch(0.28 0.045 240)'
-                }}
-              >
-                <ChevronRight className="size-4" style={{ color: 'oklch(0.48 0.04 230)' }} />
-              </button>
-            </div>
-          )}
-          {firstGroup && countries.length === 0 && (
+          {/* ── Server selector ── */}
+          {firstGroup && (
             <div
               className="flex items-center justify-between h-10 rounded-xl px-3 cursor-pointer transition-all"
               data-guide="home-group-selector"
-              style={{ background: 'oklch(0.175 0.03 240)', border: '1px solid oklch(0.28 0.045 240)' }}
+              style={{
+                background: 'oklch(0.175 0.03 240)',
+                border: '1px solid oklch(0.28 0.045 240)'
+              }}
               onClick={() => navigate('/proxies', { state: { fromHome: true } })}
             >
-              <span className="text-sm truncate max-w-52 text-foreground">
+              <span className="flag-emoji text-sm truncate max-w-52 text-foreground">
                 {firstGroup.now || firstGroup.name}
               </span>
               <ChevronRight className="size-4 text-muted-foreground shrink-0" />
