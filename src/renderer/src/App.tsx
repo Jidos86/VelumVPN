@@ -236,7 +236,7 @@ const App: React.FC = () => {
         </div>
       )}
       <AppSidebar latest={latest} />
-      <div className="relative z-10 main grow h-full overflow-y-auto">{page}</div>
+      <div className="relative main grow h-full overflow-y-auto">{page}</div>
     </SidebarProvider>
   )
 }
