@@ -253,6 +253,8 @@ const Home: React.FC = () => {
     }
   }
 
+  const firstGroup = groups?.[0]
+
   // Unique countries from first group proxies (flag → first proxy name with that flag)
   const countries = useMemo(() => {
     if (!firstGroup) return []
@@ -278,7 +280,6 @@ const Home: React.FC = () => {
   const daysRemaining =
     expireTimestamp > 0 ? Math.max(0, dayjs.unix(expireTimestamp).diff(dayjs(), 'day')) : 0
 
-  const firstGroup = groups?.[0]
   const onValueChange = async (enable: boolean): Promise<void> => {
     setLoading(true)
     setLoadingDirection(enable ? 'connecting' : 'disconnecting')
