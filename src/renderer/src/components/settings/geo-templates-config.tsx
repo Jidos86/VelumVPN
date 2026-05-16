@@ -45,7 +45,8 @@ const GeoAndTemplatesConfig: React.FC = () => {
       'all-except-ru': routeModeNames?.['all-except-ru'] ?? '',
       all: routeModeNames?.all ?? ''
     })
-  }, [routeModeNames])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeModeNames?.blocked, routeModeNames?.['all-except-ru'], routeModeNames?.all])
 
   const handleSaveGeoUrls = async (): Promise<void> => {
     await patchAppConfig({ geositeUrl: geositeInput.trim(), geoipUrl: geoipInput.trim() })
