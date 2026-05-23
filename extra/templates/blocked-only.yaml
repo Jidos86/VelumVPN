@@ -108,8 +108,7 @@ rules:
   # RadminVPN — виртуальная сеть напрямую
   - IP-CIDR,26.0.0.0/8,DIRECT,no-resolve
   - GEOSITE,category-ads-all,REJECT
-  # Торренты — всегда напрямую
-  - GEOSITE,bittorrent,DIRECT
+
   - AND,((NETWORK,UDP),(DST-PORT,50000-65535)),→ VelumVPN
   - PROCESS-NAME,Discord.exe,→ VelumVPN
   - PROCESS-NAME,discord,→ VelumVPN
