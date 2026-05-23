@@ -382,7 +382,15 @@ export function registerIpcMainHandlers(): void {
     if (!file) throw new Error(`Unknown route mode: ${mode}`)
     const userPath = path.join(userTemplatesDir(), file)
     const bundledPath = path.join(templatesDir(), file)
-    if (!existsSync(userPath)) {
+
+    let needsRefresh = !existsSync(userPath)
+    if (!needsRefresh) {
+      const existing = await readFile(userPath, 'utf-8')
+      const versionMatch = existing.split('\n')[0].match(/^# velum-version: (.+)$/)
+      if (versionMatch?.[1]?.trim() !== app.getVersion()) needsRefresh = true
+    }
+
+    if (needsRefresh) {
       await mkdir(userTemplatesDir(), { recursive: true })
       const content = await readFile(bundledPath, 'utf-8')
       await writeFile(userPath, `# velum-version: ${app.getVersion()}\n${content}`, 'utf-8')
