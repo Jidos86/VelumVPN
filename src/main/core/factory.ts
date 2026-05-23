@@ -201,12 +201,22 @@ async function loadRouteTemplate(routeMode: string): Promise<MihomoConfig | null
   const templateFile = ROUTE_MODE_TEMPLATES[routeMode]
   if (!templateFile) return null
 
-  // User-edited template takes priority over bundled one
   const userPath = path.join(userTemplatesDir(), templateFile)
   const bundledPath = path.join(templatesDir(), templateFile)
-  const templatePath = existsSync(userPath) ? userPath : bundledPath
-  if (!existsSync(templatePath)) return null
 
+  let templatePath = bundledPath
+  if (existsSync(userPath) && existsSync(bundledPath)) {
+    // Use user template only if it was modified after the bundled one (i.e. user actually edited it).
+    // After an app update the bundled file has a newer mtime → new bundled template wins automatically.
+    const [userStat, bundledStat] = await Promise.all([stat(userPath), stat(bundledPath)])
+    if (userStat.mtimeMs > bundledStat.mtimeMs) {
+      templatePath = userPath
+    }
+  } else if (existsSync(userPath)) {
+    templatePath = userPath
+  }
+
+  if (!existsSync(templatePath)) return null
   const content = await readFile(templatePath, 'utf-8')
   return parseYaml(content) as MihomoConfig
 }
