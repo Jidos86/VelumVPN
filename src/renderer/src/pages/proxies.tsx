@@ -46,6 +46,7 @@ const Proxies: React.FC = () => {
   const fromHome = (location.state as { fromHome?: boolean })?.fromHome ?? false
   const { controledMihomoConfig } = useControledMihomoConfig()
   const { mode = 'rule' } = controledMihomoConfig || {}
+  const tunEnabled = controledMihomoConfig?.tun?.enable ?? false
   const { groups = [], mutate } = useGroups()
   const { appConfig } = useAppConfig()
   const {
@@ -137,7 +138,7 @@ const Proxies: React.FC = () => {
       for (const proxy of allProxies[index]) {
         const proxyWithServer = proxy as ControllerProxiesDetail & { server?: string; port?: number }
         const promise = Promise.resolve().then(async () => {
-          if (proxyWithServer.server && proxyWithServer.port) {
+          if (!tunEnabled && proxyWithServer.server && proxyWithServer.port) {
             try {
               const rtt = await tcpPing(proxyWithServer.server, proxyWithServer.port)
               setTcpDelays((prev) => ({ ...prev, [proxy.name]: rtt }))
@@ -170,7 +171,7 @@ const Proxies: React.FC = () => {
         return newDelaying
       })
     },
-    [allProxies, groups, delayTestConcurrency, mutate]
+    [allProxies, groups, delayTestConcurrency, mutate, tunEnabled]
   )
 
   const calcCols = useCallback((): number => {
@@ -401,6 +402,7 @@ const Proxies: React.FC = () => {
                 group={groups[groupIndex]}
                 proxyDisplayLayout={proxyDisplayLayout}
                 tcpDelay={tcpDelays[allProxies[groupIndex][innerIndex * cols + i].name]}
+                tunEnabled={tunEnabled}
                 selected={
                   allProxies[groupIndex][innerIndex * cols + i]?.name === groups[groupIndex].now
                 }
@@ -422,7 +424,8 @@ const Proxies: React.FC = () => {
       onChangeProxy,
       groups,
       proxyDisplayLayout,
-      tcpDelays
+      tcpDelays,
+      tunEnabled
     ]
   )
 

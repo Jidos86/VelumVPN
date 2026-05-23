@@ -16,6 +16,7 @@ interface Props {
   onSelect: (group: string, proxy: string) => void
   selected: boolean
   tcpDelay?: number
+  tunEnabled?: boolean
 }
 
 function delayColorClass(delay: number): string {
@@ -27,7 +28,7 @@ function delayColorClass(delay: number): string {
 
 const ProxyItem: React.FC<Props> = (props) => {
   const { t } = useTranslation()
-  const { mutateProxies, proxyDisplayLayout, group, proxy, selected, onSelect, onProxyDelay, tcpDelay: tcpDelayProp } =
+  const { mutateProxies, proxyDisplayLayout, group, proxy, selected, onSelect, onProxyDelay, tcpDelay: tcpDelayProp, tunEnabled } =
     props
 
   const mihomoDelay = useMemo(() => {
@@ -52,7 +53,7 @@ const ProxyItem: React.FC<Props> = (props) => {
 
   const onDelay = (): void => {
     setLoading(true)
-    if (proxyWithServer.server && proxyWithServer.port) {
+    if (!tunEnabled && proxyWithServer.server && proxyWithServer.port) {
       tcpPing(proxyWithServer.server, proxyWithServer.port)
         .then((rtt) => setLocalTcpDelay(rtt))
         .catch(() => setLocalTcpDelay(0))
