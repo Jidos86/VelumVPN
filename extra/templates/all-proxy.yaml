@@ -108,5 +108,15 @@ rules:
   # RadminVPN — виртуальная сеть напрямую
   - IP-CIDR,26.0.0.0/8,DIRECT,no-resolve
   - GEOSITE,category-ads-all,REJECT
+  # Торрент-клиенты — напрямую
+  - PROCESS-NAME,qbittorrent.exe,DIRECT
+  - PROCESS-NAME,qbittorrent,DIRECT
+  - PROCESS-NAME,utorrent.exe,DIRECT
+  - PROCESS-NAME,bittorrent.exe,DIRECT
+  - PROCESS-NAME,transmission-qt.exe,DIRECT
+  - PROCESS-NAME,transmission-gtk,DIRECT
+  - PROCESS-NAME,transmission-daemon,DIRECT
+  - PROCESS-NAME,deluge.exe,DIRECT
+  - PROCESS-NAME,deluged,DIRECT
 
   - MATCH,→ VelumVPN
