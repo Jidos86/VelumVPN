@@ -224,6 +224,7 @@ export const mihomoGroupDelay = async (
 export const tcpPing = async (host: string, port: number, timeout = 5000): Promise<number> => {
   return new Promise((resolve, reject) => {
     const socket = new net.Socket()
+    socket.setMaxListeners(20)
     const start = Date.now()
     socket.setTimeout(timeout)
     socket.on('connect', () => {
