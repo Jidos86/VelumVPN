@@ -61,7 +61,6 @@ const Proxies: React.FC = () => {
   const [isOpen, setIsOpen] = useState(Array(groups.length).fill(expandProxyGroups))
   const [delaying, setDelaying] = useState(Array(groups.length).fill(false))
   const [tcpDelays, setTcpDelays] = useState<Record<string, number>>({})
-  const autoPinged = useRef(false)
   const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
   const virtuosoRef = useRef<GroupedVirtuosoHandle>(null)
@@ -100,36 +99,6 @@ const Proxies: React.FC = () => {
   const allExpanded = useMemo(() => {
     return groups.length > 0 && isOpen.every(Boolean)
   }, [groups, isOpen])
-
-  useEffect(() => {
-    if (autoPinged.current || groups.length === 0) return
-    autoPinged.current = true
-    const CONCURRENCY = 5
-    const seen = new Set<string>()
-    const allNodes: Array<{ name: string; server: string; port: number }> = []
-    for (const group of groups) {
-      for (const proxy of group.all) {
-        const p = proxy as ControllerProxiesDetail & { server?: string; port?: number }
-        if (p.server && p.port && !seen.has(p.name)) {
-          seen.add(p.name)
-          allNodes.push({ name: p.name, server: p.server, port: p.port })
-        }
-      }
-    }
-    if (allNodes.length === 0) return
-    ;(async () => {
-      for (let i = 0; i < allNodes.length; i += CONCURRENCY) {
-        const batch = allNodes.slice(i, i + CONCURRENCY)
-        await Promise.all(
-          batch.map((node) =>
-            tcpPing(node.server, node.port)
-              .then((rtt) => setTcpDelays((prev) => ({ ...prev, [node.name]: rtt })))
-              .catch(() => {})
-          )
-        )
-      }
-    })()
-  }, [groups])
 
   const onChangeProxy = useCallback(
     async (group: string, proxy: string): Promise<void> => {
