@@ -109,8 +109,17 @@ rules:
   - IP-CIDR,26.0.0.0/8,DIRECT,no-resolve
   - GEOSITE,category-ads-all,REJECT
   # Торренты — всегда напрямую
-  - GEOSITE,category-bittorrent,DIRECT
-  # Игровые сервисы (Steam, EA, Ubisoft, HoYoverse, Epic и др.) — напрямую
-  - GEOSITE,category-games,DIRECT
+  - GEOSITE,bittorrent,DIRECT
+  # Игровые сервисы — CDN и загрузки напрямую
+  - DOMAIN-SUFFIX,steampowered.com,DIRECT
+  - DOMAIN-SUFFIX,steamcontent.com,DIRECT
+  - DOMAIN-SUFFIX,steamcdn-a.akamaihd.net,DIRECT
+  - DOMAIN-SUFFIX,ea.com,DIRECT
+  - DOMAIN-SUFFIX,eaassets-a.akamaihd.net,DIRECT
+  - DOMAIN-SUFFIX,ubisoft.com,DIRECT
+  - DOMAIN-SUFFIX,ubi.com,DIRECT
+  - DOMAIN-SUFFIX,hoyoverse.com,DIRECT
+  - DOMAIN-SUFFIX,mihoyo.com,DIRECT
+  - DOMAIN-SUFFIX,yuanshen.com,DIRECT
   - GEOIP,ru,DIRECT
   - MATCH,→ VelumVPN
