@@ -94,9 +94,9 @@ proxy-groups:
 
   - name: "Случайный сервер"
     type: url-test
-    url: "https://www.gstatic.com/generate_204"
+    url: "tcp://1.1.1.1:443"
     interval: 300
-    tolerance: 50
+    tolerance: 200
     proxies: []
     remnawave:
       include-proxies: true
