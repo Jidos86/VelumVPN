@@ -114,10 +114,12 @@ export const mihomoGroups = async (): Promise<ControllerMixedGroup[]> => {
   const runtime = await getRuntimeConfig()
 
   const serverDescriptionMap = new Map<string, string>()
+  const serverPortMap = new Map<string, { server: string; port: number }>()
   if (runtime?.proxies) {
-    for (const p of runtime.proxies as { name?: string; serverDescription?: string }[]) {
-      if (p.name && p.serverDescription) {
-        serverDescriptionMap.set(p.name, p.serverDescription)
+    for (const p of runtime.proxies as { name?: string; serverDescription?: string; server?: string; port?: number }[]) {
+      if (p.name) {
+        if (p.serverDescription) serverDescriptionMap.set(p.name, p.serverDescription)
+        if (p.server && p.port) serverPortMap.set(p.name, { server: p.server, port: p.port })
       }
     }
   }
@@ -127,8 +129,11 @@ export const mihomoGroups = async (): Promise<ControllerMixedGroup[]> => {
   ): ControllerProxiesDetail | ControllerGroupDetail => {
     if (!('all' in proxy)) {
       const desc = serverDescriptionMap.get(proxy.name)
-      if (desc) {
-        proxy.serverDescription = desc
+      if (desc) proxy.serverDescription = desc
+      const sp = serverPortMap.get(proxy.name)
+      if (sp) {
+        proxy.server = sp.server
+        proxy.port = sp.port
       }
     }
     return proxy
