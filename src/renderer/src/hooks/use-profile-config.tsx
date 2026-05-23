@@ -1,5 +1,6 @@
-import React, { createContext, useContext, ReactNode, useEffect, useState, useCallback } from 'react'
+import React, { createContext, useContext, ReactNode, useEffect, useRef, useState, useCallback } from 'react'
 import { toast } from 'sonner'
+import dayjs from 'dayjs'
 import useSWR from 'swr'
 import {
   getProfileConfig,
@@ -29,6 +30,25 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     getProfileConfig()
   )
   const [hwidLimitError, setHwidLimitError] = useState<string | null>(null)
+  const expiryChecked = useRef(false)
+
+  useEffect(() => {
+    if (!profileConfig || expiryChecked.current) return
+    expiryChecked.current = true
+
+    const WARN_DAYS = 3
+    for (const item of profileConfig.items ?? []) {
+      const expire = item.extra?.expire
+      if (!expire) continue
+      const daysLeft = dayjs.unix(expire).diff(dayjs(), 'day')
+      if (daysLeft > WARN_DAYS) continue
+      if (daysLeft <= 0) {
+        toast.warning(`Подписка «${item.name}» истекла`, { duration: 8000 })
+      } else {
+        toast.warning(`Подписка «${item.name}» истекает через ${daysLeft} дн.`, { duration: 8000 })
+      }
+    }
+  }, [profileConfig])
 
   const setHwidLimitErrorFromMessage = useCallback((message: string): void => {
     const match = message.match(/HWID_LIMIT:(.*)/)

@@ -2,6 +2,8 @@ import { addProfileItem, getProfileConfig } from '../config'
 
 const TICK_INTERVAL_MS = 60_000
 const START_DELAY_MS = 10_000
+const STARTUP_REFRESH_DELAY_MS = 8_000
+const STARTUP_REFRESH_MIN_AGE_MS = 30 * 60 * 1000
 
 const inFlight = new Set<string>()
 let started = false
@@ -12,6 +14,33 @@ function isDue(item: ProfileItem): boolean {
   if (item.autoUpdate === false) return false
   const timeSince = Date.now() - (item.updated || 0)
   return timeSince >= item.interval * 60 * 1000
+}
+
+function isStaleEnoughForStartup(item: ProfileItem): boolean {
+  if (item.type !== 'remote') return false
+  if (item.autoUpdate === false) return false
+  const timeSince = Date.now() - (item.updated || 0)
+  return timeSince >= STARTUP_REFRESH_MIN_AGE_MS
+}
+
+async function runStartupRefresh(): Promise<void> {
+  try {
+    const { items = [] } = await getProfileConfig()
+    for (const item of items) {
+      if (inFlight.has(item.id)) continue
+      if (!isStaleEnoughForStartup(item)) continue
+      inFlight.add(item.id)
+      try {
+        await addProfileItem(item)
+      } catch {
+        // silent — startup refresh is best-effort
+      } finally {
+        inFlight.delete(item.id)
+      }
+    }
+  } catch {
+    // ignore
+  }
 }
 
 async function runTick(): Promise<void> {
@@ -39,5 +68,6 @@ async function runTick(): Promise<void> {
 export async function initProfileUpdater(): Promise<void> {
   if (started) return
   started = true
+  setTimeout(runStartupRefresh, STARTUP_REFRESH_DELAY_MS)
   setTimeout(runTick, START_DELAY_MS)
 }
