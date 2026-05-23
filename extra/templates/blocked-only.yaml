@@ -116,4 +116,10 @@ rules:
   - GEOIP,ru-blocked,→ VelumVPN,no-resolve
   - GEOSITE,ru-blocked,→ VelumVPN
   - DOMAIN-SUFFIX,thangs.com,→ VelumVPN
+  # GitHub — работает плохо в РФ напрямую
+  - DOMAIN-SUFFIX,github.com,→ VelumVPN
+  - DOMAIN-SUFFIX,githubusercontent.com,→ VelumVPN
+  - DOMAIN-SUFFIX,githubassets.com,→ VelumVPN
+  - DOMAIN-SUFFIX,github.io,→ VelumVPN
+  - DOMAIN-SUFFIX,githubcopilot.com,→ VelumVPN
   - MATCH,DIRECT

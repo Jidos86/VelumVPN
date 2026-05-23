@@ -179,6 +179,20 @@ function markMainGuideCompleted(): void {
 async function loadDriverModule(): Promise<{ driver: DriverFactory }> {
   if (!cssLoaded) {
     await import('driver.js/dist/driver.css')
+
+    const style = document.createElement('style')
+    style.id = 'driver-custom-styles'
+    style.textContent = `
+      .driver-active-element {
+        outline: 2px solid oklch(0.75 0.19 196) !important;
+        outline-offset: 4px !important;
+        box-shadow: 0 0 0 6px oklch(0.75 0.19 196 / 20%), 0 0 24px oklch(0.75 0.19 196 / 30%) !important;
+      }
+    `
+    if (!document.getElementById('driver-custom-styles')) {
+      document.head.appendChild(style)
+    }
+
     cssLoaded = true
   }
   return import('driver.js') as Promise<{ driver: DriverFactory }>
