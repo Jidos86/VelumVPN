@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios'
+import net from 'net'
 import { getAppConfig, getControledMihomoConfig } from '../config'
 import { mainWindow } from '..'
 import WebSocket from 'ws'
@@ -217,6 +218,28 @@ export const mihomoGroupDelay = async (
       url: url || delayTestUrl || 'https://www.gstatic.com/generate_204',
       timeout: delayTestTimeout || 5000
     }
+  })
+}
+
+export const tcpPing = async (host: string, port: number, timeout = 5000): Promise<number> => {
+  return new Promise((resolve, reject) => {
+    const socket = new net.Socket()
+    const start = Date.now()
+    socket.setTimeout(timeout)
+    socket.on('connect', () => {
+      const rtt = Date.now() - start
+      socket.destroy()
+      resolve(rtt)
+    })
+    socket.on('timeout', () => {
+      socket.destroy()
+      reject(new Error('TCP ping timeout'))
+    })
+    socket.on('error', (err) => {
+      socket.destroy()
+      reject(err)
+    })
+    socket.connect(port, host)
   })
 }
 

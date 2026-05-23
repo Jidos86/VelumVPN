@@ -146,6 +146,8 @@ interface ControllerProxiesDetail {
   smux: boolean
   uot: boolean
   serverDescription?: string
+  server?: string
+  port?: number
 }
 
 interface ControllerGroupDetail {

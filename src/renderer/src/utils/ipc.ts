@@ -103,6 +103,10 @@ export async function mihomoGroupDelay(group: string, url?: string): Promise<Con
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoGroupDelay', group, url))
 }
 
+export async function tcpPing(host: string, port: number): Promise<number> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('tcpPing', host, port))
+}
+
 export async function patchMihomoConfig(patch: Partial<MihomoConfig>): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('patchMihomoConfig', patch))
 }

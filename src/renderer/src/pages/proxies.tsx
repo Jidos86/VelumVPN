@@ -9,7 +9,8 @@ import {
   getImageDataURL,
   mihomoChangeProxy,
   mihomoCloseAllConnections,
-  mihomoProxyDelay
+  mihomoProxyDelay,
+  tcpPing
 } from '@renderer/utils/ipc'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
@@ -59,6 +60,7 @@ const Proxies: React.FC = () => {
   const [cols, setCols] = useState(1)
   const [isOpen, setIsOpen] = useState(Array(groups.length).fill(expandProxyGroups))
   const [delaying, setDelaying] = useState(Array(groups.length).fill(false))
+  const [tcpDelays, setTcpDelays] = useState<Record<string, number>>({})
   const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
   const virtuosoRef = useRef<GroupedVirtuosoHandle>(null)
@@ -133,13 +135,23 @@ const Proxies: React.FC = () => {
       const result: Promise<void>[] = []
       const runningList: Promise<void>[] = []
       for (const proxy of allProxies[index]) {
+        const proxyWithServer = proxy as ControllerProxiesDetail & { server?: string; port?: number }
         const promise = Promise.resolve().then(async () => {
-          try {
-            await mihomoProxyDelay(proxy.name, groups[index].testUrl)
-          } catch {
-            // ignore
-          } finally {
-            mutate()
+          if (proxyWithServer.server && proxyWithServer.port) {
+            try {
+              const rtt = await tcpPing(proxyWithServer.server, proxyWithServer.port)
+              setTcpDelays((prev) => ({ ...prev, [proxy.name]: rtt }))
+            } catch {
+              setTcpDelays((prev) => ({ ...prev, [proxy.name]: 0 }))
+            }
+          } else {
+            try {
+              await mihomoProxyDelay(proxy.name, groups[index].testUrl)
+            } catch {
+              // ignore
+            } finally {
+              mutate()
+            }
           }
         })
         result.push(promise)
@@ -388,6 +400,7 @@ const Proxies: React.FC = () => {
                 proxy={allProxies[groupIndex][innerIndex * cols + i]}
                 group={groups[groupIndex]}
                 proxyDisplayLayout={proxyDisplayLayout}
+                tcpDelay={tcpDelays[allProxies[groupIndex][innerIndex * cols + i].name]}
                 selected={
                   allProxies[groupIndex][innerIndex * cols + i]?.name === groups[groupIndex].now
                 }
@@ -408,7 +421,8 @@ const Proxies: React.FC = () => {
       onProxyDelay,
       onChangeProxy,
       groups,
-      proxyDisplayLayout
+      proxyDisplayLayout,
+      tcpDelays
     ]
   )
 
