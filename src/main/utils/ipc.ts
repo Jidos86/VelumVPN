@@ -384,7 +384,8 @@ export function registerIpcMainHandlers(): void {
     const bundledPath = path.join(templatesDir(), file)
     if (!existsSync(userPath)) {
       await mkdir(userTemplatesDir(), { recursive: true })
-      await copyFile(bundledPath, userPath)
+      const content = await readFile(bundledPath, 'utf-8')
+      await writeFile(userPath, `# velum-version: ${app.getVersion()}\n${content}`, 'utf-8')
     }
     await shell.openPath(userPath)
   }))

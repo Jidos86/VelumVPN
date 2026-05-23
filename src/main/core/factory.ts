@@ -1,3 +1,4 @@
+import { app } from 'electron'
 import {
   getControledMihomoConfig,
   getProfileConfig,
@@ -205,15 +206,14 @@ async function loadRouteTemplate(routeMode: string): Promise<MihomoConfig | null
   const bundledPath = path.join(templatesDir(), templateFile)
 
   let templatePath = bundledPath
-  if (existsSync(userPath) && existsSync(bundledPath)) {
-    // Use user template only if it was modified after the bundled one (i.e. user actually edited it).
-    // After an app update the bundled file has a newer mtime → new bundled template wins automatically.
-    const [userStat, bundledStat] = await Promise.all([stat(userPath), stat(bundledPath)])
-    if (userStat.mtimeMs > bundledStat.mtimeMs) {
+  if (existsSync(userPath)) {
+    const userContent = await readFile(userPath, 'utf-8')
+    const firstLine = userContent.split('\n')[0]
+    const versionMatch = firstLine.match(/^# velum-version: (.+)$/)
+    const storedVersion = versionMatch?.[1]?.trim()
+    if (storedVersion === app.getVersion()) {
       templatePath = userPath
     }
-  } else if (existsSync(userPath)) {
-    templatePath = userPath
   }
 
   if (!existsSync(templatePath)) return null
