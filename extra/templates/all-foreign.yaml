@@ -108,22 +108,7 @@ rules:
   - GEOSITE,category-ads-all,REJECT
   # Торренты — всегда напрямую
   - GEOSITE,category-bittorrent,DIRECT
-  # Steam
-  - DOMAIN-SUFFIX,steampowered.com,DIRECT
-  - DOMAIN-SUFFIX,steamcontent.com,DIRECT
-  - DOMAIN-SUFFIX,steam-chat.com,DIRECT
-  - DOMAIN-SUFFIX,steamstatic.com,DIRECT
-  - DOMAIN-SUFFIX,steamgames.com,DIRECT
-  # HoYoverse
-  - DOMAIN-SUFFIX,hoyoverse.com,DIRECT
-  - DOMAIN-SUFFIX,mihoyo.com,DIRECT
-  - DOMAIN-SUFFIX,cognosphere.com,DIRECT
-  # EA
-  - DOMAIN-SUFFIX,ea.com,DIRECT
-  - DOMAIN-SUFFIX,origin.com,DIRECT
-  - DOMAIN-SUFFIX,eaassets.com,DIRECT
-  # Ubisoft
-  - DOMAIN-SUFFIX,ubisoft.com,DIRECT
-  - DOMAIN-SUFFIX,ubi.com,DIRECT
+  # Игровые сервисы (Steam, EA, Ubisoft, HoYoverse, Epic и др.) — напрямую
+  - GEOSITE,category-games,DIRECT
   - GEOIP,ru,DIRECT
   - MATCH,→ VelumVPN
