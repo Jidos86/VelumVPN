@@ -2,7 +2,7 @@ import { addProfileItem, getProfileConfig } from '../config'
 
 const TICK_INTERVAL_MS = 60_000
 const START_DELAY_MS = 10_000
-const STARTUP_REFRESH_DELAY_MS = 8_000
+const STARTUP_REFRESH_DELAY_MS = 60_000
 const STARTUP_REFRESH_MIN_AGE_MS = 30 * 60 * 1000
 
 const inFlight = new Set<string>()
