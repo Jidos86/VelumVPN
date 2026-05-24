@@ -17,7 +17,6 @@ import {
   mihomoUpgradeUI,
   mihomoUpgradeGeo,
   mihomoHotReloadConfig,
-  tcpPing,
   mihomoVersion,
   mihomoConfig,
   patchMihomoConfig,
@@ -176,8 +175,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('mihomoGroupDelay', (_e, group, url) =>
     ipcErrorWrapper(mihomoGroupDelay)(group, url)
   )
-  ipcMain.handle('tcpPing', (_e, host, port) => ipcErrorWrapper(tcpPing)(host, port))
-  ipcMain.handle('patchMihomoConfig', (_e, patch) => ipcErrorWrapper(patchMihomoConfig)(patch))
+ipcMain.handle('patchMihomoConfig', (_e, patch) => ipcErrorWrapper(patchMihomoConfig)(patch))
   ipcMain.handle('checkAutoRun', ipcErrorWrapper(checkAutoRun))
   ipcMain.handle('enableAutoRun', ipcErrorWrapper(enableAutoRun))
   ipcMain.handle('disableAutoRun', ipcErrorWrapper(disableAutoRun))

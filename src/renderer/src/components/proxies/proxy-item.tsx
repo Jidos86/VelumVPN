@@ -1,7 +1,7 @@
 import { Button } from '@renderer/components/ui/button'
 import { Card, CardContent } from '@renderer/components/ui/card'
 import { cn } from '@renderer/lib/utils'
-import { mihomoUnfixedProxy, tcpPing } from '@renderer/utils/ipc'
+import { mihomoUnfixedProxy } from '@renderer/utils/ipc'
 import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Spinner } from '@renderer/components/ui/spinner'
@@ -15,8 +15,6 @@ interface Props {
   group: ControllerMixedGroup
   onSelect: (group: string, proxy: string) => void
   selected: boolean
-  tcpDelay?: number
-  tunEnabled?: boolean
 }
 
 function delayColorClass(delay: number): string {
@@ -28,10 +26,9 @@ function delayColorClass(delay: number): string {
 
 const ProxyItem: React.FC<Props> = (props) => {
   const { t } = useTranslation()
-  const { mutateProxies, proxyDisplayLayout, group, proxy, selected, onSelect, onProxyDelay, tcpDelay: tcpDelayProp, tunEnabled } =
-    props
+  const { mutateProxies, proxyDisplayLayout, group, proxy, selected, onSelect, onProxyDelay } = props
 
-  const mihomoDelay = useMemo(() => {
+  const delay = useMemo(() => {
     if (proxy.history.length > 0) {
       return proxy.history[proxy.history.length - 1].delay
     }
@@ -39,9 +36,6 @@ const ProxyItem: React.FC<Props> = (props) => {
   }, [proxy])
 
   const [loading, setLoading] = useState(false)
-  const [localTcpDelay, setLocalTcpDelay] = useState<number | null>(null)
-
-  const delay = localTcpDelay !== null ? localTcpDelay : (tcpDelayProp !== undefined ? tcpDelayProp : mihomoDelay)
 
   function delayText(d: number): string {
     if (d === -1) return t('proxies.delayTest')
@@ -49,21 +43,12 @@ const ProxyItem: React.FC<Props> = (props) => {
     return d.toString()
   }
 
-  const proxyWithServer = proxy as ControllerProxiesDetail & { server?: string; port?: number }
-
   const onDelay = (): void => {
     setLoading(true)
-    if (!tunEnabled && proxyWithServer.server && proxyWithServer.port) {
-      tcpPing(proxyWithServer.server, proxyWithServer.port)
-        .then((rtt) => setLocalTcpDelay(rtt))
-        .catch(() => setLocalTcpDelay(0))
-        .finally(() => setLoading(false))
-    } else {
-      onProxyDelay(proxy.name, group.testUrl).finally(() => {
-        mutateProxies()
-        setLoading(false)
-      })
-    }
+    onProxyDelay(proxy.name, group.testUrl).finally(() => {
+      mutateProxies()
+      setLoading(false)
+    })
   }
 
   const displayType =

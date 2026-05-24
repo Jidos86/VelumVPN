@@ -9,8 +9,7 @@ import {
   getImageDataURL,
   mihomoChangeProxy,
   mihomoCloseAllConnections,
-  mihomoProxyDelay,
-  tcpPing
+  mihomoProxyDelay
 } from '@renderer/utils/ipc'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
@@ -18,9 +17,9 @@ import { GroupedVirtuoso, GroupedVirtuosoHandle } from 'react-virtuoso'
 import ProxyItem from '@renderer/components/proxies/proxy-item'
 import ProxySettingModal from '@renderer/components/proxies/proxy-setting-modal'
 import { useGroups } from '@renderer/hooks/use-groups'
+import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import CollapseInput from '@renderer/components/base/collapse-input'
 import { includesIgnoreCase } from '@renderer/utils/includes'
-import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useTranslation } from 'react-i18next'
 import {
   ChevronDown,
@@ -46,7 +45,6 @@ const Proxies: React.FC = () => {
   const fromHome = (location.state as { fromHome?: boolean })?.fromHome ?? false
   const { controledMihomoConfig } = useControledMihomoConfig()
   const { mode = 'rule' } = controledMihomoConfig || {}
-  const tunEnabled = controledMihomoConfig?.tun?.enable ?? false
   const { groups = [], mutate } = useGroups()
   const { appConfig } = useAppConfig()
   const {
@@ -61,7 +59,6 @@ const Proxies: React.FC = () => {
   const [cols, setCols] = useState(1)
   const [isOpen, setIsOpen] = useState(Array(groups.length).fill(expandProxyGroups))
   const [delaying, setDelaying] = useState(Array(groups.length).fill(false))
-  const [tcpDelays, setTcpDelays] = useState<Record<string, number>>({})
   const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
   const virtuosoRef = useRef<GroupedVirtuosoHandle>(null)
@@ -136,23 +133,13 @@ const Proxies: React.FC = () => {
       const result: Promise<void>[] = []
       const runningList: Promise<void>[] = []
       for (const proxy of allProxies[index]) {
-        const proxyWithServer = proxy as ControllerProxiesDetail & { server?: string; port?: number }
         const promise = Promise.resolve().then(async () => {
-          if (!tunEnabled && proxyWithServer.server && proxyWithServer.port) {
-            try {
-              const rtt = await tcpPing(proxyWithServer.server, proxyWithServer.port)
-              setTcpDelays((prev) => ({ ...prev, [proxy.name]: rtt }))
-            } catch {
-              setTcpDelays((prev) => ({ ...prev, [proxy.name]: 0 }))
-            }
-          } else {
-            try {
-              await mihomoProxyDelay(proxy.name, groups[index].testUrl)
-            } catch {
-              // ignore
-            } finally {
-              mutate()
-            }
+          try {
+            await mihomoProxyDelay(proxy.name, groups[index].testUrl)
+          } catch {
+            // ignore
+          } finally {
+            mutate()
           }
         })
         result.push(promise)
@@ -171,7 +158,7 @@ const Proxies: React.FC = () => {
         return newDelaying
       })
     },
-    [allProxies, groups, delayTestConcurrency, mutate, tunEnabled]
+    [allProxies, groups, delayTestConcurrency, mutate]
   )
 
   const calcCols = useCallback((): number => {
@@ -401,8 +388,6 @@ const Proxies: React.FC = () => {
                 proxy={allProxies[groupIndex][innerIndex * cols + i]}
                 group={groups[groupIndex]}
                 proxyDisplayLayout={proxyDisplayLayout}
-                tcpDelay={tcpDelays[allProxies[groupIndex][innerIndex * cols + i].name]}
-                tunEnabled={tunEnabled}
                 selected={
                   allProxies[groupIndex][innerIndex * cols + i]?.name === groups[groupIndex].now
                 }
@@ -423,9 +408,7 @@ const Proxies: React.FC = () => {
       onProxyDelay,
       onChangeProxy,
       groups,
-      proxyDisplayLayout,
-      tcpDelays,
-      tunEnabled
+      proxyDisplayLayout
     ]
   )
 

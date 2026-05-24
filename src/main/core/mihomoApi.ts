@@ -1,5 +1,4 @@
 import axios, { AxiosInstance } from 'axios'
-import net from 'net'
 import { getAppConfig, getControledMihomoConfig } from '../config'
 import { mainWindow } from '..'
 import WebSocket from 'ws'
@@ -114,13 +113,9 @@ export const mihomoGroups = async (): Promise<ControllerMixedGroup[]> => {
   const runtime = await getRuntimeConfig()
 
   const serverDescriptionMap = new Map<string, string>()
-  const serverPortMap = new Map<string, { server: string; port: number }>()
   if (runtime?.proxies) {
-    for (const p of runtime.proxies as { name?: string; serverDescription?: string; server?: string; port?: number }[]) {
-      if (p.name) {
-        if (p.serverDescription) serverDescriptionMap.set(p.name, p.serverDescription)
-        if (p.server && p.port) serverPortMap.set(p.name, { server: p.server, port: p.port })
-      }
+    for (const p of runtime.proxies as { name?: string; serverDescription?: string }[]) {
+      if (p.name && p.serverDescription) serverDescriptionMap.set(p.name, p.serverDescription)
     }
   }
 
@@ -130,11 +125,6 @@ export const mihomoGroups = async (): Promise<ControllerMixedGroup[]> => {
     if (!('all' in proxy)) {
       const desc = serverDescriptionMap.get(proxy.name)
       if (desc) proxy.serverDescription = desc
-      const sp = serverPortMap.get(proxy.name)
-      if (sp) {
-        proxy.server = sp.server
-        proxy.port = sp.port
-      }
     }
     return proxy
   }
@@ -226,28 +216,6 @@ export const mihomoGroupDelay = async (
   })
 }
 
-export const tcpPing = async (host: string, port: number, timeout = 5000): Promise<number> => {
-  return new Promise((resolve, reject) => {
-    const socket = new net.Socket()
-    socket.setMaxListeners(20)
-    const start = Date.now()
-    socket.setTimeout(timeout)
-    socket.on('connect', () => {
-      const rtt = Date.now() - start
-      socket.destroy()
-      resolve(rtt)
-    })
-    socket.on('timeout', () => {
-      socket.destroy()
-      reject(new Error('TCP ping timeout'))
-    })
-    socket.on('error', (err) => {
-      socket.destroy()
-      reject(err)
-    })
-    socket.connect(port, host)
-  })
-}
 
 export const mihomoUpgrade = async (): Promise<void> => {
   if (process.platform === 'win32') await patchMihomoConfig({ 'log-level': 'info' })

@@ -42,7 +42,9 @@ const App: React.FC = () => {
     autoCheckUpdate ? ['checkUpdate'] : undefined,
     autoCheckUpdate ? checkUpdate : (): undefined => {},
     {
-      refreshInterval: 1000 * 60 * 10
+      refreshInterval: 1000 * 60 * 10,
+      refreshIntervalWhenHidden: true,
+      revalidateOnFocus: true
     }
   )
 
