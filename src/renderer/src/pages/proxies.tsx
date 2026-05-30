@@ -54,6 +54,7 @@ const Proxies: React.FC = () => {
     proxyDisplayOrder = 'default',
     autoCloseConnection = true,
     proxyCols = 'auto',
+    delayTestConcurrency = 50,
     expandProxyGroups = false
   } = appConfig || {}
   const [cols, setCols] = useState(1)
@@ -131,23 +132,38 @@ const Proxies: React.FC = () => {
         newDelaying[index] = true
         return newDelaying
       })
-      try {
-        const testUrl = groups[index].testUrl?.startsWith('tcp://')
-          ? undefined
-          : groups[index].testUrl
-        await mihomoGroupDelay(groups[index].name, testUrl)
-      } catch {
-        // ignore
-      } finally {
-        mutate()
-        setDelaying((prev) => {
-          const newDelaying = [...prev]
-          newDelaying[index] = false
-          return newDelaying
+      const testUrl = groups[index].testUrl?.startsWith('tcp://')
+        ? undefined
+        : groups[index].testUrl
+      const result: Promise<void>[] = []
+      const runningList: Promise<void>[] = []
+      for (const proxy of allProxies[index]) {
+        const promise = Promise.resolve().then(async () => {
+          try {
+            await mihomoProxyDelay(proxy.name, testUrl)
+          } catch {
+            // ignore
+          } finally {
+            mutate()
+          }
         })
+        result.push(promise)
+        const running = promise.then(() => {
+          runningList.splice(runningList.indexOf(running), 1)
+        })
+        runningList.push(running)
+        if (runningList.length >= (delayTestConcurrency || 50)) {
+          await Promise.race(runningList)
+        }
       }
+      await Promise.all(result)
+      setDelaying((prev) => {
+        const newDelaying = [...prev]
+        newDelaying[index] = false
+        return newDelaying
+      })
     },
-    [groups, isOpen, mutate]
+    [allProxies, groups, isOpen, delayTestConcurrency, mutate]
   )
 
   const calcCols = useCallback((): number => {
