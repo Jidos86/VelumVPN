@@ -94,7 +94,7 @@ proxy-groups:
 
   - name: "Случайный сервер"
     type: url-test
-    url: "tcp://1.1.1.1:443"
+    url: "https://www.gstatic.com/generate_204"
     interval: 300
     tolerance: 200
     proxies: []

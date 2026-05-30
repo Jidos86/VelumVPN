@@ -112,8 +112,7 @@ const Proxies: React.FC = () => {
 
   const onProxyDelay = useCallback(
     async (proxy: string, url?: string): Promise<ControllerProxiesDelay> => {
-      const effectiveUrl = url?.startsWith('tcp://') ? undefined : url
-      return await mihomoProxyDelay(proxy, effectiveUrl)
+      return await mihomoProxyDelay(proxy, url)
     },
     []
   )
@@ -132,15 +131,12 @@ const Proxies: React.FC = () => {
         newDelaying[index] = true
         return newDelaying
       })
-      const testUrl = groups[index].testUrl?.startsWith('tcp://')
-        ? undefined
-        : groups[index].testUrl
       const result: Promise<void>[] = []
       const runningList: Promise<void>[] = []
       for (const proxy of allProxies[index]) {
         const promise = Promise.resolve().then(async () => {
           try {
-            await mihomoProxyDelay(proxy.name, testUrl)
+            await mihomoProxyDelay(proxy.name, groups[index].testUrl)
           } catch {
             // ignore
           } finally {
