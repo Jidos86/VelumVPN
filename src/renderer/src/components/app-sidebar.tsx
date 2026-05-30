@@ -134,7 +134,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
               <SidebarMenuButton
                 tooltip={t('sider.shop')}
                 className="cursor-pointer"
-                onClick={() => open('https://shop.cloudinform.store/')}
+                onClick={() => open('https://shop.velum.ru/')}
               >
                 <ShoppingBag className="size-4 shrink-0" style={{ color: 'oklch(0.82 0.16 196)' }} />
                 <span>{t('sider.shop')}</span>
