@@ -1,0 +1,120 @@
+name: Build Dev
+permissions: write-all
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            arch: x64
+            format: nsis
+          - os: windows-latest
+            arch: x64
+            format: 7z
+
+    name: Dev ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.format }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Setup pnpm
+        run: npm install -g pnpm
+
+      - name: Set Dev Version
+        shell: bash
+        run: |
+          GIT_COMMIT_HASH=$(git rev-parse --short HEAD)
+          BASE_VERSION=$(jq -r '.version' package.json)
+          DEV_VERSION="${BASE_VERSION}-dev-${GIT_COMMIT_HASH}"
+          jq --arg version "$DEV_VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json
+          echo "DEV_VERSION=$DEV_VERSION" >> $GITHUB_ENV
+
+      - name: Install Dependencies and Prepare
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          SKIP_PREPARE=1 pnpm install
+          pnpm prepare --${{ matrix.arch }}
+
+      - name: Build
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+        shell: bash
+        run: pnpm build:win ${{ matrix.format }} --${{ matrix.arch }}
+
+      - name: Add Portable Flag
+        if: matrix.format == '7z'
+        shell: pwsh
+        run: |
+          New-Item -Path "PORTABLE" -ItemType File
+          Get-ChildItem dist/*portable.7z | ForEach-Object {
+            7z a $_.FullName PORTABLE
+          }
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-${{ matrix.arch }}-${{ matrix.format }}
+          path: |
+            dist/VelumVPN*
+            !dist/*.plist
+            !dist/*blockmap*
+
+  publish:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: bin/
+          merge-multiple: true
+
+      - name: Delete current dev-release assets
+        uses: 8Mi-Tech/delete-release-assets-action@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: dev-release
+          deleteOnlyFromDrafts: false
+
+      - name: Tag Repo
+        uses: richardsimko/update-tag@v1
+        with:
+          tag_name: dev-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Dev Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev-release
+          name: "Dev Build — ${{ github.sha }}"
+          body: |
+            ⚠️ **Это экспериментальная сборка из ветки `dev`.**
+            Не предназначена для обычных пользователей — только для тестирования новых функций.
+
+            Коммит: `${{ github.sha }}`
+          files: bin/**
+          prerelease: true
