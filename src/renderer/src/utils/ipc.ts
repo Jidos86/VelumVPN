@@ -555,3 +555,46 @@ export async function openRouteTemplateFile(mode: string): Promise<void> {
 export async function getBrand(): Promise<{ geositeUrl?: string; geoipUrl?: string }> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getBrand'))
 }
+export type ZapretSource = 'flowseal' | 'zapret2'
+
+export interface ZapretStrategy {
+  id: string
+  name: string
+  args: string
+}
+
+export async function zapretIsInstalled(source: ZapretSource): Promise<boolean> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('zapretIsInstalled', source))
+}
+
+export async function zapretIsRunning(): Promise<boolean> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('zapretIsRunning'))
+}
+
+export async function zapretGetVersion(source: ZapretSource): Promise<string | null> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('zapretGetVersion', source))
+}
+
+export async function zapretGetStrategies(): Promise<ZapretStrategy[]> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('zapretGetStrategies'))
+}
+
+export async function zapretDownload(source: ZapretSource): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('zapretDownload', source))
+}
+
+export async function zapretStart(source: ZapretSource, args: string): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('zapretStart', source, args))
+}
+
+export async function zapretStop(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('zapretStop'))
+}
+
+export async function zapretRunAnalyzer(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('zapretRunAnalyzer'))
+}
+
+export async function zapretStopAnalyzer(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('zapretStopAnalyzer'))
+}

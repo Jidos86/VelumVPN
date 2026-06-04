@@ -92,6 +92,7 @@ export default {
     logs: 'Логи',
     myRules: 'Мои правила',
     diagnostics: 'Диагностика',
+    zapret: 'DPI Обход',
     shop: 'Магазин',
     support: 'Поддержка',
     domainSniffing: 'Определение доменов',

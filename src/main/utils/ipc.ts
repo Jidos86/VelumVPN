@@ -1,5 +1,17 @@
 import { app, ipcMain, shell } from 'electron'
 import {
+  downloadZapret,
+  getFlowsealStrategies,
+  getZapretVersion,
+  isZapretInstalled,
+  isZapretRunning,
+  runZapret2Analyzer,
+  startZapret,
+  stopAnalyzer,
+  stopZapret,
+  type ZapretSource
+} from '../core/zapret'
+import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
   mihomoCloseConnection,
@@ -397,4 +409,23 @@ ipcMain.handle('patchMihomoConfig', (_e, patch) => ipcErrorWrapper(patchMihomoCo
   }))
 
   ipcMain.handle('getBrand', () => getBrand())
+
+  // Zapret
+  ipcMain.handle('zapretIsInstalled', (_e, source: ZapretSource) => isZapretInstalled(source))
+  ipcMain.handle('zapretIsRunning', () => isZapretRunning())
+  ipcMain.handle('zapretGetVersion', (_e, source: ZapretSource) => getZapretVersion(source))
+  ipcMain.handle('zapretGetStrategies', () => getFlowsealStrategies())
+  ipcMain.handle('zapretDownload', ipcErrorWrapper(async (_e, source: ZapretSource) => {
+    await downloadZapret(source, (pct) => {
+      ipcMain.emit('zapretDownloadProgress', null, pct)
+    })
+  }))
+  ipcMain.handle('zapretStart', ipcErrorWrapper(async (_e, source: ZapretSource, args: string) => {
+    // Mutual exclusion: stop core before starting zapret
+    await stopZapret()
+    await startZapret(source, args)
+  }))
+  ipcMain.handle('zapretStop', ipcErrorWrapper(stopZapret))
+  ipcMain.handle('zapretRunAnalyzer', ipcErrorWrapper(runZapret2Analyzer))
+  ipcMain.handle('zapretStopAnalyzer', () => stopAnalyzer())
 }

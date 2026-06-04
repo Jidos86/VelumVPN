@@ -174,6 +174,14 @@ export function rulesDir(): string {
   return path.join(dataDir(), 'rules')
 }
 
+export function zapretDir(): string {
+  const dir = path.join(dataDir(), 'zapret')
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true })
+  }
+  return dir
+}
+
 export function rulePath(id: string): string {
   return path.join(rulesDir(), `${id}.yaml`)
 }

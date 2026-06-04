@@ -91,6 +91,7 @@ export default {
     logs: 'Logs',
     myRules: 'My Rules',
     diagnostics: 'Diagnostics',
+    zapret: 'DPI Bypass',
     shop: 'Shop',
     support: 'Support',
     domainSniffing: 'Domain Sniffing',

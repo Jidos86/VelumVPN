@@ -12,7 +12,7 @@ import {
   CollapsedIcon,
   ExpandedIcon
 } from '@renderer/components/icons/sidebar-icons'
-import { SlidersHorizontal, ShoppingBag, Stethoscope } from 'lucide-react'
+import { SlidersHorizontal, ShoppingBag, Stethoscope, ShieldOff } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -44,6 +44,9 @@ const CustomRulesIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 const DiagnosticsIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <Stethoscope {...(props as React.ComponentProps<typeof Stethoscope>)} />
 )
+const ZapretIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <ShieldOff {...(props as React.ComponentProps<typeof ShieldOff>)} />
+)
 
 const navItems = [
   { key: 'main', path: '/home', icon: HomeIcon, i18nKey: 'sider.home' },
@@ -52,6 +55,7 @@ const navItems = [
   { key: 'custom-rules', path: '/custom-rules', icon: CustomRulesIcon, i18nKey: 'sider.myRules' },
   { key: 'connection', path: '/connections', icon: ConnectionsIcon, i18nKey: 'sider.connection' },
   { key: 'diagnostics', path: '/diagnostics', icon: DiagnosticsIcon, i18nKey: 'sider.diagnostics' },
+  { key: 'zapret', path: '/zapret', icon: ZapretIcon, i18nKey: 'sider.zapret' },
   { key: 'rule', path: '/rules', icon: RulesIcon, i18nKey: 'sider.rules' },
   { key: 'log', path: '/logs', icon: LogsIcon, i18nKey: 'sider.logs' },
   { key: 'settings', path: '/settings', icon: SettingsIcon, i18nKey: 'common.settings' }
