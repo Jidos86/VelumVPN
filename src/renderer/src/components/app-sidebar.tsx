@@ -19,6 +19,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -48,21 +49,52 @@ const ZapretIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <ShieldOff {...(props as React.ComponentProps<typeof ShieldOff>)} />
 )
 
-const navItems = [
-  { key: 'main', path: '/home', icon: HomeIcon, i18nKey: 'sider.home' },
-  { key: 'profile', path: '/profiles', icon: ProfileIcon, i18nKey: 'sider.profileManagement' },
-  { key: 'proxy', path: '/proxies', icon: ProxiesIcon, i18nKey: 'sider.proxyGroup' },
-  { key: 'custom-rules', path: '/custom-rules', icon: CustomRulesIcon, i18nKey: 'sider.myRules' },
-  { key: 'connection', path: '/connections', icon: ConnectionsIcon, i18nKey: 'sider.connection' },
-  { key: 'diagnostics', path: '/diagnostics', icon: DiagnosticsIcon, i18nKey: 'sider.diagnostics' },
-  { key: 'zapret', path: '/zapret', icon: ZapretIcon, i18nKey: 'sider.zapret' },
-  { key: 'rule', path: '/rules', icon: RulesIcon, i18nKey: 'sider.rules' },
-  { key: 'log', path: '/logs', icon: LogsIcon, i18nKey: 'sider.logs' },
-  { key: 'settings', path: '/settings', icon: SettingsIcon, i18nKey: 'common.settings' }
-]
+interface NavItem {
+  key: string
+  path: string
+  icon: React.FC<React.SVGProps<SVGSVGElement>>
+  i18nKey: string
+  expertOnly?: boolean
+  requiresProfile?: boolean
+}
 
-const allowedWithoutProfiles = new Set(['main', 'profile', 'settings', 'custom-rules', 'shop'])
-const expertOnlyItems = new Set(['proxy', 'connection', 'diagnostics', 'rule', 'log'])
+interface NavGroup {
+  labelKey: string
+  items: NavItem[]
+}
+
+const navGroups: NavGroup[] = [
+  {
+    labelKey: 'sider.groupMain',
+    items: [
+      { key: 'main', path: '/home', icon: HomeIcon, i18nKey: 'sider.home' },
+      { key: 'profile', path: '/profiles', icon: ProfileIcon, i18nKey: 'sider.profileManagement' }
+    ]
+  },
+  {
+    labelKey: 'sider.groupVpn',
+    items: [
+      { key: 'proxy', path: '/proxies', icon: ProxiesIcon, i18nKey: 'sider.proxyGroup', requiresProfile: true },
+      { key: 'custom-rules', path: '/custom-rules', icon: CustomRulesIcon, i18nKey: 'sider.myRules', requiresProfile: true },
+      { key: 'zapret', path: '/zapret', icon: ZapretIcon, i18nKey: 'sider.zapret' }
+    ]
+  },
+  {
+    labelKey: 'sider.groupTools',
+    items: [
+      { key: 'diagnostics', path: '/diagnostics', icon: DiagnosticsIcon, i18nKey: 'sider.diagnostics', requiresProfile: true },
+      { key: 'connection', path: '/connections', icon: ConnectionsIcon, i18nKey: 'sider.connection', expertOnly: true, requiresProfile: true },
+      { key: 'rule', path: '/rules', icon: RulesIcon, i18nKey: 'sider.rules', expertOnly: true, requiresProfile: true },
+      { key: 'log', path: '/logs', icon: LogsIcon, i18nKey: 'sider.logs', expertOnly: true }
+    ]
+  },
+  {
+    labelKey: 'sider.groupSystem',
+    items: [
+      { key: 'settings', path: '/settings', icon: SettingsIcon, i18nKey: 'common.settings' }
+    ]
+  }
+]
 
 const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
   const { t } = useTranslation()
@@ -75,9 +107,13 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
   const { appConfig } = useAppConfig()
   const expertMode = appConfig?.expertMode ?? false
   const hasProfiles = (profileConfig?.items?.length ?? 0) > 0
-  const filteredNavItems = navItems
-    .filter((item) => expertMode || !expertOnlyItems.has(item.key))
-    .filter((item) => hasProfiles || allowedWithoutProfiles.has(item.key))
+
+  const filterItems = (items: NavItem[]): NavItem[] =>
+    items.filter((item) => {
+      if (item.expertOnly && !expertMode) return false
+      if (item.requiresProfile && !hasProfiles) return false
+      return true
+    })
 
   return (
     <Sidebar
@@ -87,7 +123,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
       variant="floating"
       className="pt-14.25"
     >
-      {/* Logo header */}
+      {/* Logo */}
       <div
         className={`flex items-center gap-2.5 px-3 pb-3 pt-1 border-b border-sidebar-border ${collapsed ? 'justify-center' : ''}`}
       >
@@ -100,38 +136,45 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
       </div>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {filteredNavItems.map((item) => {
-                const Icon = item.icon
-                const isActive = location.pathname.includes(item.path)
-                const label = 'label' in item ? item.label : t(item.i18nKey!)
-                return (
-                  <SidebarMenuItem key={item.key}>
-                    <SidebarMenuButton
-                      className="cursor-pointer"
-                      tooltip={label}
-                      isActive={isActive}
-                      data-guide={item.key === 'main' ? 'sidebar-home-button' : undefined}
-                      onClick={() => navigate(item.path)}
-                      onDoubleClick={
-                        item.key === 'profile' ? () => setShowRuntimeConfig(true) : undefined
-                      }
-                    >
-                      <Icon className="size-4" />
-                      <span>{label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {navGroups.map((group) => {
+          const items = filterItems(group.items)
+          if (items.length === 0) return null
+          return (
+            <SidebarGroup key={group.labelKey}>
+              <SidebarGroupLabel>{t(group.labelKey)}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {items.map((item) => {
+                    const Icon = item.icon
+                    const isActive = location.pathname.includes(item.path)
+                    const label = t(item.i18nKey)
+                    return (
+                      <SidebarMenuItem key={item.key}>
+                        <SidebarMenuButton
+                          className="cursor-pointer"
+                          tooltip={label}
+                          isActive={isActive}
+                          data-guide={item.key === 'main' ? 'sidebar-home-button' : undefined}
+                          onClick={() => navigate(item.path)}
+                          onDoubleClick={
+                            item.key === 'profile' ? () => setShowRuntimeConfig(true) : undefined
+                          }
+                        >
+                          <Icon className="size-4" />
+                          <span>{label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )
+        })}
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-1">
           {latest && latest.version && <UpdaterButton iconOnly={collapsed} latest={latest} />}
           <SidebarMenu>
             <SidebarMenuItem>
@@ -144,8 +187,6 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
                 <span>{t('sider.shop')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-          </SidebarMenu>
-          <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
                 tooltip={t('sider.support')}
@@ -156,8 +197,6 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
                 <span>{t('sider.support')}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-          </SidebarMenu>
-          <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
                 tooltip={t('common.toggleSidebar')}

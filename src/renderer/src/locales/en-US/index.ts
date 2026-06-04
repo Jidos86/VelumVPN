@@ -83,6 +83,10 @@ export default {
   },
 
   sider: {
+    groupMain: 'Main',
+    groupVpn: 'VPN',
+    groupTools: 'Tools',
+    groupSystem: 'System',
     home: 'Home',
     proxyGroup: 'Proxy Groups',
     profileManagement: 'Profile Management',
