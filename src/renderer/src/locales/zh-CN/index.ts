@@ -166,6 +166,8 @@ export default {
     logs: '日志',
     myRules: '我的规则',
     diagnostics: '诊断',
+    zapret1: 'ZAPRET1',
+    zapret2: 'ZAPRET2',
     zapret: 'DPI 绕过',
     shop: '商店',
     support: '支持',

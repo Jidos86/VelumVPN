@@ -75,8 +75,14 @@ const navGroups: NavGroup[] = [
     labelKey: 'sider.groupVpn',
     items: [
       { key: 'proxy', path: '/proxies', icon: ProxiesIcon, i18nKey: 'sider.proxyGroup', requiresProfile: true },
-      { key: 'custom-rules', path: '/custom-rules', icon: CustomRulesIcon, i18nKey: 'sider.myRules', requiresProfile: true },
-      { key: 'zapret', path: '/zapret', icon: ZapretIcon, i18nKey: 'sider.zapret' }
+      { key: 'custom-rules', path: '/custom-rules', icon: CustomRulesIcon, i18nKey: 'sider.myRules', requiresProfile: true }
+    ]
+  },
+  {
+    labelKey: 'sider.groupDpi',
+    items: [
+      { key: 'zapret1', path: '/zapret1', icon: ZapretIcon, i18nKey: 'sider.zapret1' },
+      { key: 'zapret2', path: '/zapret2', icon: ZapretIcon, i18nKey: 'sider.zapret2' }
     ]
   },
   {

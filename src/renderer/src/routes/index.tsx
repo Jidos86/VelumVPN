@@ -14,7 +14,8 @@ import Sniffer from '@renderer/pages/sniffer'
 import Home from '@renderer/pages/home'
 import CustomRules from '@renderer/pages/custom-rules'
 import Diagnostics from '@renderer/pages/diagnostics'
-import Zapret from '@renderer/pages/zapret'
+import Zapret1 from '@renderer/pages/zapret1'
+import Zapret2 from '@renderer/pages/zapret2'
 const routes = [
   {
     path: '/mihomo',
@@ -81,8 +82,12 @@ const routes = [
     element: <Diagnostics />
   },
   {
-    path: '/zapret',
-    element: <Zapret />
+    path: '/zapret1',
+    element: <Zapret1 />
+  },
+  {
+    path: '/zapret2',
+    element: <Zapret2 />
   },
 ]
 
