@@ -27,6 +27,7 @@ import {
 } from '@renderer/components/ui/sidebar'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { platform } from '@renderer/utils/init'
 import UpdaterButton from '@renderer/components/updater/updater-button'
 import ConfigViewer from '@renderer/components/sider/config-viewer'
 import Logo from '@renderer/assets/velumvpn-logo.svg'
@@ -78,13 +79,13 @@ const navGroups: NavGroup[] = [
       { key: 'custom-rules', path: '/custom-rules', icon: CustomRulesIcon, i18nKey: 'sider.myRules', requiresProfile: true }
     ]
   },
-  {
+  ...(platform === 'win32' ? [{
     labelKey: 'sider.groupDpi',
     items: [
       { key: 'zapret1', path: '/zapret1', icon: ZapretIcon, i18nKey: 'sider.zapret1' },
       { key: 'zapret2', path: '/zapret2', icon: ZapretIcon, i18nKey: 'sider.zapret2' }
     ]
-  },
+  }] : []),
   {
     labelKey: 'sider.groupTools',
     items: [
