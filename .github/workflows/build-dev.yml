@@ -34,7 +34,7 @@ jobs:
       - name: Setup pnpm
         run: npm install -g pnpm
 
-      - name: Set Dev Version
+      - name: Set Dev Version and AppId
         shell: bash
         run: |
           GIT_COMMIT_HASH=$(git rev-parse --short HEAD)
@@ -42,6 +42,14 @@ jobs:
           DEV_VERSION="${BASE_VERSION}-dev-${GIT_COMMIT_HASH}"
           jq --arg version "$DEV_VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json
           echo "DEV_VERSION=$DEV_VERSION" >> $GITHUB_ENV
+          # Give dev build a separate appId and productName so it installs alongside stable
+          sed -i 's/appId: com.velumvpn.app/appId: com.velumvpn.dev/' electron-builder.yml
+          sed -i 's/productName: VelumVPN/productName: VelumVPN Dev/' electron-builder.yml
+          echo "Buildng version: $DEV_VERSION"
+          echo "--- package.json version ---"
+          jq '.version' package.json
+          echo "--- electron-builder.yml header ---"
+          head -3 electron-builder.yml
 
       - name: Install Dependencies and Prepare
         env:
