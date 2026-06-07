@@ -9,7 +9,6 @@ import {
   getImageDataURL,
   mihomoChangeProxy,
   mihomoCloseAllConnections,
-  mihomoGroupDelay,
   mihomoProxyDelay
 } from '@renderer/utils/ipc'
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
@@ -61,7 +60,11 @@ const Proxies: React.FC = () => {
   const [isOpen, setIsOpen] = useState(Array(groups.length).fill(expandProxyGroups))
   const [delaying, setDelaying] = useState(Array(groups.length).fill(false))
   const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
+  const [delayingTick, setDelayingTick] = useState(0)
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
+  const delayingProxiesRef = useRef<Set<string>>(new Set())
+  const completedProxiesRef = useRef<Set<string>>(new Set())
+  const mutateThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const virtuosoRef = useRef<GroupedVirtuosoHandle>(null)
   const { groupCounts, allProxies } = useMemo(() => {
     const groupCounts: number[] = []
@@ -110,6 +113,14 @@ const Proxies: React.FC = () => {
     [autoCloseConnection, mutate]
   )
 
+  const throttledMutate = useCallback(() => {
+    if (mutateThrottleRef.current) return
+    mutateThrottleRef.current = setTimeout(() => {
+      mutate()
+      mutateThrottleRef.current = null
+    }, 500)
+  }, [mutate])
+
   const onProxyDelay = useCallback(
     async (proxy: string, url?: string): Promise<ControllerProxiesDelay> => {
       return await mihomoProxyDelay(proxy, url)
@@ -119,7 +130,7 @@ const Proxies: React.FC = () => {
 
   const onGroupDelay = useCallback(
     async (index: number): Promise<void> => {
-      if (!isOpen[index]) {
+      if (allProxies[index].length === 0) {
         setIsOpen((prev) => {
           const newOpen = [...prev]
           newOpen[index] = true
@@ -131,6 +142,8 @@ const Proxies: React.FC = () => {
         newDelaying[index] = true
         return newDelaying
       })
+      allProxies[index].forEach((p) => delayingProxiesRef.current.add(p.name))
+      setDelayingTick((c) => c + 1)
       const result: Promise<void>[] = []
       const runningList: Promise<void>[] = []
       for (const proxy of allProxies[index]) {
@@ -140,7 +153,8 @@ const Proxies: React.FC = () => {
           } catch {
             // ignore
           } finally {
-            mutate()
+            completedProxiesRef.current.add(proxy.name)
+            throttledMutate()
           }
         })
         result.push(promise)
@@ -153,13 +167,14 @@ const Proxies: React.FC = () => {
         }
       }
       await Promise.all(result)
+      mutate()
       setDelaying((prev) => {
         const newDelaying = [...prev]
         newDelaying[index] = false
         return newDelaying
       })
     },
-    [allProxies, groups, isOpen, delayTestConcurrency, mutate]
+    [allProxies, groups, delayTestConcurrency, mutate, throttledMutate]
   )
 
   const calcCols = useCallback((): number => {
