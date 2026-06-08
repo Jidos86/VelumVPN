@@ -164,7 +164,7 @@ export default {
       connecting: 'Connecting...',
       connected: 'Connected',
       disconnecting: 'Disconnecting...',
-      trafficRemaining: 'WL traffic left:',
+      trafficRemaining: 'Traffic left:',
       trafficRemainingHint: 'This is traffic from your mobile device',
       daysRemaining: 'Days left:',
       expires: 'Expires:',
