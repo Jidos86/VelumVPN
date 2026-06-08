@@ -20,8 +20,9 @@ interface Props {
 function delayColorClass(delay: number): string {
   if (delay === -1) return 'text-primary'
   if (delay === 0) return 'text-destructive'
-  if (delay < 500) return 'text-success'
-  return 'text-warning'
+  if (delay < 250) return 'text-success'
+  if (delay < 600) return 'text-warning'
+  return 'text-destructive'
 }
 
 const ProxyItem: React.FC<Props> = (props) => {
@@ -40,7 +41,9 @@ const ProxyItem: React.FC<Props> = (props) => {
   function delayText(d: number): string {
     if (d === -1) return t('proxies.delayTest')
     if (d === 0) return t('proxies.timeout')
-    return d.toString()
+    if (d < 250) return t('proxies.fast')
+    if (d < 600) return t('proxies.normal')
+    return t('proxies.slow')
   }
 
   const onDelay = (): void => {

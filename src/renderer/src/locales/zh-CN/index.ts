@@ -969,6 +969,9 @@ export default {
     delayTestTimeoutPlaceholder: '默认 5000',
     delayTest: '测试',
     timeout: '超时',
+    fast: '快速',
+    normal: '正常',
+    slow: '慢速',
     unpin: '取消固定'
   },
 
