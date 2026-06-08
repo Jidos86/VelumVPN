@@ -771,9 +771,26 @@ function applyRouteMode(
     'GEOSITE,category-ads-all,REJECT'
   ]
 
+  const torrentDirect = [
+    'PROCESS-NAME,qbittorrent.exe,DIRECT',
+    'PROCESS-NAME,qbittorrent,DIRECT',
+    'PROCESS-NAME,utorrent.exe,DIRECT',
+    'PROCESS-NAME,bittorrent.exe,DIRECT',
+    'PROCESS-NAME,BitTorrent.exe,DIRECT',
+    'PROCESS-NAME,transmission-qt.exe,DIRECT',
+    'PROCESS-NAME,transmission-gtk,DIRECT',
+    'PROCESS-NAME,transmission-daemon,DIRECT',
+    'PROCESS-NAME,deluge.exe,DIRECT',
+    'PROCESS-NAME,deluged,DIRECT',
+    'PROCESS-NAME,tixati.exe,DIRECT',
+    'PROCESS-NAME,WebTorrent.exe,DIRECT',
+    'PROCESS-NAME,FrostWire.exe,DIRECT'
+  ]
+
   if (routeMode === 'blocked') {
     profile.rules = [
       ...base,
+      ...torrentDirect,
       `AND,((NETWORK,UDP),(DST-PORT,50000-65535)),${proxyGroup}`,
       `GEOSITE,youtube,${proxyGroup}`,
       `GEOSITE,telegram,${proxyGroup}`,
@@ -787,12 +804,14 @@ function applyRouteMode(
   } else if (routeMode === 'all-except-ru') {
     profile.rules = [
       ...base,
+      ...torrentDirect,
       'GEOIP,ru,DIRECT',
       `MATCH,${proxyGroup}`
     ] as unknown as []
   } else if (routeMode === 'all') {
     profile.rules = [
       ...base,
+      ...torrentDirect,
       `MATCH,${proxyGroup}`
     ] as unknown as []
   }
