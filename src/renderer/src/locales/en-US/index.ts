@@ -920,6 +920,9 @@ export default {
     delayTestTimeoutPlaceholder: 'Default: 5000',
     delayTest: 'Test',
     timeout: 'Timeout',
+    fast: 'Fast',
+    normal: 'Normal',
+    slow: 'Slow',
     unpin: 'Unpin'
   },
 

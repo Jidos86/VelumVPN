@@ -920,6 +920,9 @@ export default {
     delayTestTimeoutPlaceholder: 'По умолчанию: 5000',
     delayTest: 'Тест',
     timeout: 'Тайм-аут',
+    fast: 'Быстро',
+    normal: 'Норм',
+    slow: 'Медленно',
     unpin: 'Открепить'
   },
 
