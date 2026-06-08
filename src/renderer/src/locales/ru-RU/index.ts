@@ -173,7 +173,7 @@ export default {
       connecting: 'Подключение...',
       connected: 'Подключено',
       disconnecting: 'Отключение...',
-      trafficRemaining: 'Трафик БС осталось:',
+      trafficRemaining: 'Трафик осталось:',
       trafficRemainingHint: 'Это трафик с вашего мобильного устройства',
       daysRemaining: 'Дней осталось:',
       expires: 'Истекает:',
