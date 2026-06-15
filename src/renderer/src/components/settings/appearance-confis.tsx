@@ -12,7 +12,6 @@ import {
 } from '@renderer/components/ui/select'
 import { Spinner } from '@renderer/components/ui/spinner'
 import { Switch } from '@renderer/components/ui/switch'
-import { Tabs, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import {
   applyTheme,
@@ -32,7 +31,6 @@ import {
 } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
-import { useTheme } from 'next-themes'
 import CSSEditorModal from './css-editor-modal'
 import { useTranslation } from 'react-i18next'
 import { CloudDownload, FilePenLine, Import, MessageCircleQuestionMark } from 'lucide-react'
@@ -48,7 +46,6 @@ const AppearanceConfig: React.FC<AppearanceConfigProps> = (props) => {
   const [customThemes, setCustomThemes] = useState<{ key: string; label: string }[]>()
   const [openCSSEditor, setOpenCSSEditor] = useState(false)
   const [fetching, setFetching] = useState(false)
-  const { setTheme } = useTheme()
   const {
     useDockIcon = true,
     proxyInTray = true,
@@ -56,8 +53,7 @@ const AppearanceConfig: React.FC<AppearanceConfigProps> = (props) => {
     showFloatingWindow: showFloating = false,
     spinFloatingIcon = true,
     useWindowFrame = false,
-    customTheme = 'default.css',
-    appTheme = 'system'
+    customTheme = 'default.css'
   } = appConfig || {}
   const [localShowFloating, setLocalShowFloating] = useState(showFloating)
   const [onTop, setOnTop] = useState(false)
@@ -198,20 +194,6 @@ const AppearanceConfig: React.FC<AppearanceConfigProps> = (props) => {
               await relaunchApp()
             }}
           />
-        </SettingItem>
-        <SettingItem title={t('settings.appearance.backgroundColor')} divider={showHiddenSettings}>
-          <Tabs
-            value={appTheme}
-            onValueChange={(value) => {
-              setTheme(value)
-              patchAppConfig({ appTheme: value as AppTheme })
-            }}
-          >
-            <TabsList>
-              <TabsTrigger value="system">{t('settings.appearance.auto')}</TabsTrigger>
-              <TabsTrigger value="dark">{t('settings.appearance.dark')}</TabsTrigger>
-            </TabsList>
-          </Tabs>
         </SettingItem>
         {showHiddenSettings && (
           <SettingItem
