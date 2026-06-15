@@ -138,6 +138,7 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
         {!collapsed && (
           <span className="text-sm font-bold tracking-wide text-foreground">
             Velum<span style={{ color: 'oklch(0.82 0.16 196)' }}>VPN</span>
+            <span style={{ color: 'oklch(0.82 0.16 196)', fontSize: '9px', marginLeft: 4 }}>dev</span>
           </span>
         )}
       </div>
