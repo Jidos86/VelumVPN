@@ -72,6 +72,21 @@ jobs:
         shell: bash
         run: pnpm build:win ${{ matrix.format }} --${{ matrix.arch }}
 
+      - name: Verify compiled output has dev code
+        shell: bash
+        run: |
+          echo "=== Checking compiled output for dev-specific strings ==="
+          FOUND=$(grep -rl "groupDpi\|zapret1\|zapret2\|navGroups" out/renderer/assets/ 2>/dev/null | head -3)
+          if [ -z "$FOUND" ]; then
+            echo "ERROR: Dev-specific code NOT found in compiled output!"
+            echo "This means electron-vite compiled from wrong source (main branch?)"
+            echo "=== Source file check ==="
+            grep -c "navGroups" src/renderer/src/components/app-sidebar.tsx || echo "navGroups also missing from source!"
+            exit 1
+          else
+            echo "OK: Dev code found in: $FOUND"
+          fi
+
       - name: Add Portable Flag
         if: matrix.format == '7z'
         shell: pwsh
