@@ -210,7 +210,6 @@ const AppearanceConfig: React.FC<AppearanceConfigProps> = (props) => {
             <TabsList>
               <TabsTrigger value="system">{t('settings.appearance.auto')}</TabsTrigger>
               <TabsTrigger value="dark">{t('settings.appearance.dark')}</TabsTrigger>
-              <TabsTrigger value="light">{t('settings.appearance.light')}</TabsTrigger>
             </TabsList>
           </Tabs>
         </SettingItem>

@@ -75,8 +75,9 @@ const App: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    setNativeTheme(appTheme)
-    setTheme(appTheme)
+    const resolvedAppTheme = appTheme === 'light' ? 'dark' : appTheme
+    setNativeTheme(resolvedAppTheme)
+    setTheme(resolvedAppTheme)
   }, [appTheme, systemTheme])
 
   useEffect(() => {
