@@ -970,6 +970,7 @@ export default {
     delayTest: '测试',
     timeout: '超时',
     fast: '快速',
+    good: '良好',
     normal: '正常',
     slow: '慢速',
     unpin: '取消固定'

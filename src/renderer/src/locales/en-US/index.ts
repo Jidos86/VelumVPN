@@ -913,6 +913,7 @@ export default {
     delayTest: 'Test',
     timeout: 'Timeout',
     fast: 'Fast',
+    good: 'Good',
     normal: 'Normal',
     slow: 'Slow',
     unpin: 'Unpin'

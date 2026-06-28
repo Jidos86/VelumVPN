@@ -21,7 +21,8 @@ function delayColorClass(delay: number): string {
   if (delay === -1) return 'text-primary'
   if (delay === 0) return 'text-destructive'
   if (delay < 250) return 'text-success'
-  if (delay < 600) return 'text-warning'
+  if (delay < 600) return 'text-emerald-500'
+  if (delay < 1300) return 'text-warning'
   return 'text-destructive'
 }
 
@@ -42,7 +43,8 @@ const ProxyItem: React.FC<Props> = (props) => {
     if (d === -1) return t('proxies.delayTest')
     if (d === 0) return t('proxies.timeout')
     if (d < 250) return t('proxies.fast')
-    if (d < 600) return t('proxies.normal')
+    if (d < 600) return t('proxies.good')
+    if (d < 1300) return t('proxies.normal')
     return t('proxies.slow')
   }
 
