@@ -921,6 +921,7 @@ export default {
     delayTest: 'Тест',
     timeout: 'Тайм-аут',
     fast: 'Быстро',
+    good: 'Хорошо',
     normal: 'Норм',
     slow: 'Медленно',
     unpin: 'Открепить'
