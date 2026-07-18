@@ -460,6 +460,7 @@ export default {
       trayShowNodeInfo: 'Show node info in tray menu',
       showDockIcon: 'Show Dock icon',
       alwaysOnTop: 'Always on top',
+      delayDisplayMode: 'Show ping in ms (instead of labels)',
       useSystemTitleBar: 'Use system title bar',
       backgroundColor: 'Background Color',
       theme: 'Theme',
