@@ -53,7 +53,8 @@ const AppearanceConfig: React.FC<AppearanceConfigProps> = (props) => {
     showFloatingWindow: showFloating = false,
     spinFloatingIcon = true,
     useWindowFrame = false,
-    customTheme = 'default.css'
+    customTheme = 'default.css',
+    delayDisplayMode = 'text'
   } = appConfig || {}
   const [localShowFloating, setLocalShowFloating] = useState(showFloating)
   const [onTop, setOnTop] = useState(false)
@@ -183,6 +184,14 @@ const AppearanceConfig: React.FC<AppearanceConfigProps> = (props) => {
             onCheckedChange={async (value) => {
               await setAlwaysOnTop(value)
               setOnTop(await isAlwaysOnTop())
+            }}
+          />
+        </SettingItem>
+        <SettingItem title={t('settings.appearance.delayDisplayMode')} divider>
+          <Switch
+            checked={delayDisplayMode === 'number'}
+            onCheckedChange={async (value) => {
+              await patchAppConfig({ delayDisplayMode: value ? 'number' : 'text' })
             }}
           />
         </SettingItem>

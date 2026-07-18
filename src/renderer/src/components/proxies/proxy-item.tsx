@@ -6,6 +6,7 @@ import React, { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Spinner } from '@renderer/components/ui/spinner'
 import { MapPin } from 'lucide-react'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
 
 interface Props {
   mutateProxies: () => void
@@ -29,6 +30,8 @@ function delayColorClass(delay: number): string {
 const ProxyItem: React.FC<Props> = (props) => {
   const { t } = useTranslation()
   const { mutateProxies, proxyDisplayLayout, group, proxy, selected, onSelect, onProxyDelay } = props
+  const { appConfig } = useAppConfig()
+  const delayDisplayMode = appConfig?.delayDisplayMode ?? 'text'
 
   const delay = useMemo(() => {
     if (proxy.history.length > 0) {
@@ -42,6 +45,7 @@ const ProxyItem: React.FC<Props> = (props) => {
   function delayText(d: number): string {
     if (d === -1) return t('proxies.delayTest')
     if (d === 0) return t('proxies.timeout')
+    if (delayDisplayMode === 'number') return `${d} ms`
     if (d < 250) return t('proxies.fast')
     if (d < 600) return t('proxies.good')
     if (d < 1300) return t('proxies.normal')

@@ -72,6 +72,7 @@ interface AppConfig {
   autoCheckUpdate: boolean
   silentStart: boolean
   expertMode?: boolean
+  delayDisplayMode?: 'text' | 'number'
   autoCloseConnection: boolean
   expandProxyGroups?: boolean
   sysProxy: ISysProxyConfig
