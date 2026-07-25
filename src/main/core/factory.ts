@@ -155,7 +155,7 @@ async function syncGeoToTestDir(fileName: string): Promise<void> {
   }
 }
 
-async function ensureRunetfreedomGeodata(): Promise<void> {
+async function ensureRunetfreedomGeodata(): Promise<boolean> {
   let geositeUrl = RUNETFREEDOM_URLS.geosite
   let geoipUrl = RUNETFREEDOM_URLS.geoip
   try {
@@ -183,7 +183,7 @@ async function ensureRunetfreedomGeodata(): Promise<void> {
 
   if (toDownload.length === 0) {
     await Promise.all(GEO_FILES.map((f) => syncGeoToTestDir(f.name)))
-    return
+    return true
   }
 
   const totalFiles = toDownload.length
@@ -217,6 +217,12 @@ async function ensureRunetfreedomGeodata(): Promise<void> {
   })
 
   await Promise.all(GEO_FILES.map((f) => syncGeoToTestDir(f.name)))
+
+  // Check if files are still too small after download attempts
+  const stillBad = await Promise.all(
+    GEO_FILES.map((f) => geoFileNeedsUpdate(path.join(mihomoWorkDir(), f.name)))
+  )
+  return !stillBad.some(Boolean)
 }
 
 const ROUTE_MODE_TEMPLATES: Record<string, string> = {
@@ -464,10 +470,23 @@ async function generateFromTemplate(
   diffWorkDir: boolean,
   current: string | undefined
 ): Promise<void> {
-  await ensureRunetfreedomGeodata()
+  const geoReady = await ensureRunetfreedomGeodata()
 
   const proxies = (userProfile.proxies as Array<{ name: string }>) || []
   injectProxiesIntoTemplate(template, proxies)
+
+  if (!geoReady && Array.isArray(template.rules)) {
+    // Geo files unavailable — fall back to routing all traffic through VPN
+    const proxyGroupName =
+      (template['proxy-groups'] as Array<{ name: string }>)?.[0]?.name || '→ VelumVPN'
+    const rules = template.rules as unknown as string[]
+    template.rules = [
+      ...rules.filter(
+        (r) => !r.startsWith('GEOSITE,') && !r.startsWith('GEOIP,') && !r.startsWith('MATCH,')
+      ),
+      `MATCH,${proxyGroupName}`
+    ] as unknown as []
+  }
 
   const customRules = await getCustomRules()
   injectCustomRules(template, customRules)
