@@ -1,4 +1,4 @@
 {
-  "geositeUrl": "",
-  "geoipUrl": ""
+  "geositeUrl": "https://cdn.jsdelivr.net/gh/runetfreedom/russia-v2ray-rules-dat@release/geosite.dat",
+  "geoipUrl": "https://cdn.jsdelivr.net/gh/runetfreedom/russia-v2ray-rules-dat@release/geoip.dat"
 }

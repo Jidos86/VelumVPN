@@ -44,6 +44,39 @@ const RUNETFREEDOM_URLS = {
     'https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat'
 }
 
+const RUNETFREEDOM_FALLBACK_URLS = {
+  geosite:
+    'https://cdn.jsdelivr.net/gh/runetfreedom/russia-v2ray-rules-dat@release/geosite.dat',
+  geoip:
+    'https://cdn.jsdelivr.net/gh/runetfreedom/russia-v2ray-rules-dat@release/geoip.dat'
+}
+
+async function downloadWithFallback(
+  primaryUrl: string,
+  fallbackUrl: string,
+  onProgress: (progress: number) => void
+): Promise<ArrayBuffer> {
+  const tryUrl = async (url: string): Promise<ArrayBuffer> => {
+    const res = await axios.get<ArrayBuffer>(url, {
+      responseType: 'arraybuffer',
+      timeout: 60000,
+      onDownloadProgress: (e) => {
+        onProgress(e.total ? e.loaded / e.total : 0)
+      }
+    })
+    return res.data
+  }
+
+  try {
+    return await tryUrl(primaryUrl)
+  } catch {
+    if (fallbackUrl && fallbackUrl !== primaryUrl) {
+      return await tryUrl(fallbackUrl)
+    }
+    throw new Error(`Failed to download from ${primaryUrl}`)
+  }
+}
+
 function resolveGeoUrls(): { geositeUrl: string; geoipUrl: string } {
   const brand = getBrand()
   // Priority: AppConfig (user) > brand.json (reseller) > runetfreedom (default)
@@ -70,34 +103,29 @@ export async function forceUpdateGeodata(): Promise<void> {
   })()
 
   const files = [
-    { url: geositeUrl, name: 'geosite.dat' },
-    { url: geoipUrl, name: 'geoip.dat' }
+    { url: geositeUrl, fallback: RUNETFREEDOM_FALLBACK_URLS.geosite, name: 'geosite.dat' },
+    { url: geoipUrl, fallback: RUNETFREEDOM_FALLBACK_URLS.geoip, name: 'geoip.dat' }
   ]
 
   const totalFiles = files.length
 
   for (let i = 0; i < files.length; i++) {
-    const { url, name } = files[i]
+    const { url, fallback, name } = files[i]
     const dest = path.join(mihomoWorkDir(), name)
 
     mainWindow?.webContents.send('geodataProgress', { file: name, progress: 0, fileIndex: i, totalFiles })
 
-    const res = await axios.get<ArrayBuffer>(url, {
-      responseType: 'arraybuffer',
-      timeout: 120000,
-      onDownloadProgress: (e) => {
-        const fileProgress = e.total ? e.loaded / e.total : 0
-        const overall = (i + fileProgress) / totalFiles
-        mainWindow?.webContents.send('geodataProgress', {
-          file: name,
-          progress: Math.round(overall * 100),
-          fileIndex: i,
-          totalFiles
-        })
-      }
+    const data = await downloadWithFallback(url, fallback, (fileProgress) => {
+      const overall = (i + fileProgress) / totalFiles
+      mainWindow?.webContents.send('geodataProgress', {
+        file: name,
+        progress: Math.round(overall * 100),
+        fileIndex: i,
+        totalFiles
+      })
     })
 
-    await writeFile(dest, Buffer.from(res.data))
+    await writeFile(dest, Buffer.from(data))
 
     const testDest = path.join(mihomoTestDir(), name)
     await copyFile(dest, testDest)
@@ -140,8 +168,8 @@ async function ensureRunetfreedomGeodata(): Promise<void> {
   }
 
   const GEO_FILES = [
-    { url: geositeUrl, name: 'geosite.dat' },
-    { url: geoipUrl, name: 'geoip.dat' }
+    { url: geositeUrl, fallback: RUNETFREEDOM_FALLBACK_URLS.geosite, name: 'geosite.dat' },
+    { url: geoipUrl, fallback: RUNETFREEDOM_FALLBACK_URLS.geoip, name: 'geoip.dat' }
   ]
 
   const toDownload = (
@@ -164,13 +192,10 @@ async function ensureRunetfreedomGeodata(): Promise<void> {
   })
 
   for (let i = 0; i < toDownload.length; i++) {
-    const { url, name } = toDownload[i]
+    const { url, fallback, name } = toDownload[i]
     const dest = path.join(mihomoWorkDir(), name)
-    const res = await axios.get<ArrayBuffer>(url, {
-      responseType: 'arraybuffer',
-      timeout: 120000,
-      onDownloadProgress: (e) => {
-        const fileProgress = e.total ? e.loaded / e.total : 0
+    try {
+      const data = await downloadWithFallback(url, fallback, (fileProgress) => {
         const overall = (i + fileProgress) / totalFiles
         mainWindow?.webContents.send('geodataProgress', {
           file: name,
@@ -179,10 +204,12 @@ async function ensureRunetfreedomGeodata(): Promise<void> {
           totalFiles,
           auto: true
         })
-      }
-    })
-    await writeFile(dest, Buffer.from(res.data))
-    await copyFile(dest, path.join(mihomoTestDir(), name))
+      })
+      await writeFile(dest, Buffer.from(data))
+      await copyFile(dest, path.join(mihomoTestDir(), name))
+    } catch {
+      // Download failed — continue with existing (possibly outdated) file
+    }
   }
 
   mainWindow?.webContents.send('geodataProgress', {

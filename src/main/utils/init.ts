@@ -19,7 +19,7 @@ import {
   defaultProfileConfig
 } from './template'
 import { stringifyYaml } from './yaml'
-import { mkdir, writeFile, cp, rm, readdir } from 'fs/promises'
+import { mkdir, writeFile, cp, rm, readdir, stat } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
 import {
@@ -87,10 +87,21 @@ async function initFiles(): Promise<void> {
     const targetPath = path.join(mihomoWorkDir(), file)
     const testTargetPath = path.join(mihomoTestDir(), file)
     const sourcePath = path.join(resourcesFilesDir(), file)
-    if (!existsSync(targetPath) && existsSync(sourcePath)) {
+    if (!existsSync(sourcePath)) return
+    const srcSize = (await stat(sourcePath)).size
+    const shouldCopy = async (dst: string): Promise<boolean> => {
+      if (!existsSync(dst)) return true
+      try {
+        const dstSize = (await stat(dst)).size
+        return srcSize > dstSize
+      } catch {
+        return true
+      }
+    }
+    if (await shouldCopy(targetPath)) {
       await cp(sourcePath, targetPath, { recursive: true })
     }
-    if (!existsSync(testTargetPath) && existsSync(sourcePath)) {
+    if (await shouldCopy(testTargetPath)) {
       await cp(sourcePath, testTargetPath, { recursive: true })
     }
   }
