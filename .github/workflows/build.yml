@@ -36,6 +36,11 @@ jobs:
             arch: arm64
             format: nsis
 
+          - os: macos-latest
+            arch: x64
+          - os: macos-latest
+            arch: arm64
+
           - os: ubuntu-latest
             arch: x64
             format: deb
