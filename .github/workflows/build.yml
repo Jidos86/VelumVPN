@@ -140,8 +140,10 @@ jobs:
             pnpm build:win ${{ matrix.format }} --${{ matrix.arch }}
           elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
             pnpm build:linux ${{ matrix.format }} --${{ matrix.arch }}
+          elif [[ "${{ matrix.arch }}" == "x64" ]]; then
+            pnpm build:mac:x64
           else
-            pnpm build:mac --${{ matrix.arch }}
+            pnpm build:mac
           fi
 
       - name: Add Portable Flag
