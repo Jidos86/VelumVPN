@@ -135,6 +135,10 @@ if (process.platform === 'win32' && !exePath().startsWith('C')) {
   app.commandLine.appendSwitch('in-process-gpu')
 }
 
+if (process.getuid && process.getuid() === 0) {
+  app.commandLine.appendSwitch('no-sandbox')
+}
+
 const initPromise = init()
 
 if (syncConfig.disableGPU) {
