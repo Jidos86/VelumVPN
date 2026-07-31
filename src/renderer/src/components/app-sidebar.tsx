@@ -24,6 +24,7 @@ import {
   SidebarMenuItem,
   useSidebar
 } from '@renderer/components/ui/sidebar'
+import { platform } from '@renderer/utils/init'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import UpdaterButton from '@renderer/components/updater/updater-button'
@@ -129,18 +130,20 @@ const AppSidebar: React.FC<AppSidebarProps> = ({ latest }) => {
       <SidebarFooter>
         <div className="flex flex-col items-center gap-2">
           {latest && latest.version && <UpdaterButton iconOnly={collapsed} latest={latest} />}
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                tooltip={t('sider.shop')}
-                className="cursor-pointer"
-                onClick={() => open('https://shop.velum.uno/')}
-              >
-                <ShoppingBag className="size-4 shrink-0" style={{ color: 'oklch(0.82 0.16 196)' }} />
-                <span>{t('sider.shop')}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
+          {platform !== 'darwin' && (
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip={t('sider.shop')}
+                  className="cursor-pointer"
+                  onClick={() => open('https://shop.velum.uno/')}
+                >
+                  <ShoppingBag className="size-4 shrink-0" style={{ color: 'oklch(0.82 0.16 196)' }} />
+                  <span>{t('sider.shop')}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          )}
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
