@@ -43,11 +43,20 @@ jobs:
             arch: x64
             format: rpm
           - os: ubuntu-latest
+            arch: x64
+            format: pacman
+          - os: ubuntu-latest
+            arch: x64
+            format: AppImage
+          - os: ubuntu-latest
             arch: arm64
             format: deb
           - os: ubuntu-latest
             arch: arm64
             format: rpm
+          - os: ubuntu-latest
+            arch: arm64
+            format: AppImage
 
     name: Build ${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
 
