@@ -60,6 +60,7 @@ linux:
   desktop:
     entry:
       Name: VelumVPN
+      Icon: velumvpn
       MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo;x-scheme-handler/velumvpn'
   target:
     - deb
