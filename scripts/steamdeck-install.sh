@@ -89,15 +89,11 @@ if [ -f "\$WORK/config.yaml" ]; then
     grep -v "^external-controller\|^secret\|^log-level" "\$WORK/config.yaml" > "\$SVC_WORK/config.yaml"
     cp "\$WORK/"*.dat "\$SVC_WORK/" 2>/dev/null || true
 else
-    echo "log-level: silent" > "\$SVC_WORK/config.yaml"
+    printf '' > "\$SVC_WORK/config.yaml"
 fi
 
 # Добавляем внешний контроллер для Decky плагина
-cat >> "\$SVC_WORK/config.yaml" << EOF
-external-controller: '127.0.0.1:\$API_PORT'
-secret: '\$SECRET'
-log-level: silent
-EOF
+printf 'external-controller: 127.0.0.1:%s\nsecret: %s\nlog-level: silent\n' "\$API_PORT" "\$SECRET" >> "\$SVC_WORK/config.yaml"
 
 exec "\$MIHOMO" -d "\$SVC_WORK"
 RUNEOF
