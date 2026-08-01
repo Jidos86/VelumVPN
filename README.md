@@ -78,6 +78,24 @@ VelumVPN — это форк [koala-clash](https://github.com/coolcoala/koala-cl
 | Windows x64 (установщик) | `VelumVPN_x64-setup.exe` |
 | Windows x64 (портативный) | `VelumVPN_x64-portable.7z` |
 | Linux x64 | `VelumVPN_x64.deb` / `.rpm` |
+| Arch Linux / Manjaro | AUR: `yay -S velumvpn-bin` |
+| **Steam Deck** | см. ниже |
+
+### Steam Deck
+
+На Steam Deck корневая файловая система перезаписывается при обновлении SteamOS, поэтому для постоянной установки используй скрипт — он сохраняется в домашней папке и переустанавливает приложение автоматически.
+
+**Первая установка** — в режиме рабочего стола открой терминал Konsole и выполни:
+
+```bash
+curl -Lo ~/velumvpn-install.sh https://github.com/Jidos86/VelumVPN/raw/main/scripts/steamdeck-install.sh
+bash ~/velumvpn-install.sh
+```
+
+После установки:
+- При каждом входе в систему автоматически проверяется наличие VelumVPN
+- Если SteamOS обновился и удалил приложение — появится диалог с предложением переустановить за ~2 минуты
+- На рабочем столе появится ярлык **«Восстановить VelumVPN»** для ручного запуска
 
 ---
 
