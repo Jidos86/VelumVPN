@@ -20,12 +20,14 @@ profile:
 tun:
   enable: false
   device: velumvpn
-  stack: mixed
+  stack: gvisor
   auto-route: true
   auto-detect-interface: true
   strict-route: true
   dns-hijack:
     - any:53
+  inet4-address:
+    - "198.18.0.1/16"
   mtu: 1500
 
 dns:
