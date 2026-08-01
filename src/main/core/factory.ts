@@ -238,20 +238,37 @@ async function loadRouteTemplate(routeMode: string): Promise<MihomoConfig | null
   const userPath = path.join(userTemplatesDir(), templateFile)
   const bundledPath = path.join(templatesDir(), templateFile)
 
-  let templatePath = bundledPath
+  if (!existsSync(bundledPath)) return null
+  const bundledContent = await readFile(bundledPath, 'utf-8')
+
   if (existsSync(userPath)) {
     const userContent = await readFile(userPath, 'utf-8')
     const firstLine = userContent.split('\n')[0]
     const versionMatch = firstLine.match(/^# velum-version: (.+)$/)
     const storedVersion = versionMatch?.[1]?.trim()
+
     if (storedVersion === app.getVersion()) {
-      templatePath = userPath
+      // Версия совпадает — используем файл пользователя целиком
+      return parseYaml(userContent) as MihomoConfig
     }
+
+    // Версия изменилась — берём свежий бандл, но переносим пользовательские правила
+    const bundledTemplate = parseYaml(bundledContent) as MihomoConfig
+    const userTemplate = parseYaml(userContent) as MihomoConfig & { 'x-velum-user-rules'?: string[] }
+    const userCustomRules = userTemplate['x-velum-user-rules']
+
+    if (Array.isArray(userCustomRules) && userCustomRules.length > 0) {
+      const rules = (bundledTemplate.rules as unknown as string[]) ?? []
+      const matchIndex = rules.findIndex((r) => r.startsWith('MATCH,') || r === 'MATCH')
+      const insertAt = matchIndex >= 0 ? matchIndex : rules.length
+      rules.splice(insertAt, 0, ...userCustomRules)
+      bundledTemplate.rules = rules as unknown as []
+    }
+
+    return bundledTemplate
   }
 
-  if (!existsSync(templatePath)) return null
-  const content = await readFile(templatePath, 'utf-8')
-  return parseYaml(content) as MihomoConfig
+  return parseYaml(bundledContent) as MihomoConfig
 }
 
 export { ROUTE_MODE_TEMPLATES }

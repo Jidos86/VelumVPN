@@ -132,3 +132,11 @@ rules:
   - DOMAIN-SUFFIX,yuanshen.com,DIRECT
   - GEOIP,ru,DIRECT
   - MATCH,→ VelumVPN
+
+# Пользовательская зона — правила здесь сохраняются при обновлении приложения.
+# Добавляй свои правила в список ниже, они будут работать перед MATCH.
+# Примеры:
+#   x-velum-user-rules:
+#     - DOMAIN-SUFFIX,mysite.com,DIRECT
+#     - PROCESS-NAME,myapp.exe,→ VelumVPN
+x-velum-user-rules: []

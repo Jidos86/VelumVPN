@@ -136,3 +136,11 @@ rules:
   - DOMAIN-SUFFIX,github.io,→ VelumVPN
   - DOMAIN-SUFFIX,githubcopilot.com,→ VelumVPN
   - MATCH,DIRECT
+
+# Пользовательская зона — правила здесь сохраняются при обновлении приложения.
+# Добавляй свои правила в список ниже, они будут работать перед MATCH.
+# Примеры:
+#   x-velum-user-rules:
+#     - DOMAIN-SUFFIX,mysite.com,→ VelumVPN
+#     - PROCESS-NAME,myapp.exe,DIRECT
+x-velum-user-rules: []

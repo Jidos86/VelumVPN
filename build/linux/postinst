@@ -2,6 +2,10 @@
 
 APP_NAME="VelumVPN"
 
+# Kill running mihomo processes so they restart with new setuid on next launch
+pkill -f "velumvpn-mihomo" 2>/dev/null || true
+pkill -f "mihomo-alpha" 2>/dev/null || true
+
 # Clean up old "sparkle" installation
 if [ -L '/usr/bin/sparkle' ]; then
     if type update-alternatives 2>/dev/null >&1; then
