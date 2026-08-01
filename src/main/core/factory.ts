@@ -491,9 +491,17 @@ async function generateFromTemplate(
   const customRules = await getCustomRules()
   injectCustomRules(template, customRules)
 
-  // Apply TUN enable state from controlled config
+  // Apply TUN enable state and platform-specific settings from controlled config
   if (template.tun) {
     template.tun.enable = controledMihomoConfig.tun?.enable ?? false
+    if (process.platform === 'linux') {
+      template.tun.stack = 'gvisor'
+      if (!template.tun['inet4-address']) {
+        template.tun['inet4-address'] = ['198.18.0.1/16']
+      }
+    } else {
+      template.tun.stack = 'mixed'
+    }
   }
 
   // Apply port and controller settings from controlled config
