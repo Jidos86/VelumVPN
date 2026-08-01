@@ -1,6 +1,15 @@
 ## 1.1.18
 
-Linux-исправления
+Linux-исправления и поддержка Steam Deck
+
+### Новое
+
+- **Steam Deck** — скрипт автоматической установки: VPN работает в Gaming Mode через Decky Loader без ручной настройки; после обновления SteamOS приложение восстанавливается автоматически
+
+  ```bash
+  curl -Lo ~/velumvpn-install.sh https://github.com/Jidos86/VelumVPN/raw/main/scripts/steamdeck-install.sh
+  bash ~/velumvpn-install.sh
+  ```
 
 ### Исправления
 
