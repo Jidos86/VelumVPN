@@ -71,7 +71,7 @@ jobs:
             format: AppImage
 
     name: Build ${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
-    if: ${{ github.event.inputs.only_format == '' || matrix.format == github.event.inputs.only_format }}
+    if: github.event.inputs.only_format == '' || matrix.format == github.event.inputs.only_format
 
     steps:
       - name: Checkout
