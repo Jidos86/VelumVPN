@@ -61,6 +61,7 @@ linux:
     entry:
       Name: VelumVPN
       Icon: velumvpn
+      StartupWMClass: VelumVPN
       MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo;x-scheme-handler/velumvpn'
   target:
     - deb
