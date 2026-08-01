@@ -135,7 +135,6 @@ jobs:
           APPLE_API_KEY_ID: ${{ matrix.os == 'macos-latest' && secrets.APPLE_API_KEY || '' }}
           APPLE_API_ISSUER: ${{ matrix.os == 'macos-latest' && secrets.APPLE_API_ISSUER || '' }}
           APPLE_API_KEY: ${{ matrix.os == 'macos-latest' && format('~/.appstoreconnect/private_keys/AuthKey_{0}.p8', secrets.APPLE_API_KEY) || '' }}
-          DEBUG: ${{ matrix.format == 'flatpak' && 'electron-builder' || '' }}
         shell: bash
         run: |
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then

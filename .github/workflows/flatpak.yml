@@ -29,8 +29,6 @@ jobs:
           pnpm prepare --x64
 
       - name: Build
-        env:
-          DEBUG: electron-builder
         run: pnpm build:linux flatpak --x64
 
       - name: Upload Artifact
