@@ -125,6 +125,8 @@ rules:
   - GEOIP,telegram,→ VelumVPN,no-resolve
   - GEOSITE,telegram,→ VelumVPN
   - GEOIP,ru-blocked,→ VelumVPN,no-resolve
+  - GEOIP,ru-blocked-community,→ VelumVPN,no-resolve
+  - GEOIP,re-filter,→ VelumVPN,no-resolve
   - GEOSITE,ru-blocked,→ VelumVPN
   - DOMAIN-SUFFIX,thangs.com,→ VelumVPN
   # GitHub — работает плохо в РФ напрямую
