@@ -1,6 +1,6 @@
 #!/bin/bash
 
-APP_NAME="Koala.Clash"
+APP_NAME="VelumVPN"
 
 # Clean up old "sparkle" installation
 if [ -L '/usr/bin/sparkle' ]; then
@@ -20,9 +20,9 @@ else
     ln -sf "/opt/${APP_NAME}/${APP_NAME}" "/usr/bin/${APP_NAME}"
 fi
 
-chmod 4755 "/opt/${APP_NAME}/chrome-sandbox" || true
-chmod +sx "/opt/${APP_NAME}/resources/sidecar/mihomo"
-chmod +sx "/opt/${APP_NAME}/resources/sidecar/mihomo-alpha"
+chmod 4755 "/opt/${APP_NAME}/chrome-sandbox" 2>/dev/null || true
+chmod +sx "/opt/${APP_NAME}/resources/sidecar/mihomo" || true
+chmod +sx "/opt/${APP_NAME}/resources/sidecar/mihomo-alpha" 2>/dev/null || true
 
 if hash update-mime-database 2>/dev/null; then
     update-mime-database /usr/share/mime || true

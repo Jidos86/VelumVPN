@@ -1,6 +1,6 @@
 #!/bin/sh
 
-APP_NAME="Koala Clash"
+APP_NAME="VelumVPN"
 
 # --- Remove old app only if it is the old fork (contains koala-mihomo) ---
 OLD_APP="/Applications/${APP_NAME}.app"

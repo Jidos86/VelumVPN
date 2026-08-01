@@ -135,7 +135,7 @@ if (process.platform === 'win32' && !exePath().startsWith('C')) {
   app.commandLine.appendSwitch('in-process-gpu')
 }
 
-if (process.getuid && process.getuid() === 0) {
+if (process.platform === 'linux') {
   app.commandLine.appendSwitch('no-sandbox')
 }
 

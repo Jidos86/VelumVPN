@@ -84,10 +84,11 @@ flatpak:
     - --socket=x11
     - --socket=wayland
     - --socket=pulseaudio
-    - --device=dri
+    - --device=all
     - --filesystem=home
     - --talk-name=org.freedesktop.Notifications
     - --talk-name=org.kde.StatusNotifierWatcher
     - --system-talk-name=org.freedesktop.NetworkManager
+    - --system-talk-name=org.freedesktop.PolicyKit1
 npmRebuild: true
 publish: []
