@@ -393,7 +393,7 @@ ipcMain.handle('patchMihomoConfig', (_e, patch) => ipcErrorWrapper(patchMihomoCo
       const content = await readFile(bundledPath, 'utf-8')
       await writeFile(userPath, `# velum-version: ${app.getVersion()}\n${content}`, 'utf-8')
     }
-    await shell.openPath(userPath)
+    void shell.openPath(userPath)
   }))
 
   ipcMain.handle('getBrand', () => getBrand())

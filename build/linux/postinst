@@ -31,3 +31,15 @@ fi
 if hash update-desktop-database 2>/dev/null; then
     update-desktop-database /usr/share/applications || true
 fi
+
+# Install icon to hicolor theme so it shows in app launchers and taskbars
+for size in 16 24 32 48 64 128 256 512 1024; do
+    src="/opt/${APP_NAME}/resources/icons/${size}x${size}.png"
+    if [ -f "$src" ]; then
+        install -Dm644 "$src" "/usr/share/icons/hicolor/${size}x${size}/apps/velumvpn.png"
+    fi
+done
+
+if hash gtk-update-icon-cache 2>/dev/null; then
+    gtk-update-icon-cache -q -t /usr/share/icons/hicolor || true
+fi
