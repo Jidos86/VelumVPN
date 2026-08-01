@@ -62,12 +62,13 @@ export const defaultControledMihomoConfig: Partial<MihomoConfig> = {
   tun: {
     enable: false,
     device: process.platform === 'darwin' ? undefined : 'velumvpn',
-    stack: 'mixed',
+    stack: process.platform === 'linux' ? 'gvisor' : 'mixed',
     'auto-route': true,
     'auto-redirect': false,
     'auto-detect-interface': true,
     'dns-hijack': ['any:53'],
     'route-exclude-address': [],
+    'inet4-address': process.platform === 'linux' ? ['198.18.0.1/16'] : undefined,
     mtu: 1500
   },
   dns: {
