@@ -47,3 +47,9 @@ done
 if hash gtk-update-icon-cache 2>/dev/null; then
     gtk-update-icon-cache -q -t /usr/share/icons/hicolor || true
 fi
+
+if hash kbuildsycoca6 2>/dev/null; then
+    kbuildsycoca6 --noincremental 2>/dev/null || true
+elif hash kbuildsycoca5 2>/dev/null; then
+    kbuildsycoca5 --noincremental 2>/dev/null || true
+fi
