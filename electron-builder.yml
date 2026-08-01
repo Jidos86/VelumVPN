@@ -20,8 +20,6 @@ extraResources:
     to: ''
   - from: './build/icons/'
     to: 'icons'
-    filter:
-      - '**/*.png'
 protocols:
   name: 'VelumVPN URI Scheme'
   schemes:
