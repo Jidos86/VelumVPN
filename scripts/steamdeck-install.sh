@@ -41,7 +41,7 @@ curl -s --max-time 5 https://github.com > /dev/null 2>&1 || {
 }
 
 step 1 "Отключаем защиту от записи..."
-sudo steamos-readonly disable
+sudo steamos-readonly disable 2>/dev/null || true
 info "Готово"
 
 step 2 "Инициализируем пакетный менеджер..."
