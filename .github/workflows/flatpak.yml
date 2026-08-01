@@ -1,0 +1,40 @@
+name: Flatpak Debug
+permissions: write-all
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build flatpak x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        run: npm install -g pnpm
+
+      - name: Install Flatpak
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.freedesktop.Platform//23.08 org.freedesktop.Sdk//23.08
+          flatpak list --user
+
+      - name: Install Dependencies and Prepare
+        run: |
+          SKIP_PREPARE=1 pnpm install
+          pnpm prepare --x64
+
+      - name: Build
+        env:
+          DEBUG: electron-builder
+        run: pnpm build:linux flatpak --x64
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-x64-debug
+          path: dist/VelumVPN*.flatpak

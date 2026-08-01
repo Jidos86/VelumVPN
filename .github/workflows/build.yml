@@ -6,10 +6,6 @@ on:
       version:
         description: 'Tag version to release'
         required: false
-      only_format:
-        description: 'Build only this format (e.g. flatpak, deb, AppImage). Leave empty for all.'
-        required: false
-        default: ''
 #  push:
 #    branches:
 #      - master
@@ -71,7 +67,6 @@ jobs:
             format: AppImage
 
     name: Build ${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
-    if: github.event.inputs.only_format == '' || matrix.format == github.event.inputs.only_format
 
     steps:
       - name: Checkout
