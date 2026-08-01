@@ -29,10 +29,17 @@
   <url type="bugtracker">https://github.com/Jidos86/VelumVPN/issues</url>
 
   <screenshots>
-    <!-- TODO: добавить реальные скриншоты -->
     <screenshot type="default">
-      <caption>Главный экран</caption>
-      <image>https://velum.uno/screenshots/main.png</image>
+      <caption>Главный экран — статус подключения и режимы маршрутизации</caption>
+      <image>https://raw.githubusercontent.com/Jidos86/VelumVPN/main/docs/MainMenu.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Мои правила — добавление сайтов и приложений</caption>
+      <image>https://raw.githubusercontent.com/Jidos86/VelumVPN/main/docs/MyRules.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Предпросмотр приложения</caption>
+      <image>https://raw.githubusercontent.com/Jidos86/VelumVPN/main/docs/preview.png</image>
     </screenshot>
   </screenshots>
 
