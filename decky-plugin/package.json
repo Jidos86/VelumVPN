@@ -1,0 +1,16 @@
+{
+  "name": "velumvpn-decky",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "devDependencies": {
+    "@decky/rollup": "^1.0.2",
+    "@decky/api": "^1.1.3",
+    "@decky/ui": "*",
+    "@types/react": "^18.2.0",
+    "rollup": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

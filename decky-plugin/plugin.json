@@ -1,0 +1,10 @@
+{
+  "name": "VelumVPN",
+  "author": "VelumVPN",
+  "flags": [],
+  "publish": {
+    "overlayName": "VelumVPN",
+    "tags": ["VPN", "Network"],
+    "description": "VPN-клиент для обхода блокировок"
+  }
+}

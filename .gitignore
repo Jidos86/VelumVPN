@@ -11,3 +11,4 @@ out
 .zed
 *.tsbuildinfo
 latest.yml
+decky-plugin/node_modules/
