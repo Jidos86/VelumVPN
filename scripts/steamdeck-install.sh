@@ -65,7 +65,7 @@ if [ ! -f "$SERVICE_DIR/secret" ]; then
 fi
 SECRET=$(cat "$SERVICE_DIR/secret")
 
-# Скрипт запуска сервиса (ждёт пока не закроется VelumVPN, потом стартует)
+# Скрипт запуска сервиса (ждёт пока не закроется VelumVPN, потом стартует; следит пока работает)
 cat > "$SERVICE_DIR/run.sh" << RUNEOF
 #!/usr/bin/env bash
 WORK="$HOME/.config/com.velumvpn.app/work"
@@ -74,15 +74,12 @@ MIHOMO="$MIHOMO_BIN"
 SECRET="$SECRET"
 API_PORT=$API_PORT
 
-# Ждём пока VelumVPN не закроется
-while pgrep -x velumvpn > /dev/null 2>&1; do
-    sleep 3
-done
+_velumvpn_active() {
+    pgrep -x velumvpn > /dev/null 2>&1 || ip link show velumvpn > /dev/null 2>&1
+}
 
-# TUN-устройство занято → ждём
-while ip link show velumvpn > /dev/null 2>&1; do
-    sleep 3
-done
+# Ждём пока VelumVPN не закроется
+while _velumvpn_active; do sleep 3; done
 
 # Копируем актуальный конфиг VelumVPN (если есть)
 if [ -f "\$WORK/config.yaml" ]; then
@@ -95,7 +92,20 @@ fi
 # Добавляем внешний контроллер для Decky плагина
 printf 'external-controller: 127.0.0.1:%s\nsecret: %s\nlog-level: silent\n' "\$API_PORT" "\$SECRET" >> "\$SVC_WORK/config.yaml"
 
-exec "\$MIHOMO" -d "\$SVC_WORK"
+# Запускаем mihomo в фоне
+"\$MIHOMO" -d "\$SVC_WORK" &
+MIHOMO_PID=\$!
+
+# Следим: если VelumVPN открылся — останавливаем mihomo и выходим
+# (systemd перезапустит нас через RestartSec и мы снова будем ждать закрытия)
+while kill -0 \$MIHOMO_PID 2>/dev/null; do
+    sleep 5
+    if _velumvpn_active; then
+        kill \$MIHOMO_PID 2>/dev/null
+        wait \$MIHOMO_PID 2>/dev/null
+        exit 0
+    fi
+done
 RUNEOF
 chmod +x "$SERVICE_DIR/run.sh"
 
