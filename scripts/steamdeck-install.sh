@@ -208,24 +208,10 @@ class Plugin:
         pass
 PYEOF
 
-    # Скомпилированный JS-фронтенд (чистый JS, без шага сборки)
+    # JS-фронтенд в legacy Decky формате (eval-контекст, definePlugin + serverAPI)
     cat > "$PLUGIN_DIR/dist/index.js" << 'JSEOF'
 const React = window.SP_REACT;
 const { useState, useEffect } = React;
-
-async function call(method, args) {
-  try {
-    const r = await fetch("http://localhost:1337/plugins/VelumVPN/methods/" + method, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ args: args || [] })
-    });
-    const d = await r.json();
-    return d.result;
-  } catch(e) {
-    return null;
-  }
-}
 
 function fmt(b) {
   if (b < 1024) return b + " B/s";
@@ -233,18 +219,18 @@ function fmt(b) {
   return (b / 1048576).toFixed(1) + " MB/s";
 }
 
-function Content() {
+function Content({ serverAPI }) {
   const [status, setStatus] = useState({ running: false, tun: false });
   const [traffic, setTraffic] = useState({ up: 0, down: 0 });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const refresh = async () => {
-      const s = await call("get_status");
-      if (s) setStatus(s);
-      if (s && s.running) {
-        const t = await call("get_traffic");
-        if (t) setTraffic(t);
+      const s = await serverAPI.callPluginMethod("get_status", {});
+      if (s.success) setStatus(s.result);
+      if (s.result && s.result.running) {
+        const t = await serverAPI.callPluginMethod("get_traffic", {});
+        if (t.success) setTraffic(t.result);
       }
     };
     refresh();
@@ -254,8 +240,8 @@ function Content() {
 
   const handleToggle = async () => {
     setLoading(true);
-    const s = await call("toggle", [!status.running]);
-    if (s) setStatus(s);
+    const s = await serverAPI.callPluginMethod("toggle", { enable: !status.running });
+    if (s.success) setStatus(s.result);
     setLoading(false);
   };
 
@@ -289,15 +275,14 @@ function Content() {
   );
 }
 
-module.exports = function() {
+definePlugin((serverAPI) => {
   return {
-    name: "VelumVPN",
     title: React.createElement("div", { style: { fontWeight: "bold" } }, "VelumVPN"),
-    content: React.createElement(Content, null),
+    content: React.createElement(Content, { serverAPI }),
     icon: React.createElement("span", { style: { fontSize: "16px", fontWeight: "bold", color: "#00d4ff" } }, "V"),
     onDismount() {}
   };
-}
+});
 JSEOF
 
     info "Decky плагин установлен в $PLUGIN_DIR"
