@@ -208,81 +208,87 @@ class Plugin:
         pass
 PYEOF
 
-    # JS-фронтенд в legacy Decky формате (eval-контекст, definePlugin + serverAPI)
+    # JS-фронтенд по образцу ToMoon — точный формат Decky Loader
     cat > "$PLUGIN_DIR/dist/index.js" << 'JSEOF'
+// Инициализация Decky API (по образцу @decky/api)
+const manifest = {"name":"VelumVPN"};
+const API_VERSION = 2;
+const internalAPIConnection = window.__DECKY_SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED_deckyLoaderAPIInit;
+if (!internalAPIConnection) {
+    throw new Error('[@decky/api]: Failed to connect to the loader');
+}
+let api;
+try {
+    api = internalAPIConnection.connect(API_VERSION, manifest.name);
+} catch(_) {
+    api = internalAPIConnection.connect(1, manifest.name);
+}
+const call = api.call;
+
 const React = window.SP_REACT;
 const { useState, useEffect } = React;
+const { definePlugin, staticClasses, PanelSection, PanelSectionRow, ToggleField, Field } = DFL;
 
 function fmt(b) {
-  if (b < 1024) return b + " B/s";
-  if (b < 1048576) return (b / 1024).toFixed(1) + " KB/s";
-  return (b / 1048576).toFixed(1) + " MB/s";
+    if (b < 1024) return b + " B/s";
+    if (b < 1048576) return (b / 1024).toFixed(1) + " KB/s";
+    return (b / 1048576).toFixed(1) + " MB/s";
 }
 
-function Content({ serverAPI }) {
-  const [status, setStatus] = useState({ running: false, tun: false });
-  const [traffic, setTraffic] = useState({ up: 0, down: 0 });
-  const [loading, setLoading] = useState(false);
+function Content() {
+    const [status, setStatus] = useState({ running: false, tun: false });
+    const [traffic, setTraffic] = useState({ up: 0, down: 0 });
+    const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const refresh = async () => {
-      const s = await serverAPI.callPluginMethod("get_status", {});
-      if (s.success) setStatus(s.result);
-      if (s.result && s.result.running) {
-        const t = await serverAPI.callPluginMethod("get_traffic", {});
-        if (t.success) setTraffic(t.result);
-      }
+    useEffect(() => {
+        const refresh = async () => {
+            const s = await call("get_status");
+            if (s) setStatus(s);
+            if (s && s.running) {
+                const t = await call("get_traffic");
+                if (t) setTraffic(t);
+            }
+        };
+        refresh();
+        const id = setInterval(refresh, 3000);
+        return () => clearInterval(id);
+    }, []);
+
+    const handleToggle = async (val) => {
+        setLoading(true);
+        const s = await call("toggle", val);
+        if (s) setStatus(s);
+        setLoading(false);
     };
-    refresh();
-    const id = setInterval(refresh, 3000);
-    return () => clearInterval(id);
-  }, []);
 
-  const handleToggle = async () => {
-    setLoading(true);
-    const s = await serverAPI.callPluginMethod("toggle", { enable: !status.running });
-    if (s.success) setStatus(s.result);
-    setLoading(false);
-  };
-
-  const color = status.running ? "#00d4ff" : "#888";
-  const label = status.tun ? "TUN активен" : status.running ? "Прокси активен" : "Выключен";
-
-  return React.createElement("div", { style: { padding: "12px" } },
-    React.createElement("div", {
-      style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }
-    },
-      React.createElement("div", null,
-        React.createElement("div", { style: { fontSize: "14px", fontWeight: "bold", color } }, "VelumVPN"),
-        React.createElement("div", { style: { fontSize: "12px", color: "#aaa" } }, label)
-      ),
-      React.createElement("button", {
-        onClick: handleToggle,
-        disabled: loading,
-        style: {
-          background: status.running ? "#00d4ff" : "#444",
-          color: status.running ? "#000" : "#fff",
-          border: "none", borderRadius: "6px",
-          padding: "8px 18px", fontSize: "13px",
-          cursor: loading ? "not-allowed" : "pointer",
-          opacity: loading ? 0.6 : 1
-        }
-      }, loading ? "..." : status.running ? "Выкл" : "Вкл")
-    ),
-    status.running && React.createElement("div", {
-      style: { fontSize: "12px", color: "#aaa", marginTop: "4px" }
-    }, "↑ " + fmt(traffic.up) + " · ↓ " + fmt(traffic.down))
-  );
+    return React.createElement(PanelSection, null,
+        React.createElement(PanelSectionRow, null,
+            React.createElement(ToggleField, {
+                label: "VPN",
+                description: status.tun ? "TUN активен" : status.running ? "Прокси активен" : "Выключен",
+                checked: status.running,
+                onChange: handleToggle,
+                disabled: loading
+            })
+        ),
+        status.running && React.createElement(PanelSectionRow, null,
+            React.createElement(Field, { label: "Трафик" },
+                "↑ " + fmt(traffic.up) + " · ↓ " + fmt(traffic.down)
+            )
+        )
+    );
 }
 
-definePlugin((serverAPI) => {
-  return {
-    title: React.createElement("div", { style: { fontWeight: "bold" } }, "VelumVPN"),
-    content: React.createElement(Content, { serverAPI }),
-    icon: React.createElement("span", { style: { fontSize: "16px", fontWeight: "bold", color: "#00d4ff" } }, "V"),
-    onDismount() {}
-  };
+var index = definePlugin(() => {
+    return {
+        title: React.createElement("div", { className: staticClasses.Title }, "VelumVPN"),
+        content: React.createElement(Content, null),
+        icon: React.createElement("span", { style: { fontSize: "14px", fontWeight: "bold" } }, "V"),
+        onDismount() {}
+    };
 });
+
+export { index as default };
 JSEOF
 
     info "Decky плагин установлен в $PLUGIN_DIR"
