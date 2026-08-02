@@ -53,6 +53,8 @@ step 3 "Загружаем и устанавливаем VelumVPN..."
 curl -L --progress-bar "$RELEASE_URL" -o /tmp/velumvpn-steamdeck.pkg.tar.xz
 sudo pacman -U --noconfirm /tmp/velumvpn-steamdeck.pkg.tar.xz
 rm -f /tmp/velumvpn-steamdeck.pkg.tar.xz
+sudo chmod +sx /opt/VelumVPN/resources/sidecar/mihomo
+sudo chmod 4755 /opt/VelumVPN/chrome-sandbox
 info "VelumVPN установлен"
 
 step 4 "Настраиваем фоновый VPN-сервис для Gaming Mode..."
