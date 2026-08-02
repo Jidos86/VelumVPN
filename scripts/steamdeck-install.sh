@@ -289,7 +289,7 @@ function Content() {
   );
 }
 
-export default function() {
+module.exports = function() {
   return {
     name: "VelumVPN",
     title: React.createElement("div", { style: { fontWeight: "bold" } }, "VelumVPN"),
