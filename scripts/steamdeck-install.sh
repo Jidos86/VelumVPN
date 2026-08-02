@@ -127,7 +127,8 @@ DECKY_PLUGINS="$HOME/homebrew/plugins"
 PLUGIN_DIR="$DECKY_PLUGINS/VelumVPN"
 
 if [ -d "$HOME/homebrew" ]; then
-    mkdir -p "$PLUGIN_DIR/src"
+    sudo mkdir -p "$PLUGIN_DIR/src"
+    sudo chown -R "$USER:" "$PLUGIN_DIR"
 
     cat > "$PLUGIN_DIR/plugin.json" << 'JSONEOF'
 {
