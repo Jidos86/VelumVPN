@@ -126,6 +126,11 @@ step 5 "Устанавливаем Decky плагин..."
 DECKY_PLUGINS="$HOME/homebrew/plugins"
 PLUGIN_DIR="$DECKY_PLUGINS/VelumVPN"
 
+if [ ! -d "$HOME/homebrew" ]; then
+    info "Decky Loader не найден — устанавливаем автоматически..."
+    curl -L https://github.com/SteamDeckHomebrew/decky-installer/releases/latest/download/install_release.sh | sh
+fi
+
 if [ -d "$HOME/homebrew" ]; then
     sudo mkdir -p "$PLUGIN_DIR/src"
     sudo chown -R "$USER:" "$PLUGIN_DIR"
@@ -266,8 +271,8 @@ TSXEOF
 
     info "Decky плагин установлен в $PLUGIN_DIR"
 else
-    warn "Decky Loader не найден — плагин Gaming Mode пропущен"
-    warn "Установи Decky Loader с https://deckbrew.xyz и запусти скрипт снова"
+    warn "Decky Loader не удалось установить — плагин Gaming Mode пропущен"
+    warn "Установи вручную с https://deckbrew.xyz и запусти скрипт снова"
 fi
 
 step 6 "Настраиваем автовосстановление..."
