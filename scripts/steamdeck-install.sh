@@ -144,7 +144,7 @@ if [ ! -d "$HOME/homebrew" ]; then
 fi
 
 if [ -d "$HOME/homebrew" ]; then
-    sudo mkdir -p "$PLUGIN_DIR/src"
+    sudo mkdir -p "$PLUGIN_DIR/dist"
     sudo chown -R "$USER:" "$PLUGIN_DIR"
 
     cat > "$PLUGIN_DIR/plugin.json" << 'JSONEOF'
@@ -208,21 +208,29 @@ class Plugin:
         pass
 PYEOF
 
-    # React frontend
-    cat > "$PLUGIN_DIR/src/index.tsx" << 'TSXEOF'
-import { ButtonItem, PanelSection, PanelSectionRow, ToggleField, Field } from "@decky/ui";
-import { callable, definePlugin, staticClasses } from "@decky/api";
-import { useState, useEffect } from "react";
-import { FaShieldAlt } from "react-icons/fa";
+    # Скомпилированный JS-фронтенд (чистый JS, без шага сборки)
+    cat > "$PLUGIN_DIR/dist/index.js" << 'JSEOF'
+const React = window.SP_REACT;
+const { useState, useEffect } = React;
 
-const getStatus = callable<[], { running: boolean; tun: boolean }>("get_status");
-const getTraffic = callable<[], { up: number; down: number }>("get_traffic");
-const toggle = callable<[boolean], { running: boolean; tun: boolean }>("toggle");
+async function call(method, args) {
+  try {
+    const r = await fetch("http://localhost:1337/plugins/VelumVPN/methods/" + method, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ args: args || [] })
+    });
+    const d = await r.json();
+    return d.result;
+  } catch(e) {
+    return null;
+  }
+}
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B/s`;
-  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB/s`;
-  return `${(bytes / 1048576).toFixed(1)} MB/s`;
+function fmt(b) {
+  if (b < 1024) return b + " B/s";
+  if (b < 1048576) return (b / 1024).toFixed(1) + " KB/s";
+  return (b / 1048576).toFixed(1) + " MB/s";
 }
 
 function Content() {
@@ -232,11 +240,11 @@ function Content() {
 
   useEffect(() => {
     const refresh = async () => {
-      const s = await getStatus();
-      setStatus(s);
-      if (s.running) {
-        const t = await getTraffic();
-        setTraffic(t);
+      const s = await call("get_status");
+      if (s) setStatus(s);
+      if (s && s.running) {
+        const t = await call("get_traffic");
+        if (t) setTraffic(t);
       }
     };
     refresh();
@@ -244,42 +252,53 @@ function Content() {
     return () => clearInterval(id);
   }, []);
 
-  const handleToggle = async (val: boolean) => {
+  const handleToggle = async () => {
     setLoading(true);
-    const s = await toggle(val);
-    setStatus(s);
+    const s = await call("toggle", [!status.running]);
+    if (s) setStatus(s);
     setLoading(false);
   };
 
-  return (
-    <PanelSection>
-      <PanelSectionRow>
-        <ToggleField
-          label="VPN"
-          description={status.tun ? "TUN активен" : status.running ? "Прокси активен" : "Выключен"}
-          checked={status.running}
-          onChange={handleToggle}
-          disabled={loading}
-        />
-      </PanelSectionRow>
-      {status.running && (
-        <PanelSectionRow>
-          <Field label="Трафик">
-            ↑ {formatBytes(traffic.up)} · ↓ {formatBytes(traffic.down)}
-          </Field>
-        </PanelSectionRow>
-      )}
-    </PanelSection>
+  const color = status.running ? "#00d4ff" : "#888";
+  const label = status.tun ? "TUN активен" : status.running ? "Прокси активен" : "Выключен";
+
+  return React.createElement("div", { style: { padding: "12px" } },
+    React.createElement("div", {
+      style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }
+    },
+      React.createElement("div", null,
+        React.createElement("div", { style: { fontSize: "14px", fontWeight: "bold", color } }, "VelumVPN"),
+        React.createElement("div", { style: { fontSize: "12px", color: "#aaa" } }, label)
+      ),
+      React.createElement("button", {
+        onClick: handleToggle,
+        disabled: loading,
+        style: {
+          background: status.running ? "#00d4ff" : "#444",
+          color: status.running ? "#000" : "#fff",
+          border: "none", borderRadius: "6px",
+          padding: "8px 18px", fontSize: "13px",
+          cursor: loading ? "not-allowed" : "pointer",
+          opacity: loading ? 0.6 : 1
+        }
+      }, loading ? "..." : status.running ? "Выкл" : "Вкл")
+    ),
+    status.running && React.createElement("div", {
+      style: { fontSize: "12px", color: "#aaa", marginTop: "4px" }
+    }, "↑ " + fmt(traffic.up) + " · ↓ " + fmt(traffic.down))
   );
 }
 
-export default definePlugin(() => ({
-  name: "VelumVPN",
-  titleView: <div className={staticClasses.Title}>VelumVPN</div>,
-  content: <Content />,
-  icon: <FaShieldAlt />,
-}));
-TSXEOF
+export default function() {
+  return {
+    name: "VelumVPN",
+    title: React.createElement("div", { style: { fontWeight: "bold" } }, "VelumVPN"),
+    content: React.createElement(Content, null),
+    icon: React.createElement("span", { style: { fontSize: "16px", fontWeight: "bold", color: "#00d4ff" } }, "V"),
+    onDismount() {}
+  };
+}
+JSEOF
 
     info "Decky плагин установлен в $PLUGIN_DIR"
 else
