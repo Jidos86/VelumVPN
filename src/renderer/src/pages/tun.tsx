@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@renderer/components/ui/select'
+import InterfaceSelect from '@renderer/components/base/interface-select'
 import BasePage from '@renderer/components/base/base-page'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
@@ -27,7 +28,7 @@ const Tun: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { appConfig, patchAppConfig } = useAppConfig()
   const { autoSetDNSMode = 'exec', controlTun = false } = appConfig || {}
-  const { tun } = controledMihomoConfig || {}
+  const { tun, 'interface-name': interfaceName = '' } = controledMihomoConfig || {}
   const [loading, setLoading] = useState(false)
   const {
     device = platform === 'darwin' ? undefined : 'mihomo',
@@ -230,6 +231,13 @@ const Tun: React.FC = () => {
               onCheckedChange={(value) => {
                 setValues({ ...values, autoDetectInterface: value })
               }}
+            />
+          </SettingItem>
+          <SettingItem title={t('mihomo.advancedSettings.outboundInterface')} divider>
+            <InterfaceSelect
+              value={interfaceName}
+              exclude={[values.device ?? '', 'lo']}
+              onChange={(iface) => patchControledMihomoConfig({ 'interface-name': iface })}
             />
           </SettingItem>
           <SettingItem title={t('pages.tun.icmpForwarding')} divider>

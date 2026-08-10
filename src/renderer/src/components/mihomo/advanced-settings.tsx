@@ -200,13 +200,6 @@ const AdvancedSetting: React.FC = () => {
           </SelectContent>
         </Select>
       </SettingItem>
-      <SettingItem title={t('mihomo.advancedSettings.outboundInterface')}>
-        <InterfaceSelect
-          value={interfaceName}
-          exclude={[device, 'lo']}
-          onChange={(iface) => onChangeNeedRestart({ 'interface-name': iface })}
-        />
-      </SettingItem>
     </SettingCard>
   )
 }
