@@ -7,7 +7,7 @@ import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import EditableList from '@renderer/components/base/base-list-editor'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const Sniffer: React.FC = () => {
@@ -56,6 +56,21 @@ const Sniffer: React.FC = () => {
     originSetValues(v)
     setChanged(true)
   }
+
+  useEffect(() => {
+    if (controledMihomoConfig && !changed) {
+      originSetValues({
+        parsePureIP,
+        forceDNSMapping,
+        overrideDestination,
+        sniff,
+        skipDomain,
+        forceDomain,
+        skipDstAddress,
+        skipSrcAddress
+      })
+    }
+  }, [controledMihomoConfig])
 
   const onSave = async (patch: Partial<MihomoConfig>): Promise<void> => {
     try {

@@ -18,7 +18,7 @@ import EditableList from '@renderer/components/base/base-list-editor'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { restartCore, setupFirewall } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useTranslation } from 'react-i18next'
 
@@ -58,6 +58,23 @@ const Tun: React.FC = () => {
     originSetValues(v)
     setChanged(true)
   }
+
+  useEffect(() => {
+    if (controledMihomoConfig && !changed) {
+      originSetValues({
+        device,
+        stack,
+        autoRoute,
+        autoRedirect,
+        autoDetectInterface,
+        dnsHijack,
+        strictRoute,
+        routeExcludeAddress,
+        disableIcmpForwarding,
+        mtu
+      })
+    }
+  }, [controledMihomoConfig])
 
   const onSave = async (patch: Partial<MihomoConfig>): Promise<void> => {
     try {

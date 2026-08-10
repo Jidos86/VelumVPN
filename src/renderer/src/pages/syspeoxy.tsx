@@ -87,11 +87,17 @@ const Sysproxy: React.FC = () => {
     settingMode: sysProxy.settingMode ?? 'exec'
   })
   useEffect(() => {
-    originSetValues((prev) => ({
-      ...prev,
-      enable: sysProxy.enable
-    }))
-  }, [sysProxy.enable])
+    if (appConfig && !changed) {
+      originSetValues({
+        enable: sysProxy.enable,
+        host: sysProxy.host ?? '',
+        bypass: sysProxy.bypass ?? defaultBypass,
+        mode: sysProxy.mode ?? 'manual',
+        pacScript: sysProxy.pacScript ?? defaultPacScript,
+        settingMode: sysProxy.settingMode ?? 'exec'
+      })
+    }
+  }, [appConfig])
   const [openEditor, setOpenEditor] = useState(false)
   const [openPacEditor, setOpenPacEditor] = useState(false)
 

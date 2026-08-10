@@ -11,7 +11,7 @@ import EditableList from '@renderer/components/base/base-list-editor'
 import AdvancedDnsSetting from '@renderer/components/dns/advanced-dns-setting'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   isValidIPv4Cidr,
   isValidIPv6Cidr,
@@ -95,6 +95,27 @@ const DNS: React.FC = () => {
     originSetValues(v)
     setChanged(true)
   }
+
+  useEffect(() => {
+    if (controledMihomoConfig && !changed) {
+      originSetValues({
+        ipv6,
+        useHosts,
+        enhancedMode,
+        fakeIPRange,
+        fakeIPRange6,
+        fakeIPFilter,
+        useSystemHosts,
+        respectRules,
+        defaultNameserver,
+        nameserver,
+        proxyServerNameserver,
+        directNameserver,
+        nameserverPolicy,
+        hosts: useHosts ? hosts : undefined
+      })
+    }
+  }, [controledMihomoConfig])
 
   const onSave = async (patch: Partial<MihomoConfig>): Promise<void> => {
     await patchAppConfig({
