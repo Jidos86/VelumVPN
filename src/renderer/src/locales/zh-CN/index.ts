@@ -278,7 +278,12 @@ export default {
       dropFileHint: '将配置文件拖放到此处',
       hwidLimitTitle: '设备数量超限',
       hwidLimitDescription: '此订阅已达到最大设备数量限制。订阅未添加或更新。',
-      support: '支持'
+      support: '支持',
+      expiryTitle: '订阅即将到期',
+      expiryExpiredTitle: '订阅已到期',
+      expiryDescription: '订阅「{{name}}」将在 {{days}} 天后到期，请续订以保持访问。',
+      expiryExpiredDescription: '订阅「{{name}}」已到期，请续订以恢复访问。',
+      renew: '续订'
     },
     proxies: {
       title: '代理组',

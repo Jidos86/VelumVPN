@@ -204,7 +204,12 @@ export default {
       hwidLimitTitle: 'Device limit exceeded',
       hwidLimitDescription:
         'The maximum device limit for this subscription has been reached. The subscription was not added or updated.',
-      support: 'Support'
+      support: 'Support',
+      expiryTitle: 'Subscription expiring',
+      expiryExpiredTitle: 'Subscription expired',
+      expiryDescription: 'Subscription «{{name}}» expires in {{days}} day(s). Renew it to keep access.',
+      expiryExpiredDescription: 'Subscription «{{name}}» has expired. Renew it to restore access.',
+      renew: 'Renew'
     },
     proxies: {
       title: 'Proxy Groups',

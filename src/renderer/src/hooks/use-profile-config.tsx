@@ -21,6 +21,8 @@ interface ProfileConfigContextType {
   changeCurrentProfile: (id: string) => Promise<void>
   hwidLimitError: string | null
   clearHwidLimitError: () => void
+  expiryAlert: { name: string; daysLeft: number } | null
+  clearExpiryAlert: () => void
 }
 
 const ProfileConfigContext = createContext<ProfileConfigContextType | undefined>(undefined)
@@ -30,6 +32,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     getProfileConfig()
   )
   const [hwidLimitError, setHwidLimitError] = useState<string | null>(null)
+  const [expiryAlert, setExpiryAlert] = useState<{ name: string; daysLeft: number } | null>(null)
   const expiryChecked = useRef(false)
 
   useEffect(() => {
@@ -43,11 +46,14 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
         if (!expire || isNaN(expire)) continue
         const daysLeft = dayjs.unix(expire).diff(dayjs(), 'day')
         if (daysLeft > WARN_DAYS) continue
+        const name = item.name ?? ''
+        setExpiryAlert({ name, daysLeft })
         if (daysLeft <= 0) {
-          toast.warning(`Подписка «${item.name}» истекла`, { duration: 8000 })
+          new Notification(`Подписка истекла`, { body: `«${name}» — требуется продление` })
         } else {
-          toast.warning(`Подписка «${item.name}» истекает через ${daysLeft} дн.`, { duration: 8000 })
+          new Notification(`Подписка истекает`, { body: `«${name}» — осталось ${daysLeft} дн.` })
         }
+        break
       }
     } catch {
       // non-critical
@@ -64,6 +70,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
   }, [])
 
   const clearHwidLimitError = useCallback(() => setHwidLimitError(null), [])
+  const clearExpiryAlert = useCallback(() => setExpiryAlert(null), [])
 
   const setProfileConfig = async (config: ProfileConfig): Promise<void> => {
     try {
@@ -152,7 +159,9 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
         updateProfileItem,
         changeCurrentProfile,
         hwidLimitError,
-        clearHwidLimitError
+        clearHwidLimitError,
+        expiryAlert,
+        clearExpiryAlert
       }}
     >
       {children}

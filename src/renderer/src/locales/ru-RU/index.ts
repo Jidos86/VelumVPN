@@ -205,7 +205,12 @@ export default {
       hwidLimitTitle: 'Лимит устройств превышен',
       hwidLimitDescription:
         'Достигнут максимальный лимит устройств для данной подписки. Подписка не была добавлена или обновлена.',
-      support: 'Поддержка'
+      support: 'Поддержка',
+      expiryTitle: 'Подписка истекает',
+      expiryExpiredTitle: 'Подписка истекла',
+      expiryDescription: 'Подписка «{{name}}» истекает через {{days}} дн. Продлите её, чтобы не потерять доступ.',
+      expiryExpiredDescription: 'Подписка «{{name}}» истекла. Продлите её для восстановления доступа.',
+      renew: 'Продлить'
     },
     proxies: {
       title: 'Группы прокси',

@@ -19,6 +19,7 @@ import ConfirmModal from '@renderer/components/base/base-confirm'
 import { SidebarProvider } from '@renderer/components/ui/sidebar'
 import AppSidebar from '@renderer/components/app-sidebar'
 import HwidLimitAlert from '@renderer/components/profiles/hwid-limit-alert'
+import ExpiryAlert from '@renderer/components/profiles/expiry-alert'
 import WindowControls from '@renderer/components/window-controls'
 import { attachConnectionsStore } from '@renderer/store/connections-store'
 import { attachTrafficStore } from '@renderer/store/traffic-store'
@@ -232,6 +233,7 @@ const App: React.FC = () => {
         />
       )}
       <HwidLimitAlert />
+      <ExpiryAlert />
       {platform === 'darwin' && (
         <div className="fixed top-0.5 -left-1 h-14.25 flex items-center pl-3 z-100 app-drag">
           <WindowControls />
