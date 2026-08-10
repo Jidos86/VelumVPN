@@ -647,18 +647,7 @@ export async function startNetworkDetection(): Promise<void> {
     clearInterval(networkDetectionTimer)
   }
   const extendedBypass = networkDetectionBypass.concat(
-    [
-      device,
-      'lo',
-      'docker0',
-      'utun',
-      'vEthernet',   // Hyper-V virtual switches
-      'VMware',      // VMware Network Adapter VMnet*
-      'VirtualBox',  // VirtualBox Host-Only
-      'Teredo',      // Windows Teredo tunneling
-      'isatap',      // ISATAP tunneling
-      'Pseudo'       // Loopback Pseudo-Interface
-    ].filter((item): item is string => item !== undefined)
+    [device, 'lo', 'docker0', 'utun'].filter((item): item is string => item !== undefined)
   )
 
   networkDetectionTimer = setInterval(async () => {
@@ -689,8 +678,7 @@ export async function stopNetworkDetection(): Promise<void> {
 function isAnyNetworkInterfaceUp(excludedKeywords: string[] = []): boolean {
   const interfaces = os.networkInterfaces()
   return Object.entries(interfaces).some(([name, ifaces]) => {
-    const nameLower = name.toLowerCase()
-    if (excludedKeywords.some((keyword) => nameLower.includes(keyword.toLowerCase()))) return false
+    if (excludedKeywords.some((keyword) => name.includes(keyword))) return false
 
     return ifaces?.some((iface) => {
       return !iface.internal && (iface.family === 'IPv4' || iface.family === 'IPv6')
