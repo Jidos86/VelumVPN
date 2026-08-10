@@ -15,18 +15,25 @@ import { t } from '../utils/i18n'
 
 let downloadCancelToken: CancelTokenSource | null = null
 
+async function axiosWithFallback(config: AxiosRequestConfig): Promise<import('axios').AxiosResponse> {
+  try {
+    return await axios({ ...config, proxy: false, timeout: 10000 })
+  } catch {
+    const { 'mixed-port': mixedPort = 0 } = (await getRuntimeConfig()) ?? {}
+    if (mixedPort === 0) throw new Error(t('error.downloadFailed'))
+    return await axios({
+      ...config,
+      proxy: { protocol: 'http', host: '127.0.0.1', port: mixedPort },
+      timeout: 15000
+    })
+  }
+}
+
 export async function checkUpdate(): Promise<AppVersion | undefined> {
-  const { 'mixed-port': mixedPort = 0 } = (await getRuntimeConfig()) ?? {}
   const url = 'https://github.com/Jidos86/VelumVPN/releases/latest/download/latest.yml'
-  const res = await axios.get(url, {
+  const res = await axiosWithFallback({
+    url,
     headers: { 'Content-Type': 'application/octet-stream' },
-    ...(mixedPort != 0 && {
-      proxy: {
-        protocol: 'http',
-        host: '127.0.0.1',
-        port: mixedPort
-      }
-    }),
     responseType: 'text'
   })
   const latest = parseYaml<AppVersion>(res.data)
@@ -39,7 +46,6 @@ export async function checkUpdate(): Promise<AppVersion | undefined> {
 }
 
 export async function downloadAndInstallUpdate(version: string): Promise<void> {
-  const { 'mixed-port': mixedPort = 0 } = (await getRuntimeConfig()) ?? {}
   const releaseTag = version
   const baseUrl = `https://github.com/Jidos86/VelumVPN/releases/download/${releaseTag}/`
   const fileMap = {
@@ -58,17 +64,6 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
   downloadCancelToken = axios.CancelToken.source()
 
   const apiUrl = `https://api.github.com/repos/Jidos86/VelumVPN/releases/tags/${releaseTag}`
-  const apiRequestConfig: AxiosRequestConfig = {
-    headers: { Accept: 'application/vnd.github.v3+json' },
-    ...(mixedPort != 0 && {
-      proxy: {
-        protocol: 'http',
-        host: '127.0.0.1',
-        port: mixedPort
-      }
-    }),
-    cancelToken: downloadCancelToken.token
-  }
 
   try {
     mainWindow?.webContents.send('update-status', {
@@ -77,7 +72,11 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
     })
     mainWindow?.setProgressBar(0)
 
-    const releaseRes = await axios.get(apiUrl, apiRequestConfig)
+    const releaseRes = await axiosWithFallback({
+      url: apiUrl,
+      headers: { Accept: 'application/vnd.github.v3+json' },
+      cancelToken: downloadCancelToken.token
+    })
     const assets: Array<{ name: string; digest?: string }> = releaseRes.data.assets || []
     const matchedAsset = assets.find((a) => a.name === file)
     if (!matchedAsset || !matchedAsset.digest) {
@@ -86,18 +85,12 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
     const expectedHash = matchedAsset.digest.split(':')[1].toLowerCase()
 
     if (!existsSync(path.join(dataDir(), file))) {
-      const res = await axios.get(`${baseUrl}${file}`, {
+      const { 'mixed-port': mixedPort = 0 } = (await getRuntimeConfig()) ?? {}
+      const downloadConfig: AxiosRequestConfig = {
+        url: `${baseUrl}${file}`,
         responseType: 'arraybuffer',
-        ...(mixedPort != 0 && {
-          proxy: {
-            protocol: 'http',
-            host: '127.0.0.1',
-            port: mixedPort
-          }
-        }),
-        headers: {
-          'Content-Type': 'application/octet-stream'
-        },
+        proxy: false,
+        headers: { 'Content-Type': 'application/octet-stream' },
         cancelToken: downloadCancelToken.token,
         onDownloadProgress: (progressEvent) => {
           const percentCompleted = Math.round(
@@ -109,7 +102,21 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
           })
           mainWindow?.setProgressBar(percentCompleted / 100)
         }
-      })
+      }
+      let res
+      try {
+        res = await axios({ ...downloadConfig, timeout: 60000 })
+      } catch {
+        if (mixedPort !== 0) {
+          res = await axios({
+            ...downloadConfig,
+            proxy: { protocol: 'http', host: '127.0.0.1', port: mixedPort },
+            timeout: 120000
+          })
+        } else {
+          throw new Error(t('error.downloadFailed'))
+        }
+      }
       await writeFile(path.join(dataDir(), file), res.data)
     }
 

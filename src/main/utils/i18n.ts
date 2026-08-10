@@ -97,7 +97,11 @@ const zhCN: LocaleTranslations = {
     appInitFailed: '应用初始化失败',
     coreStartError: '内核启动出错',
     profileImportFailed: '订阅导入失败',
-    selectSubscriptionFile: '选择订阅文件'
+    selectSubscriptionFile: '选择订阅文件',
+    coreCrashRecovery: '内核多次崩溃，无法启动。请重置应用配置或下载最新版本。',
+    resetApp: '重置配置',
+    downloadLatest: '下载最新版本',
+    cancel: '取消'
   },
   error: {
     missingUrlParam: '缺少参数 url',
@@ -237,7 +241,11 @@ const enUS: LocaleTranslations = {
     appInitFailed: 'Application initialization failed',
     coreStartError: 'Core startup error',
     profileImportFailed: 'Profile import failed',
-    selectSubscriptionFile: 'Select subscription file'
+    selectSubscriptionFile: 'Select subscription file',
+    coreCrashRecovery: 'The VPN core crashed repeatedly and could not start. Reset the app config or download the latest version.',
+    resetApp: 'Reset Config',
+    downloadLatest: 'Download Latest',
+    cancel: 'Cancel'
   },
   error: {
     missingUrlParam: 'Missing parameter: url',
@@ -377,7 +385,11 @@ const ruRU: LocaleTranslations = {
     appInitFailed: 'Ошибка инициализации приложения',
     coreStartError: 'Ошибка запуска ядра',
     profileImportFailed: 'Ошибка импорта подписки',
-    selectSubscriptionFile: 'Выберите файл подписки'
+    selectSubscriptionFile: 'Выберите файл подписки',
+    coreCrashRecovery: 'VPN-ядро не смогло запуститься после нескольких попыток. Сбросьте конфигурацию или скачайте последнюю версию.',
+    resetApp: 'Сбросить конфигурацию',
+    downloadLatest: 'Скачать последнюю версию',
+    cancel: 'Отмена'
   },
   error: {
     missingUrlParam: 'Отсутствует параметр: url',

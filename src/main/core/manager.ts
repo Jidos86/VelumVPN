@@ -17,7 +17,7 @@ import {
   patchAppConfig,
   patchControledMihomoConfig
 } from '../config'
-import { app, ipcMain, net } from 'electron'
+import { app, dialog, ipcMain, net, shell } from 'electron'
 import {
   startMihomoTraffic,
   startMihomoConnections,
@@ -35,6 +35,7 @@ import path from 'path'
 import os from 'os'
 import { createWriteStream, existsSync } from 'fs'
 import { disableSysProxy, triggerSysProxy } from '../sys/sysproxy'
+import { resetAppConfig } from '../sys/misc'
 import { getAxios } from './mihomoApi'
 import { setSysDns } from '../service/api'
 import { t } from '../utils/i18n'
@@ -172,6 +173,19 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
       await restartCore()
     } else {
       await stopCore()
+      const { response } = await dialog.showMessageBox({
+        type: 'error',
+        title: t('tray.coreStartError'),
+        message: t('dialog.coreCrashRecovery'),
+        buttons: [t('dialog.resetApp'), t('dialog.downloadLatest'), t('dialog.cancel')],
+        defaultId: 0,
+        cancelId: 2
+      })
+      if (response === 0) {
+        resetAppConfig()
+      } else if (response === 1) {
+        shell.openExternal('https://github.com/Jidos86/VelumVPN/releases/latest')
+      }
     }
   })
   child.stdout?.pipe(stdout)
