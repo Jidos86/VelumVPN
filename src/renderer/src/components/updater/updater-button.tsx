@@ -51,7 +51,7 @@ const UpdaterButton: React.FC<Props> = (props) => {
       {iconOnly ? (
         <Button
           size="icon-lg"
-          className="app-nodrag cursor-pointer rounded-md font-medium hover:bg-accent transition-colors bg-gradient-to-br from-gradient-start-power-on/15 to-gradient-end-power-on/15 border border-stroke-power-on/50 text-foreground shadow-sm"
+          className="app-nodrag cursor-pointer rounded-md font-medium transition-colors bg-gradient-to-br from-gradient-start-power-on to-gradient-end-power-on hover:opacity-90 border-0 text-white shadow-md"
           onClick={() => {
             setOpenModal(true)
           }}
@@ -60,7 +60,7 @@ const UpdaterButton: React.FC<Props> = (props) => {
         </Button>
       ) : (
         <Button
-          className="app-nodrag w-full rounded-md h-10 font-medium hover:bg-accent transition-colors bg-gradient-to-br from-gradient-start-power-on/15 to-gradient-end-power-on/15 border border-stroke-power-on/50 text-foreground shadow-sm"
+          className="app-nodrag w-full rounded-md h-10 font-medium transition-colors bg-gradient-to-br from-gradient-start-power-on to-gradient-end-power-on hover:opacity-90 border-0 text-white shadow-md"
           onClick={() => {
             setOpenModal(true)
           }}
