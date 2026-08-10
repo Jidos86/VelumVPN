@@ -29,6 +29,17 @@ async function axiosWithFallback(config: AxiosRequestConfig): Promise<import('ax
   }
 }
 
+function isNewerVersion(remote: string, current: string): boolean {
+  const parse = (v: string): number[] => v.split('.').map((n) => parseInt(n, 10) || 0)
+  const r = parse(remote)
+  const c = parse(current)
+  for (let i = 0; i < Math.max(r.length, c.length); i++) {
+    const diff = (r[i] ?? 0) - (c[i] ?? 0)
+    if (diff !== 0) return diff > 0
+  }
+  return false
+}
+
 export async function checkUpdate(): Promise<AppVersion | undefined> {
   const url = 'https://github.com/Jidos86/VelumVPN/releases/latest/download/latest.yml'
   const res = await axiosWithFallback({
@@ -38,7 +49,7 @@ export async function checkUpdate(): Promise<AppVersion | undefined> {
   })
   const latest = parseYaml<AppVersion>(res.data)
   const currentVersion = app.getVersion()
-  if (latest.version !== currentVersion) {
+  if (isNewerVersion(latest.version, currentVersion)) {
     return latest
   } else {
     return undefined
