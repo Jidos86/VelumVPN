@@ -319,12 +319,12 @@ app.whenReady().then(async () => {
 
   let coreStarted = false
 
+  initProfileUpdater()
+
   const coreStartPromise = (async (): Promise<void> => {
     try {
       const [startPromise] = await startCore()
-      startPromise.then(async () => {
-        await initProfileUpdater()
-      })
+      startPromise.then(() => {/* core ready */})
       coreStarted = true
     } catch (e) {
       showError(t('dialog.coreStartError'), `${e}`)
