@@ -162,6 +162,20 @@ async function migration(): Promise<void> {
     }
   }
 
+  // Replace blocked jsDelivr geodata URLs with GitHub direct URLs
+  const geoxUrl = mihomoConfig['geox-url']
+  if (geoxUrl?.geosite?.includes('jsdelivr.net') || geoxUrl?.geoip?.includes('jsdelivr.net')) {
+    mihomoConfigPatch['geox-url'] = {
+      ...geoxUrl,
+      ...(geoxUrl?.geosite?.includes('jsdelivr.net') && {
+        geosite: 'https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat'
+      }),
+      ...(geoxUrl?.geoip?.includes('jsdelivr.net') && {
+        geoip: 'https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat'
+      })
+    }
+  }
+
   // 清理已弃用的配置
   if (mihomoConfig['external-controller-pipe' as keyof MihomoConfig]) {
     mihomoConfigPatch['external-controller-pipe' as keyof MihomoConfig] = undefined as never
