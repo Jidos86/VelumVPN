@@ -45,10 +45,8 @@ const RUNETFREEDOM_URLS = {
 }
 
 const RUNETFREEDOM_FALLBACK_URLS = {
-  geosite:
-    'https://cdn.jsdelivr.net/gh/runetfreedom/russia-v2ray-rules-dat@release/geosite.dat',
-  geoip:
-    'https://cdn.jsdelivr.net/gh/runetfreedom/russia-v2ray-rules-dat@release/geoip.dat'
+  geosite: RUNETFREEDOM_URLS.geosite,
+  geoip: RUNETFREEDOM_URLS.geoip
 }
 
 async function downloadWithFallback(
