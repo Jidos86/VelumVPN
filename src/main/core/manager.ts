@@ -267,13 +267,11 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
       }
 
       if (process.platform === 'win32' && str.includes('updater: finished')) {
-        try {
-          await stopCore(true)
-          const promises = await startCore()
-          await Promise.all(promises)
-        } catch (e) {
-          showError(t('tray.coreStartError'), `${e}`)
-        }
+        await writeFile(
+          logPath(),
+          `[Manager]: Core self-update finished, waiting for process exit to restart\n`,
+          { flag: 'a' }
+        )
       }
 
       if (
