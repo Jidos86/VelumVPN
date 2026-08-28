@@ -414,6 +414,7 @@ export default {
       upgradeCore: '升级内核',
       builtinStable: '内置稳定版',
       builtinPreview: '内置预览版',
+      downloadingAlpha: '正在下载预览版内核',
       useSystemCore: '使用系统内核',
       systemCorePath: '系统内核路径选择',
       searchingCore: '正在查找系统内核...',

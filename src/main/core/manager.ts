@@ -166,6 +166,12 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
     throw error
   }
 
+  if (core === 'mihomo-alpha' && !existsSync(corePath)) {
+    const { ensureAlphaCore } = await import('./downloadCore')
+    await ensureAlphaCore()
+    corePath = mihomoCorePath(core)
+  }
+
   await generateProfile()
   await checkProfile()
   await stopCoreUnlocked()

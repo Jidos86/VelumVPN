@@ -94,10 +94,17 @@ export function mihomoCoreDir(): string {
   return path.join(resourcesDir(), 'sidecar')
 }
 
+export function downloadedCoreDir(): string {
+  return path.join(dataDir(), 'cores')
+}
+
 export function mihomoCorePath(core: string): string {
   if (core === 'mihomo' || core === 'mihomo-alpha') {
     const isWin = process.platform === 'win32'
-    return path.join(mihomoCoreDir(), `${core}${isWin ? '.exe' : ''}`)
+    const fileName = `${core}${isWin ? '.exe' : ''}`
+    const bundled = path.join(mihomoCoreDir(), fileName)
+    if (existsSync(bundled)) return bundled
+    return path.join(downloadedCoreDir(), fileName)
   }
   if (core === 'system') {
     const sysPath = systemCorePath()

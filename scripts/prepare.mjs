@@ -88,8 +88,21 @@ if (!MIHOMO_MAP[`${platform}-${arch}`]) {
   throw new Error(`unsupported platform "${platform}-${arch}"`)
 }
 
-if (!MIHOMO_ALPHA_MAP[`${platform}-${arch}`]) {
+const includeAlphaCore = process.env.INCLUDE_ALPHA_CORE === '1'
+if (includeAlphaCore && !MIHOMO_ALPHA_MAP[`${platform}-${arch}`]) {
   throw new Error(`unsupported platform "${platform}-${arch}"`)
+}
+if (!includeAlphaCore) {
+  const leftoverAlpha = path.join(
+    cwd,
+    'extra',
+    'sidecar',
+    `mihomo-alpha${platform === 'win32' ? '.exe' : ''}`
+  )
+  if (fs.existsSync(leftoverAlpha)) {
+    fs.rmSync(leftoverAlpha)
+    console.log('[INFO]: skipped bundling mihomo-alpha (set INCLUDE_ALPHA_CORE=1 to include)')
+  }
 }
 
 /**
@@ -327,11 +340,15 @@ const resolveFont = async () => {
 }
 
 const tasks = [
-  {
-    name: 'mihomo-alpha',
-    func: () => getLatestAlphaVersion().then(() => resolveSidecar(MihomoAlpha())),
-    retry: 5
-  },
+  ...(includeAlphaCore
+    ? [
+        {
+          name: 'mihomo-alpha',
+          func: () => getLatestAlphaVersion().then(() => resolveSidecar(MihomoAlpha())),
+          retry: 5
+        }
+      ]
+    : []),
   {
     name: 'mihomo',
     func: () => getLatestReleaseVersion().then(() => resolveSidecar(mihomo())),

@@ -78,6 +78,7 @@ const Mihomo: React.FC = () => {
   const { ipv6, 'log-level': logLevel = 'info' } = controledMihomoConfig || {}
 
   const [upgrading, setUpgrading] = useState(false)
+  const [alphaProgress, setAlphaProgress] = useState<number | null>(null)
   const [showGrantConfirm, setShowGrantConfirm] = useState(false)
   const [showUnGrantConfirm, setShowUnGrantConfirm] = useState(false)
   const [showPermissionModal, setShowPermissionModal] = useState(false)
@@ -93,6 +94,23 @@ const Mihomo: React.FC = () => {
       .then(setSystemCorePaths)
       .catch(() => {})
       .finally(() => setLoadingPaths(false))
+  }, [])
+
+  useEffect(() => {
+    const handler = (_e: unknown, data: { progress: number }): void => {
+      if (data.progress < 0) {
+        setAlphaProgress(null)
+        return
+      }
+      setAlphaProgress(data.progress)
+      if (data.progress >= 100) {
+        setTimeout(() => setAlphaProgress(null), 400)
+      }
+    }
+    window.electron.ipcRenderer.on('alphaCoreProgress', handler)
+    return () => {
+      window.electron.ipcRenderer.removeListener('alphaCoreProgress', handler)
+    }
   }, [])
 
   const onChangeNeedRestart = async (patch: Partial<MihomoConfig>): Promise<void> => {
@@ -140,7 +158,7 @@ const Mihomo: React.FC = () => {
         await patchAppConfig({ systemCorePath: paths[0] })
       }
     }
-    handleConfigChangeWithRestart('core', newCore)
+    await handleConfigChangeWithRestart('core', newCore)
   }
 
   const handlePermissionModeChange = async (key: string): Promise<void> => {
@@ -321,12 +339,20 @@ const Mihomo: React.FC = () => {
         >
           <Select
             value={core}
+            disabled={alphaProgress !== null}
             onValueChange={(value) =>
               handleCoreChange(value as 'mihomo' | 'mihomo-alpha' | 'system')
             }
           >
             <SelectTrigger size="sm" className="w-[300px]">
-              <SelectValue />
+              {alphaProgress !== null ? (
+                <span className="flex items-center gap-2">
+                  <Spinner className="size-4" />
+                  {t('pages.mihomo.downloadingAlpha')} {alphaProgress}%
+                </span>
+              ) : (
+                <SelectValue />
+              )}
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="mihomo">{t('pages.mihomo.builtinStable')}</SelectItem>

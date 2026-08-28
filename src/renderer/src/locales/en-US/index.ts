@@ -342,6 +342,7 @@ export default {
       upgradeCore: 'Upgrade core',
       builtinStable: 'Built-in Stable',
       builtinPreview: 'Built-in Preview',
+      downloadingAlpha: 'Downloading preview core',
       useSystemCore: 'Use System Core',
       systemCorePath: 'System Core Path Selection',
       searchingCore: 'Searching for system core...',
