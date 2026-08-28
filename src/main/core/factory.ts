@@ -46,11 +46,11 @@ const RUNETFREEDOM_URLS = {
     'https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat'
 }
 
-// jsDelivr is blocked in RU; proxy GitHub release assets via a different host.
-const GITHUB_RELEASE_PROXY = 'https://ghfast.top/'
+// cdn.jsdelivr.net and Chinese GitHub proxies (ghfast.top, etc.) are unreliable in RU.
+// gcore.jsdelivr.net is the official jsDelivr edge on Gcore CDN — same files, different host.
 const RUNETFREEDOM_FALLBACK_URLS = {
-  geosite: `${GITHUB_RELEASE_PROXY}${RUNETFREEDOM_URLS.geosite}`,
-  geoip: `${GITHUB_RELEASE_PROXY}${RUNETFREEDOM_URLS.geoip}`
+  geosite: 'https://gcore.jsdelivr.net/gh/runetfreedom/russia-v2ray-rules-dat@release/geosite.dat',
+  geoip: 'https://gcore.jsdelivr.net/gh/runetfreedom/russia-v2ray-rules-dat@release/geoip.dat'
 }
 
 async function downloadWithFallback(
