@@ -259,7 +259,8 @@ function initDeeplink(): void {
 
 export async function init(): Promise<void> {
   await initDirs()
-  await Promise.all([initConfig(), initFiles()])
+  await initConfig()
+  await initFiles()
   try {
     await migrateFromOldApp()
   } catch {
