@@ -81,6 +81,21 @@ let coreOpChain: Promise<void> = Promise.resolve()
 let pendingRestart: Promise<void> | null = null
 let pendingStartReject: ((reason: Error) => void) | null = null
 let coreCrashDialogShown = false
+let coreReadyWaiters: Array<() => void> = []
+
+export function waitForCoreReady(): Promise<void> {
+  if (initialized) return Promise.resolve()
+  return new Promise((resolve) => {
+    coreReadyWaiters.push(resolve)
+  })
+}
+
+function signalCoreReady(): void {
+  initialized = true
+  const waiters = coreReadyWaiters
+  coreReadyWaiters = []
+  waiters.forEach((resolve) => resolve())
+}
 
 function withCoreLock<T>(fn: () => Promise<T>): Promise<T> {
   const next = coreOpChain.then(fn, fn)
@@ -302,7 +317,7 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
                 }
 
                 await waitForMihomoReady()
-                initialized = true
+                signalCoreReady()
                 Promise.all([
                   new Promise((r) => setTimeout(r, 100)).then(() => {
                     mainWindow?.webContents.send('groupsUpdated')
