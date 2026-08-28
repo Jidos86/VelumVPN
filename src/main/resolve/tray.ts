@@ -6,9 +6,8 @@ import {
   patchAppConfig,
   patchControledMihomoConfig
 } from '../config'
-import icoIcon from '../../../resources/icon.ico?asset'
-import icoIconOff from '../../../resources/icon_off.ico?asset'
-import pngIcon from '../../../resources/icon.png?asset'
+import icoIcon from '../../../build/icon.ico?asset'
+import pngIcon from '../../../build/icons/512x512.png?asset'
 import pngIconOff from '../../../resources/icon_off.png?asset'
 import macIconOn from '../../../resources/icon_on_mac.png?asset'
 import macIconOff from '../../../resources/icon_off_mac.png?asset'
@@ -481,7 +480,7 @@ export async function updateTrayIcon(): Promise<void> {
       icon.setTemplateImage(true)
       tray.setImage(icon)
     } else if (process.platform === 'win32') {
-      tray.setImage(proxyEnabled ? icoIcon : icoIconOff)
+      tray.setImage(proxyEnabled ? icoIcon : pngIconOff)
     } else {
       tray.setImage(proxyEnabled ? pngIcon : pngIconOff)
     }

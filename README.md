@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="resources/VELUM_ICON.png" width="96" alt="VelumVPN" />
+<img src="build/icon.png" width="96" alt="VelumVPN" />
 
 # VelumVPN Desktop
 

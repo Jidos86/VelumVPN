@@ -5,7 +5,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, Notification, powerMonitor, 
 import { addProfileItem, getAppConfig, patchControledMihomoConfig } from './config'
 import { quitWithoutCore, startCore, stopCore } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
-import icon from '../../resources/icon.png?asset'
+import icon from '../../build/icons/512x512.png?asset'
 import { createTray } from './resolve/tray'
 import { createApplicationMenu } from './resolve/menu'
 import { init } from './utils/init'
