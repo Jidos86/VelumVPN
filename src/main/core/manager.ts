@@ -217,7 +217,13 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
       reject(new Error(`Core closed, code: ${code}, signal: ${signal}`))
     }
     if (retry) {
-      await writeFile(logPath(), `[Manager]: Try Restart Core\n`, { flag: 'a' })
+      const delayMs = Math.min(8000, 500 * 2 ** (10 - retry))
+      await writeFile(
+        logPath(),
+        `[Manager]: Try Restart Core (backoff ${delayMs}ms, retries left: ${retry})\n`,
+        { flag: 'a' }
+      )
+      await new Promise((r) => setTimeout(r, delayMs))
       retry--
       await withCoreLock(() => restartCoreUnlocked())
     } else {
