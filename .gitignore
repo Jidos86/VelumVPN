@@ -1,6 +1,8 @@
 node_modules
 resources/files
 resources/sidecar
+extra/files
+extra/sidecar
 dist
 out
 .DS_Store
