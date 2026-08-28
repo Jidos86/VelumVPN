@@ -9,6 +9,11 @@ import { floatingWindow } from '../resolve/floatingWindow'
 import { mihomoIpcPath } from '../utils/dirs'
 import { safeSend } from '../utils/safeSend'
 import { debounce } from '../utils/debounce'
+import type { BrowserWindow } from 'electron'
+
+function isWindowShowing(win: BrowserWindow | null | undefined): boolean {
+  return !!win && !win.isDestroyed() && win.isVisible() && !win.isMinimized()
+}
 
 let axiosIns: AxiosInstance = null!
 let mihomoTrafficWs: WebSocket | null = null
@@ -269,7 +274,9 @@ const mihomoTraffic = async (): Promise<void> => {
     const json = JSON.parse(data) as ControllerTraffic
     trafficRetry = 10
     try {
-      safeSend(mainWindow, 'mihomoTraffic', json)
+      if (isWindowShowing(mainWindow)) {
+        safeSend(mainWindow, 'mihomoTraffic', json)
+      }
       if (process.platform !== 'linux') {
         tray?.setToolTip(
           '↑' +
@@ -278,7 +285,9 @@ const mihomoTraffic = async (): Promise<void> => {
             `${calcTraffic(json.down)}/s`.padStart(9)
         )
       }
-      safeSend(floatingWindow, 'mihomoTraffic', json)
+      if (isWindowShowing(floatingWindow)) {
+        safeSend(floatingWindow, 'mihomoTraffic', json)
+      }
     } catch {
       // ignore
     }
@@ -321,6 +330,7 @@ const mihomoLogs = async (): Promise<void> => {
   mihomoLogsWs.onmessage = (e): void => {
     logsRetry = 10
     if (!logsForwardingEnabled) return
+    if (!isWindowShowing(mainWindow)) return
     try {
       safeSend(mainWindow, 'mihomoLogs', JSON.parse(e.data as string) as ControllerLog)
     } catch {
@@ -348,6 +358,7 @@ export const startMihomoConnections = async (): Promise<void> => {
 }
 
 const sendConnectionsDebounced = debounce((payload: ControllerConnections): void => {
+  if (!isWindowShowing(mainWindow)) return
   safeSend(mainWindow, 'mihomoConnections', payload)
 }, 300)
 
@@ -376,6 +387,7 @@ const mihomoConnections = async (): Promise<void> => {
   mihomoConnectionsWs.onmessage = (e): void => {
     const data = e.data as string
     connectionsRetry = 10
+    if (!isWindowShowing(mainWindow)) return
     try {
       sendConnectionsDebounced(JSON.parse(data) as ControllerConnections)
     } catch {
