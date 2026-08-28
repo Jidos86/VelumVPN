@@ -20,6 +20,7 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<M
 
 export async function patchControledMihomoConfig(patch: Partial<MihomoConfig>): Promise<void> {
   await getControledMihomoConfig()
+  const previousGeoMode = controledMihomoConfig['geodata-mode']
   const patchToMerge = JSON.parse(JSON.stringify(patch)) as Partial<MihomoConfig>
   const { controlDns = false, controlSniff = false, controlTun = false } = await getAppConfig()
   if (!controlDns) {
@@ -59,6 +60,13 @@ export async function patchControledMihomoConfig(patch: Partial<MihomoConfig>): 
     controledMihomoConfig.hosts = patchToMerge.hosts
   }
   controledMihomoConfig = deepMerge(controledMihomoConfig, patchToMerge)
+  if (
+    patchToMerge['geodata-mode'] !== undefined &&
+    patchToMerge['geodata-mode'] !== previousGeoMode
+  ) {
+    const { copyGeodataFiles } = await import('../utils/init')
+    await copyGeodataFiles()
+  }
   await generateProfile()
   await writeFile(controledMihomoConfigPath(), stringifyYaml(controledMihomoConfig), 'utf-8')
 

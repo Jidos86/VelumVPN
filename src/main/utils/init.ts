@@ -82,36 +82,53 @@ async function initConfig(): Promise<void> {
   }
 }
 
-async function initFiles(): Promise<void> {
-  const copy = async (file: string): Promise<void> => {
-    const targetPath = path.join(mihomoWorkDir(), file)
-    const testTargetPath = path.join(mihomoTestDir(), file)
-    const sourcePath = path.join(resourcesFilesDir(), file)
-    if (!existsSync(sourcePath)) return
-    const srcSize = (await stat(sourcePath)).size
-    const shouldCopy = async (dst: string): Promise<boolean> => {
-      if (!existsSync(dst)) return true
-      try {
-        const dstSize = (await stat(dst)).size
-        return srcSize > dstSize
-      } catch {
-        return true
-      }
-    }
-    if (await shouldCopy(targetPath)) {
-      await cp(sourcePath, targetPath, { recursive: true })
-    }
-    if (await shouldCopy(testTargetPath)) {
-      await cp(sourcePath, testTargetPath, { recursive: true })
+async function copyGeoFile(file: string): Promise<void> {
+  const targetPath = path.join(mihomoWorkDir(), file)
+  const testTargetPath = path.join(mihomoTestDir(), file)
+  const sourcePath = path.join(resourcesFilesDir(), file)
+  if (!existsSync(sourcePath)) return
+  const srcSize = (await stat(sourcePath)).size
+  const shouldCopy = async (dst: string): Promise<boolean> => {
+    if (!existsSync(dst)) return true
+    try {
+      const dstSize = (await stat(dst)).size
+      return srcSize > dstSize
+    } catch {
+      return true
     }
   }
-  await Promise.all([
-    copy('country.mmdb'),
-    copy('geoip.metadb'),
-    copy('geoip.dat'),
-    copy('geosite.dat'),
-    copy('ASN.mmdb')
-  ])
+  if (await shouldCopy(targetPath)) {
+    await cp(sourcePath, targetPath, { recursive: true })
+  }
+  if (await shouldCopy(testTargetPath)) {
+    await cp(sourcePath, testTargetPath, { recursive: true })
+  }
+}
+
+async function activeGeodataFiles(): Promise<string[]> {
+  let geoMode = false
+  if (existsSync(controledMihomoConfigPath())) {
+    try {
+      const { 'geodata-mode': mode = false } = await getControledMihomoConfig()
+      geoMode = !!mode
+    } catch {
+      // default: mmdb
+    }
+  }
+  // ASN.mmdb is independent of geodata-mode and always referenced in geox-url
+  const files = geoMode
+    ? ['geoip.dat', 'geosite.dat', 'ASN.mmdb']
+    : ['country.mmdb', 'geoip.metadb', 'ASN.mmdb']
+  return files
+}
+
+export async function copyGeodataFiles(): Promise<void> {
+  const files = await activeGeodataFiles()
+  await Promise.all(files.map(copyGeoFile))
+}
+
+async function initFiles(): Promise<void> {
+  await copyGeodataFiles()
 }
 
 async function cleanup(): Promise<void> {
