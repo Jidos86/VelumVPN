@@ -90,7 +90,9 @@ const zhCN: LocaleTranslations = {
     switchedToRuleMode: '已切换至规则模式',
     switchedToGlobalMode: '已切换至全局模式',
     switchedToDirectMode: '已切换至直连模式',
-    profileImportSuccess: '订阅导入成功'
+    profileImportSuccess: '订阅导入成功',
+    geodataUpdateFailed: '地理数据未更新',
+    geodataUpdateFailedHint: '主源和备用源均不可用，将继续使用本地副本'
   },
   dialog: {
     firstRunAdmin: '首次启动请以管理员权限运行',
@@ -235,6 +237,8 @@ const enUS: LocaleTranslations = {
     switchedToGlobalMode: 'Switched to Global Mode',
     switchedToDirectMode: 'Switched to Direct Mode',
     profileImportSuccess: 'Profile imported successfully',
+    geodataUpdateFailed: 'Geodata was not updated',
+    geodataUpdateFailedHint: 'Primary and fallback sources are unavailable; using the local copy'
   },
   dialog: {
     firstRunAdmin: 'Please run as administrator for the first time',
@@ -378,7 +382,10 @@ const ruRU: LocaleTranslations = {
     switchedToRuleMode: 'Включён режим правил',
     switchedToGlobalMode: 'Включён глобальный режим',
     switchedToDirectMode: 'Включён прямой режим',
-    profileImportSuccess: 'Подписка успешно импортирована'
+    profileImportSuccess: 'Подписка успешно импортирована',
+    geodataUpdateFailed: 'Геоданные не обновлены',
+    geodataUpdateFailedHint:
+      'Основной и резервный источники недоступны, используется локальная копия'
   },
   dialog: {
     firstRunAdmin: 'При первом запуске откройте приложение от имени администратора',

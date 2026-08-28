@@ -8,6 +8,7 @@ import {
   getCustomRules
 } from '../config'
 import {
+  logPath,
   mihomoProfileWorkDir,
   mihomoWorkConfigPath,
   mihomoWorkDir,
@@ -17,6 +18,7 @@ import {
   userTemplatesDir
 } from '../utils/dirs'
 import { getBrand } from '../utils/brand'
+import { t } from '../utils/i18n'
 import { mainWindow } from '..'
 import { parseYaml, stringifyYaml } from '../utils/yaml'
 import { copyFile, mkdir, readFile, writeFile, stat } from 'fs/promises'
@@ -44,9 +46,11 @@ const RUNETFREEDOM_URLS = {
     'https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat'
 }
 
+// jsDelivr is blocked in RU; proxy GitHub release assets via a different host.
+const GITHUB_RELEASE_PROXY = 'https://ghfast.top/'
 const RUNETFREEDOM_FALLBACK_URLS = {
-  geosite: RUNETFREEDOM_URLS.geosite,
-  geoip: RUNETFREEDOM_URLS.geoip
+  geosite: `${GITHUB_RELEASE_PROXY}${RUNETFREEDOM_URLS.geosite}`,
+  geoip: `${GITHUB_RELEASE_PROXY}${RUNETFREEDOM_URLS.geoip}`
 }
 
 async function downloadWithFallback(
@@ -67,8 +71,13 @@ async function downloadWithFallback(
 
   try {
     return await tryUrl(primaryUrl)
-  } catch {
+  } catch (primaryError) {
     if (fallbackUrl && fallbackUrl !== primaryUrl) {
+      await writeFile(
+        logPath(),
+        `[Factory]: primary geodata URL failed (${primaryError}), trying fallback ${fallbackUrl}\n`,
+        { flag: 'a' }
+      ).catch(() => {})
       return await tryUrl(fallbackUrl)
     }
     throw new Error(`Failed to download from ${primaryUrl}`)
@@ -189,6 +198,8 @@ async function ensureRunetfreedomGeodata(): Promise<boolean> {
     file: toDownload[0].name, progress: 0, fileIndex: 0, totalFiles, auto: true
   })
 
+  let downloadFailed = false
+
   for (let i = 0; i < toDownload.length; i++) {
     const { url, fallback, name } = toDownload[i]
     const dest = path.join(mihomoWorkDir(), name)
@@ -205,8 +216,13 @@ async function ensureRunetfreedomGeodata(): Promise<boolean> {
       })
       await writeFile(dest, Buffer.from(data))
       await copyFile(dest, path.join(mihomoTestDir(), name))
-    } catch {
-      // Download failed — continue with existing (possibly outdated) file
+    } catch (error) {
+      downloadFailed = true
+      await writeFile(
+        logPath(),
+        `[Factory]: geodata download failed for ${name}: ${error}\n`,
+        { flag: 'a' }
+      ).catch(() => {})
     }
   }
 
@@ -215,6 +231,14 @@ async function ensureRunetfreedomGeodata(): Promise<boolean> {
   })
 
   await Promise.all(GEO_FILES.map((f) => syncGeoToTestDir(f.name)))
+
+  if (downloadFailed) {
+    mainWindow?.webContents.send(
+      'showError',
+      t('notification.geodataUpdateFailed'),
+      t('notification.geodataUpdateFailedHint')
+    )
+  }
 
   // Check if files are still too small after download attempts
   const stillBad = await Promise.all(
