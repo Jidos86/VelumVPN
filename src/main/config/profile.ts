@@ -433,9 +433,9 @@ export async function setRuleStr(id: string, str: string): Promise<void> {
 }
 
 export async function convertMrsRuleset(filePath: string, behavior: string): Promise<string> {
-  const { exec } = await import('child_process')
+  const { execFile } = await import('child_process')
   const { promisify } = await import('util')
-  const execAsync = promisify(exec)
+  const execFilePromise = promisify(execFile)
   const { mihomoCorePath } = await import('../utils/dirs')
   const { getAppConfig } = await import('./app')
   const { tmpdir } = await import('os')
@@ -459,7 +459,7 @@ export async function convertMrsRuleset(filePath: string, behavior: string): Pro
   try {
     // 使用 mihomo convert-ruleset 命令转换 MRS 文件为 text 格式
     // 命令格式: mihomo convert-ruleset <behavior> <format> <source>
-    await execAsync(`"${corePath}" convert-ruleset ${behavior} mrs "${fullPath}" "${tempFilePath}"`)
+    await execFilePromise(corePath, ['convert-ruleset', behavior, 'mrs', fullPath, tempFilePath])
     const content = await readFile(tempFilePath, 'utf-8')
     await unlink(tempFilePath)
 
