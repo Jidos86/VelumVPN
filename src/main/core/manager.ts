@@ -575,7 +575,10 @@ export async function manualGrantCorePermition(
     }
   }
 
-  const targetCores = cores || ['mihomo', 'mihomo-alpha']
+  const requestedCores = cores || (['mihomo', 'mihomo-alpha'] as const)
+  const targetCores = cores
+    ? requestedCores
+    : requestedCores.filter((core) => existsSync(mihomoCorePath(core)))
   await Promise.all(targetCores.map((core) => grantPermission(core)))
 }
 
@@ -639,7 +642,10 @@ export async function revokeCorePermission(cores?: ('mihomo' | 'mihomo-alpha')[]
     }
   }
 
-  const targetCores = cores || ['mihomo', 'mihomo-alpha']
+  const requestedCores = cores || (['mihomo', 'mihomo-alpha'] as const)
+  const targetCores = cores
+    ? requestedCores
+    : requestedCores.filter((core) => existsSync(mihomoCorePath(core)))
   await Promise.all(targetCores.map((core) => revokePermission(core)))
 }
 
