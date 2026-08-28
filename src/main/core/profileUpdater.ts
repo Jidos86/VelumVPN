@@ -4,6 +4,7 @@ import { waitForCoreReady } from './manager'
 const TICK_INTERVAL_MS = 60_000
 const STARTUP_REFRESH_DELAY_MS = 60_000
 const STARTUP_REFRESH_MIN_AGE_MS = 30 * 60 * 1000
+const CORE_READY_TIMEOUT_MS = 30_000
 
 const inFlight = new Set<string>()
 let started = false
@@ -69,7 +70,10 @@ export async function initProfileUpdater(): Promise<void> {
   if (started) return
   started = true
   setTimeout(runStartupRefresh, STARTUP_REFRESH_DELAY_MS)
-  void waitForCoreReady().then(() => {
+  void Promise.race([
+    waitForCoreReady(),
+    new Promise<void>((resolve) => setTimeout(resolve, CORE_READY_TIMEOUT_MS))
+  ]).then(() => {
     void runTick()
   })
 }
