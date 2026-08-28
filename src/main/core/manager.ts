@@ -70,6 +70,7 @@ let networkDownHandled = false
 
 let child: ChildProcess
 let retry = 10
+let coreProcessAlive = false
 
 let initialized = false
 let providerNames = new Set<string>()
@@ -210,6 +211,7 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
     }
   )
   child.on('error', async (err) => {
+    coreProcessAlive = false
     retry = 0
     await writeFile(logPath(), `[Manager]: Core spawn error: ${err}\n`, { flag: 'a' })
     if (pendingStartReject) {
@@ -219,6 +221,7 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
     }
     await showCoreCrashDialog()
   })
+  coreProcessAlive = true
   if (process.platform === 'win32' && child.pid) {
     os.setPriority(child.pid, os.constants.priority[mihomoCpuPriority])
   }
@@ -229,6 +232,7 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
     })
   }
   child.on('close', async (code, signal) => {
+    coreProcessAlive = false
     await writeFile(logPath(), `[Manager]: Core closed, code: ${code}, signal: ${signal}\n`, {
       flag: 'a'
     })
@@ -369,6 +373,7 @@ async function stopCoreUnlocked(force = false): Promise<void> {
     await stopChildProcess(child)
     child = undefined as unknown as ChildProcess
   }
+  coreProcessAlive = false
 
   await getAxios(true).catch(() => {})
 
@@ -734,7 +739,7 @@ export async function startNetworkDetection(): Promise<void> {
 
   networkDetectionTimer = setInterval(async () => {
     if (isAnyNetworkInterfaceUp(extendedBypass) && net.isOnline()) {
-      if ((networkDownHandled && !child) || (child && child.killed)) {
+      if (!coreProcessAlive && (networkDownHandled || child)) {
         const promises = await startCore()
         await Promise.all(promises)
         if (writeSysProxy) triggerSysProxy(true, onlyActiveDevice)
