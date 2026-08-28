@@ -80,6 +80,7 @@ let unmatchedProviders = new Set<string>()
 let coreOpChain: Promise<void> = Promise.resolve()
 let pendingRestart: Promise<void> | null = null
 let pendingStartReject: ((reason: Error) => void) | null = null
+let coreCrashDialogShown = false
 
 function withCoreLock<T>(fn: () => Promise<T>): Promise<T> {
   const next = coreOpChain.then(fn, fn)
@@ -88,6 +89,24 @@ function withCoreLock<T>(fn: () => Promise<T>): Promise<T> {
     () => undefined
   )
   return next
+}
+
+async function showCoreCrashDialog(): Promise<void> {
+  if (coreCrashDialogShown) return
+  coreCrashDialogShown = true
+  const { response } = await dialog.showMessageBox({
+    type: 'error',
+    title: t('tray.coreStartError'),
+    message: t('dialog.coreCrashRecovery'),
+    buttons: [t('dialog.resetApp'), t('dialog.downloadLatest'), t('dialog.cancel')],
+    defaultId: 0,
+    cancelId: 2
+  })
+  if (response === 0) {
+    resetAppConfig()
+  } else if (response === 1) {
+    shell.openExternal('https://github.com/Jidos86/VelumVPN/releases/latest')
+  }
 }
 
 const normalize = (s: string): string =>
@@ -169,6 +188,16 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
       env: env
     }
   )
+  child.on('error', async (err) => {
+    retry = 0
+    await writeFile(logPath(), `[Manager]: Core spawn error: ${err}\n`, { flag: 'a' })
+    if (pendingStartReject) {
+      const reject = pendingStartReject
+      pendingStartReject = null
+      reject(err instanceof Error ? err : new Error(String(err)))
+    }
+    await showCoreCrashDialog()
+  })
   if (process.platform === 'win32' && child.pid) {
     os.setPriority(child.pid, os.constants.priority[mihomoCpuPriority])
   }
@@ -193,19 +222,7 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
       await withCoreLock(() => restartCoreUnlocked())
     } else {
       await withCoreLock(() => stopCoreUnlocked())
-      const { response } = await dialog.showMessageBox({
-        type: 'error',
-        title: t('tray.coreStartError'),
-        message: t('dialog.coreCrashRecovery'),
-        buttons: [t('dialog.resetApp'), t('dialog.downloadLatest'), t('dialog.cancel')],
-        defaultId: 0,
-        cancelId: 2
-      })
-      if (response === 0) {
-        resetAppConfig()
-      } else if (response === 1) {
-        shell.openExternal('https://github.com/Jidos86/VelumVPN/releases/latest')
-      }
+      await showCoreCrashDialog()
     }
   })
   child.stdout?.pipe(stdout)
@@ -302,6 +319,7 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
         await startMihomoConnections()
         await startMihomoLogs()
         retry = 10
+        coreCrashDialogShown = false
       }
     })
   })
