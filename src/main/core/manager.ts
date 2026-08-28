@@ -75,6 +75,21 @@ let initialized = false
 let providerNames = new Set<string>()
 let unmatchedProviders = new Set<string>()
 
+// Serializes start/stop/restart so concurrent callers cannot overwrite `child`.
+// Overlapping restartCore() calls collapse onto the in-flight restart.
+let coreOpChain: Promise<void> = Promise.resolve()
+let pendingRestart: Promise<void> | null = null
+let pendingStartReject: ((reason: Error) => void) | null = null
+
+function withCoreLock<T>(fn: () => Promise<T>): Promise<T> {
+  const next = coreOpChain.then(fn, fn)
+  coreOpChain = next.then(
+    () => undefined,
+    () => undefined
+  )
+  return next
+}
+
 const normalize = (s: string): string =>
   s
     .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
@@ -90,7 +105,7 @@ export async function resetProviderTracking(): Promise<void> {
   initialized = false
 }
 
-export async function startCore(detached = false): Promise<Promise<void>[]> {
+async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
   const {
     core = 'mihomo',
     autoSetDNSMode = 'exec',
@@ -112,14 +127,14 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   } catch (error) {
     if (core === 'system') {
       await patchAppConfig({ core: 'mihomo' })
-      return startCore(detached)
+      return startCoreUnlocked(detached)
     }
     throw error
   }
 
   await generateProfile()
   await checkProfile()
-  await stopCore()
+  await stopCoreUnlocked()
   if (tun?.enable && autoSetDNSMode !== 'none') {
     try {
       await setPublicDNS()
@@ -167,12 +182,17 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     await writeFile(logPath(), `[Manager]: Core closed, code: ${code}, signal: ${signal}\n`, {
       flag: 'a'
     })
+    if (pendingStartReject) {
+      const reject = pendingStartReject
+      pendingStartReject = null
+      reject(new Error(`Core closed, code: ${code}, signal: ${signal}`))
+    }
     if (retry) {
       await writeFile(logPath(), `[Manager]: Try Restart Core\n`, { flag: 'a' })
       retry--
-      await restartCore()
+      await withCoreLock(() => restartCoreUnlocked())
     } else {
-      await stopCore()
+      await withCoreLock(() => stopCoreUnlocked())
       const { response } = await dialog.showMessageBox({
         type: 'error',
         title: t('tray.coreStartError'),
@@ -191,12 +211,14 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   child.stdout?.pipe(stdout)
   child.stderr?.pipe(stderr)
   return new Promise((resolve, reject) => {
+    pendingStartReject = reject
     child.stdout?.on('data', async (data) => {
       const str = data.toString()
       if (
         (process.platform !== 'win32' && str.includes('External controller unix listen error')) ||
         (process.platform === 'win32' && str.includes('External controller pipe listen error'))
       ) {
+        pendingStartReject = null
         reject(`${t('tray.controllerListenError')}:\n${str}`)
       }
 
@@ -214,6 +236,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
         (process.platform !== 'win32' && str.includes('RESTful API unix listening at')) ||
         (process.platform === 'win32' && str.includes('RESTful API pipe listening at'))
       ) {
+        pendingStartReject = null
         resolve([
           new Promise((resolve, reject) => {
             const handleProviderInitialization = async (logLine: string): Promise<void> => {
@@ -284,7 +307,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   })
 }
 
-export async function stopCore(force = false): Promise<void> {
+async function stopCoreUnlocked(force = false): Promise<void> {
   try {
     if (!force) {
       await recoverDNS()
@@ -399,14 +422,30 @@ async function stopChildProcess(process: ChildProcess): Promise<void> {
   })
 }
 
-export async function restartCore(): Promise<void> {
+async function restartCoreUnlocked(): Promise<void> {
   try {
-    await stopCore()
-    const promises = await startCore()
+    await stopCoreUnlocked()
+    const promises = await startCoreUnlocked()
     await Promise.all(promises)
   } catch (e) {
     showError(t('tray.coreStartError'), `${e}`)
   }
+}
+
+export async function startCore(detached = false): Promise<Promise<void>[]> {
+  return withCoreLock(() => startCoreUnlocked(detached))
+}
+
+export async function stopCore(force = false): Promise<void> {
+  return withCoreLock(() => stopCoreUnlocked(force))
+}
+
+export async function restartCore(): Promise<void> {
+  if (pendingRestart) return pendingRestart
+  pendingRestart = withCoreLock(() => restartCoreUnlocked()).finally(() => {
+    pendingRestart = null
+  })
+  return pendingRestart
 }
 
 export async function keepCoreAlive(): Promise<void> {
