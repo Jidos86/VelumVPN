@@ -227,6 +227,15 @@ async function migration(): Promise<void> {
     }
   }
 
+  if (appConfig.geositeUrl && /jsdelivr\.net|ghfast\.top|gh-proxy\.com|ghproxy/i.test(appConfig.geositeUrl)) {
+    appConfigPatch.geositeUrl =
+      'https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat'
+  }
+  if (appConfig.geoipUrl && /jsdelivr\.net|ghfast\.top|gh-proxy\.com|ghproxy/i.test(appConfig.geoipUrl)) {
+    appConfigPatch.geoipUrl =
+      'https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat'
+  }
+
   if (Object.keys(appConfigPatch).length > 0) {
     await patchAppConfig(appConfigPatch)
   }

@@ -46,52 +46,34 @@ const RUNETFREEDOM_URLS = {
     'https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat'
 }
 
-// cdn.jsdelivr.net and Chinese GitHub proxies (ghfast.top, etc.) are unreliable in RU.
-// gcore.jsdelivr.net is the official jsDelivr edge on Gcore CDN — same files, different host.
-const RUNETFREEDOM_FALLBACK_URLS = {
-  geosite: 'https://gcore.jsdelivr.net/gh/runetfreedom/russia-v2ray-rules-dat@release/geosite.dat',
-  geoip: 'https://gcore.jsdelivr.net/gh/runetfreedom/russia-v2ray-rules-dat@release/geoip.dat'
+function isJsdelivrOrProxy(url: string): boolean {
+  return /jsdelivr\.net|ghfast\.top|gh-proxy\.com|ghproxy/i.test(url)
 }
 
-async function downloadWithFallback(
-  primaryUrl: string,
-  fallbackUrl: string,
+function pickGitHubGeoUrl(override: string | undefined, github: string): string {
+  if (!override || isJsdelivrOrProxy(override)) return github
+  return override
+}
+
+async function downloadGeoFile(
+  url: string,
   onProgress: (progress: number) => void
 ): Promise<ArrayBuffer> {
-  const tryUrl = async (url: string): Promise<ArrayBuffer> => {
-    const res = await axios.get<ArrayBuffer>(url, {
-      responseType: 'arraybuffer',
-      timeout: 60000,
-      onDownloadProgress: (e) => {
-        onProgress(e.total ? e.loaded / e.total : 0)
-      }
-    })
-    return res.data
-  }
-
-  try {
-    return await tryUrl(primaryUrl)
-  } catch (primaryError) {
-    if (fallbackUrl && fallbackUrl !== primaryUrl) {
-      await writeFile(
-        logPath(),
-        `[Factory]: primary geodata URL failed (${primaryError}), trying fallback ${fallbackUrl}\n`,
-        { flag: 'a' }
-      ).catch(() => {})
-      return await tryUrl(fallbackUrl)
+  const res = await axios.get<ArrayBuffer>(url, {
+    responseType: 'arraybuffer',
+    timeout: 60000,
+    onDownloadProgress: (e) => {
+      onProgress(e.total ? e.loaded / e.total : 0)
     }
-    throw new Error(`Failed to download from ${primaryUrl}`)
-  }
+  })
+  return res.data
 }
 
 function resolveGeoUrls(): { geositeUrl: string; geoipUrl: string } {
   const brand = getBrand()
-  // Priority: AppConfig (user) > brand.json (reseller) > runetfreedom (default)
-  // AppConfig is async so we read it lazily; here we use brand for sync access.
-  // Caller should pass resolved values when available (see ensureRunetfreedomGeodata).
   return {
-    geositeUrl: brand.geositeUrl || RUNETFREEDOM_URLS.geosite,
-    geoipUrl: brand.geoipUrl || RUNETFREEDOM_URLS.geoip
+    geositeUrl: pickGitHubGeoUrl(brand.geositeUrl, RUNETFREEDOM_URLS.geosite),
+    geoipUrl: pickGitHubGeoUrl(brand.geoipUrl, RUNETFREEDOM_URLS.geoip)
   }
 }
 
@@ -101,8 +83,8 @@ export async function forceUpdateGeodata(): Promise<void> {
       const cfg = await getAppConfig()
       const brand = getBrand()
       return {
-        geositeUrl: cfg.geositeUrl || brand.geositeUrl || RUNETFREEDOM_URLS.geosite,
-        geoipUrl: cfg.geoipUrl || brand.geoipUrl || RUNETFREEDOM_URLS.geoip
+        geositeUrl: pickGitHubGeoUrl(cfg.geositeUrl || brand.geositeUrl, RUNETFREEDOM_URLS.geosite),
+        geoipUrl: pickGitHubGeoUrl(cfg.geoipUrl || brand.geoipUrl, RUNETFREEDOM_URLS.geoip)
       }
     } catch {
       return resolveGeoUrls()
@@ -110,19 +92,19 @@ export async function forceUpdateGeodata(): Promise<void> {
   })()
 
   const files = [
-    { url: geositeUrl, fallback: RUNETFREEDOM_FALLBACK_URLS.geosite, name: 'geosite.dat' },
-    { url: geoipUrl, fallback: RUNETFREEDOM_FALLBACK_URLS.geoip, name: 'geoip.dat' }
+    { url: geositeUrl, name: 'geosite.dat' },
+    { url: geoipUrl, name: 'geoip.dat' }
   ]
 
   const totalFiles = files.length
 
   for (let i = 0; i < files.length; i++) {
-    const { url, fallback, name } = files[i]
+    const { url, name } = files[i]
     const dest = path.join(mihomoWorkDir(), name)
 
     mainWindow?.webContents.send('geodataProgress', { file: name, progress: 0, fileIndex: i, totalFiles })
 
-    const data = await downloadWithFallback(url, fallback, (fileProgress) => {
+    const data = await downloadGeoFile(url, (fileProgress) => {
       const overall = (i + fileProgress) / totalFiles
       mainWindow?.webContents.send('geodataProgress', {
         file: name,
@@ -168,15 +150,15 @@ async function ensureRunetfreedomGeodata(): Promise<boolean> {
   try {
     const cfg = await getAppConfig()
     const brand = getBrand()
-    geositeUrl = cfg.geositeUrl || brand.geositeUrl || RUNETFREEDOM_URLS.geosite
-    geoipUrl = cfg.geoipUrl || brand.geoipUrl || RUNETFREEDOM_URLS.geoip
+    geositeUrl = pickGitHubGeoUrl(cfg.geositeUrl || brand.geositeUrl, RUNETFREEDOM_URLS.geosite)
+    geoipUrl = pickGitHubGeoUrl(cfg.geoipUrl || brand.geoipUrl, RUNETFREEDOM_URLS.geoip)
   } catch {
     // use defaults
   }
 
   const GEO_FILES = [
-    { url: geositeUrl, fallback: RUNETFREEDOM_FALLBACK_URLS.geosite, name: 'geosite.dat' },
-    { url: geoipUrl, fallback: RUNETFREEDOM_FALLBACK_URLS.geoip, name: 'geoip.dat' }
+    { url: geositeUrl, name: 'geosite.dat' },
+    { url: geoipUrl, name: 'geoip.dat' }
   ]
 
   const toDownload = (
@@ -201,10 +183,10 @@ async function ensureRunetfreedomGeodata(): Promise<boolean> {
   let downloadFailed = false
 
   for (let i = 0; i < toDownload.length; i++) {
-    const { url, fallback, name } = toDownload[i]
+    const { url, name } = toDownload[i]
     const dest = path.join(mihomoWorkDir(), name)
     try {
-      const data = await downloadWithFallback(url, fallback, (fileProgress) => {
+      const data = await downloadGeoFile(url, (fileProgress) => {
         const overall = (i + fileProgress) / totalFiles
         mainWindow?.webContents.send('geodataProgress', {
           file: name,
