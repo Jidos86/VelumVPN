@@ -42,14 +42,21 @@ dns:
   use-hosts: false
   use-system-hosts: false
   default-nameserver:
-    - "tls://1.1.1.1"
-    - "tls://8.8.8.8"
+    - "77.88.8.8"
+    - "77.88.1.1"
   nameserver:
-    - "https://dns.google/dns-query"
-    - "https://dns.adguard-dns.com/dns-query"
-  direct-nameserver:
+    - "77.88.8.8"
+    - "77.88.1.1"
     - "https://common.dot.dns.yandex.net/dns-query"
-  respect-rules: false
+  proxy-server-nameserver:
+    - "system"
+    - "77.88.8.8"
+    - "77.88.1.1"
+  direct-nameserver:
+    - "system"
+    - "77.88.8.8"
+    - "77.88.1.1"
+  respect-rules: true
 
 sniffer:
   enable: true

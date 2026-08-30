@@ -235,6 +235,43 @@ const ROUTE_MODE_TEMPLATES: Record<string, string> = {
   all: 'all-proxy.yaml'
 }
 
+const DIRECT_NODE_DNS = ['system', '77.88.8.8', '77.88.1.1']
+const YANDEX_PLAIN_DNS = ['77.88.8.8', '77.88.1.1']
+const BLOCKED_DOH =
+  /dns\.google|cloudflare-dns\.com|mozilla\.cloudflare|(?:tls|https|quic|h3):\/\/(?:1\.1\.1\.1|1\.0\.0\.1|8\.8\.8\.8|8\.8\.4\.4)|(?:1\.1\.1\.1|1\.0\.0\.1|8\.8\.8\.8|8\.8\.4\.4)\/dns-query/i
+
+function isEncryptedDns(server: string): boolean {
+  return /^(https|tls|quic|h3):\/\//i.test(server)
+}
+
+function stripBlockedDoh(servers?: string[]): string[] {
+  return (servers ?? []).filter((s) => !BLOCKED_DOH.test(s))
+}
+
+function ensureDirectNodeDns(template: MihomoConfig): void {
+  const dns = template.dns
+  if (!dns) return
+
+  dns.nameserver = stripBlockedDoh(dns.nameserver)
+  dns['proxy-server-nameserver'] = stripBlockedDoh(dns['proxy-server-nameserver'])
+  dns['direct-nameserver'] = stripBlockedDoh(dns['direct-nameserver'])
+  dns['default-nameserver'] = stripBlockedDoh(dns['default-nameserver'])
+
+  if (!dns['proxy-server-nameserver'].length) {
+    dns['proxy-server-nameserver'] = [...DIRECT_NODE_DNS]
+    dns['respect-rules'] = true
+  }
+  if (!dns['direct-nameserver'].length) {
+    dns['direct-nameserver'] = [...DIRECT_NODE_DNS]
+  }
+  if (!dns['default-nameserver']?.length) {
+    dns['default-nameserver'] = [...YANDEX_PLAIN_DNS]
+  }
+  if (!dns.nameserver.length || dns.nameserver.every(isEncryptedDns)) {
+    dns.nameserver = [...YANDEX_PLAIN_DNS, ...dns.nameserver]
+  }
+}
+
 async function loadRouteTemplate(routeMode: string): Promise<MihomoConfig | null> {
   const templateFile = ROUTE_MODE_TEMPLATES[routeMode]
   if (!templateFile) return null
@@ -511,6 +548,10 @@ async function generateFromTemplate(
 
   const customRules = await getCustomRules()
   injectCustomRules(template, customRules)
+
+  // Google/Cloudflare DoH/DoT is blocked in RU; node hostnames must resolve
+  // via system or Yandex DNS or every domain lookup fails (couldn't find ip).
+  ensureDirectNodeDns(template)
 
   // Apply TUN enable state and platform-specific settings from controlled config
   if (template.tun) {

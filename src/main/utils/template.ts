@@ -74,16 +74,16 @@ export const defaultControledMihomoConfig: Partial<MihomoConfig> = {
   dns: {
     enable: true,
     ipv6: true,
-    'respect-rules': false,
+    'respect-rules': true,
     'enhanced-mode': 'fake-ip',
     'fake-ip-range': '198.18.0.1/16',
     'fake-ip-filter': ['*', '+.lan', '+.local', 'time.*.com', 'ntp.*.com', '+.market.xiaomi.com'],
     'use-hosts': false,
     'use-system-hosts': false,
-    'default-nameserver': ['tls://1.1.1.1'],
-    nameserver: ['https://1.1.1.1/dns-query', 'https://8.8.8.8/dns-query'],
-    'proxy-server-nameserver': [],
-    'direct-nameserver': []
+    'default-nameserver': ['77.88.8.8', '77.88.1.1'],
+    nameserver: ['77.88.8.8', '77.88.1.1', 'https://common.dot.dns.yandex.net/dns-query'],
+    'proxy-server-nameserver': ['system', '77.88.8.8', '77.88.1.1'],
+    'direct-nameserver': ['system', '77.88.8.8', '77.88.1.1']
   },
   sniffer: {
     enable: true,
