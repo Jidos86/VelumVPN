@@ -56,7 +56,7 @@ dns:
     - "system"
     - "77.88.8.8"
     - "77.88.1.1"
-  respect-rules: true
+  respect-rules: false
 
 sniffer:
   enable: true
