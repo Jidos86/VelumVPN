@@ -115,10 +115,15 @@ async function activeGeodataFiles(): Promise<string[]> {
       // default: mmdb
     }
   }
-  // ASN.mmdb is independent of geodata-mode and always referenced in geox-url
+  // ASN.mmdb is independent of geodata-mode and always referenced in geox-url.
+  // geoip.dat/geosite.dat are also independent of geodata-mode: ensureRunetfreedomGeodata()
+  // (factory.ts) always needs them for the ru-blocked GEOSITE/GEOIP rule categories,
+  // regardless of which format the core's own matcher uses. Skipping them here left that
+  // function with nothing to start from, forcing a ~90MB download (and a full core-restart
+  // stall) on every session's first restart for mmdb-mode users.
   const files = geoMode
     ? ['geoip.dat', 'geosite.dat', 'ASN.mmdb']
-    : ['country.mmdb', 'geoip.metadb', 'ASN.mmdb']
+    : ['country.mmdb', 'geoip.metadb', 'geoip.dat', 'geosite.dat', 'ASN.mmdb']
   return files
 }
 
