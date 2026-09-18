@@ -268,6 +268,19 @@ const CustomRules: React.FC = () => {
   const clean = (val: string, isDomain: boolean) =>
     isDomain ? val.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '') : val.trim()
 
+  const warnConflict = (val: string, opposingSection: string): boolean => {
+    toast.warning(t('customRules.conflictWarning', { item: val, section: opposingSection }))
+    return true
+  }
+
+  const bulkWithoutConflicts = (items: string[], conflictList: string[], opposingSection: string): string[] => {
+    const conflicts = items.filter((x) => conflictList.includes(x))
+    if (conflicts.length > 0) {
+      toast.warning(t('customRules.conflictBulkWarning', { count: conflicts.length, section: opposingSection }))
+    }
+    return items.filter((x) => !conflictList.includes(x))
+  }
+
   return (
     <BasePage title={t('customRules.pageTitle')} contentClassName="overflow-y-auto">
       {picker && (
@@ -275,11 +288,13 @@ const CustomRules: React.FC = () => {
           onSelect={(name) => {
             if (picker === 'vpn') {
               if (processes.includes(name)) return
+              if (excludedProcesses.includes(name)) { warnConflict(name, t('customRules.directProcesses')); return }
               const next = [...processes, name]
               setProcesses(next)
               save(domains, next, excluded, excludedProcesses)
             } else {
               if (excludedProcesses.includes(name)) return
+              if (processes.includes(name)) { warnConflict(name, t('customRules.vpnProcesses')); return }
               const next = [...excludedProcesses, name]
               setExcludedProcesses(next)
               save(domains, processes, excluded, next)
@@ -307,6 +322,7 @@ const CustomRules: React.FC = () => {
           onAdd={() => {
             const val = clean(domainInput, true)
             if (!val || domains.includes(val)) { setDomainInput(''); return }
+            if (excluded.includes(val)) { warnConflict(val, t('customRules.directDomains')); setDomainInput(''); return }
             const next = [...domains, val]; setDomains(next); setDomainInput('')
             save(next, processes, excluded, excludedProcesses)
           }}
@@ -315,7 +331,8 @@ const CustomRules: React.FC = () => {
             save(next, processes, excluded, excludedProcesses)
           }}
           onBulkImport={(newItems) => {
-            const next = [...new Set([...domains, ...newItems])]
+            const safe = bulkWithoutConflicts([...new Set(newItems)], excluded, t('customRules.directDomains'))
+            const next = [...new Set([...domains, ...safe])]
             setDomains(next)
             save(next, processes, excluded, excludedProcesses)
           }}
@@ -342,6 +359,7 @@ const CustomRules: React.FC = () => {
           onAdd={() => {
             const val = clean(processInput, false)
             if (!val || processes.includes(val)) { setProcessInput(''); return }
+            if (excludedProcesses.includes(val)) { warnConflict(val, t('customRules.directProcesses')); setProcessInput(''); return }
             const next = [...processes, val]; setProcesses(next); setProcessInput('')
             save(domains, next, excluded, excludedProcesses)
           }}
@@ -351,7 +369,8 @@ const CustomRules: React.FC = () => {
           }}
           onPickerOpen={() => setPicker('vpn')}
           onBulkImport={(newItems) => {
-            const next = [...new Set([...processes, ...newItems])]
+            const safe = bulkWithoutConflicts([...new Set(newItems)], excludedProcesses, t('customRules.directProcesses'))
+            const next = [...new Set([...processes, ...safe])]
             setProcesses(next)
             save(domains, next, excluded, excludedProcesses)
           }}
@@ -367,16 +386,17 @@ const CustomRules: React.FC = () => {
           icon={<Network className="size-4" />}
           title={t('customRules.vpnIPs')}
           color={TEAL}
-          description={t('customRules.vpnIPDesc', { example: '149.154.167.41' })}
+          description={t('customRules.vpnIPDesc', { example: '149.154.167.41 или 149.154.0.0/16' })}
           items={ips}
           input={ipInput}
-          placeholder="149.154.167.41"
+          placeholder="149.154.167.41 или 10.0.0.0/8"
           saving={saving}
           emptyText={t('customRules.emptyIPs')}
           onInputChange={setIPInput}
           onAdd={() => {
             const val = ipInput.trim()
             if (!val || ips.includes(val)) { setIPInput(''); return }
+            if (excludedIPs.includes(val)) { warnConflict(val, t('customRules.directIPs')); setIPInput(''); return }
             const next = [...ips, val]; setIPs(next); setIPInput('')
             save(domains, processes, excluded, excludedProcesses, next, excludedIPs)
           }}
@@ -385,7 +405,8 @@ const CustomRules: React.FC = () => {
             save(domains, processes, excluded, excludedProcesses, next, excludedIPs)
           }}
           onBulkImport={(newItems) => {
-            const next = [...new Set([...ips, ...newItems])]; setIPs(next)
+            const safe = bulkWithoutConflicts([...new Set(newItems)], excludedIPs, t('customRules.directIPs'))
+            const next = [...new Set([...ips, ...safe])]; setIPs(next)
             save(domains, processes, excluded, excludedProcesses, next, excludedIPs)
           }}
           onBulkRemove={(toRemove) => {
@@ -412,6 +433,7 @@ const CustomRules: React.FC = () => {
           onAdd={() => {
             const val = clean(excludedInput, true)
             if (!val || excluded.includes(val)) { setExcludedInput(''); return }
+            if (domains.includes(val)) { warnConflict(val, t('customRules.vpnDomains')); setExcludedInput(''); return }
             const next = [...excluded, val]; setExcluded(next); setExcludedInput('')
             save(domains, processes, next, excludedProcesses)
           }}
@@ -420,7 +442,8 @@ const CustomRules: React.FC = () => {
             save(domains, processes, next, excludedProcesses)
           }}
           onBulkImport={(newItems) => {
-            const next = [...new Set([...excluded, ...newItems])]
+            const safe = bulkWithoutConflicts([...new Set(newItems)], domains, t('customRules.vpnDomains'))
+            const next = [...new Set([...excluded, ...safe])]
             setExcluded(next)
             save(domains, processes, next, excludedProcesses)
           }}
@@ -447,6 +470,7 @@ const CustomRules: React.FC = () => {
           onAdd={() => {
             const val = clean(excludedProcInput, false)
             if (!val || excludedProcesses.includes(val)) { setExcludedProcInput(''); return }
+            if (processes.includes(val)) { warnConflict(val, t('customRules.vpnProcesses')); setExcludedProcInput(''); return }
             const next = [...excludedProcesses, val]; setExcludedProcesses(next); setExcludedProcInput('')
             save(domains, processes, excluded, next)
           }}
@@ -456,7 +480,8 @@ const CustomRules: React.FC = () => {
           }}
           onPickerOpen={() => setPicker('direct')}
           onBulkImport={(newItems) => {
-            const next = [...new Set([...excludedProcesses, ...newItems])]
+            const safe = bulkWithoutConflicts([...new Set(newItems)], processes, t('customRules.vpnProcesses'))
+            const next = [...new Set([...excludedProcesses, ...safe])]
             setExcludedProcesses(next)
             save(domains, processes, excluded, next)
           }}
@@ -472,16 +497,17 @@ const CustomRules: React.FC = () => {
           icon={<Network className="size-4" />}
           title={t('customRules.directIPs')}
           color={RED}
-          description={t('customRules.directIPDesc', { example: '192.168.1.1' })}
+          description={t('customRules.directIPDesc', { example: '192.168.1.1 или 192.168.0.0/24' })}
           items={excludedIPs}
           input={excludedIPInput}
-          placeholder="192.168.1.1"
+          placeholder="192.168.1.1 или 192.168.0.0/24"
           saving={saving}
           emptyText={t('customRules.emptyExcludedIPs')}
           onInputChange={setExcludedIPInput}
           onAdd={() => {
             const val = excludedIPInput.trim()
             if (!val || excludedIPs.includes(val)) { setExcludedIPInput(''); return }
+            if (ips.includes(val)) { warnConflict(val, t('customRules.vpnIPs')); setExcludedIPInput(''); return }
             const next = [...excludedIPs, val]; setExcludedIPs(next); setExcludedIPInput('')
             save(domains, processes, excluded, excludedProcesses, ips, next)
           }}
@@ -490,7 +516,8 @@ const CustomRules: React.FC = () => {
             save(domains, processes, excluded, excludedProcesses, ips, next)
           }}
           onBulkImport={(newItems) => {
-            const next = [...new Set([...excludedIPs, ...newItems])]; setExcludedIPs(next)
+            const safe = bulkWithoutConflicts([...new Set(newItems)], ips, t('customRules.vpnIPs'))
+            const next = [...new Set([...excludedIPs, ...safe])]; setExcludedIPs(next)
             save(domains, processes, excluded, excludedProcesses, ips, next)
           }}
           onBulkRemove={(toRemove) => {

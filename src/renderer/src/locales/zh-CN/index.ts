@@ -1024,10 +1024,12 @@ export default {
     emptyExcludedDomains: '无排除域名',
     emptyExcludedProcesses: '无排除应用',
     vpnIPs: '通过 VPN 的 IP',
-    vpnIPDesc: '始终通过 VPN 的特定 IP 地址（例如：{{example}}）',
+    vpnIPDesc: '始终通过 VPN 的 IP 地址或子网（CIDR）（例如：{{example}}）',
     directIPs: '绕过 VPN 的 IP',
-    directIPDesc: '始终直连的特定 IP 地址（例如：{{example}}）',
+    directIPDesc: '始终直连的 IP 地址或子网（CIDR）（例如：{{example}}）',
     emptyIPs: '未添加任何 IP',
-    emptyExcludedIPs: '无排除 IP'
+    emptyExcludedIPs: '无排除 IP',
+    conflictWarning: '"{{item}}" 已在 "{{section}}" 中 — 请先从那里删除',
+    conflictBulkWarning: '已跳过 {{count}} 项 — 它们已存在于 "{{section}}" 中'
   }
 }

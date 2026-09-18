@@ -1050,10 +1050,12 @@ export default {
     emptyExcludedDomains: 'Нет исключённых доменов',
     emptyExcludedProcesses: 'Нет исключённых приложений',
     vpnIPs: 'IP-адреса через VPN',
-    vpnIPDesc: 'Конкретные IP-адреса, которые всегда идут через VPN (например: {{example}})',
+    vpnIPDesc: 'IP-адреса или подсети (CIDR), которые всегда идут через VPN (например: {{example}})',
     directIPs: 'IP-адреса в обход VPN',
-    directIPDesc: 'Конкретные IP-адреса, которые всегда идут напрямую (например: {{example}})',
+    directIPDesc: 'IP-адреса или подсети (CIDR), которые всегда идут напрямую (например: {{example}})',
     emptyIPs: 'Нет добавленных IP',
-    emptyExcludedIPs: 'Нет исключённых IP'
+    emptyExcludedIPs: 'Нет исключённых IP',
+    conflictWarning: '«{{item}}» уже есть в разделе "{{section}}" — сначала удалите его оттуда',
+    conflictBulkWarning: '{{count}} пунктов пропущено — они уже есть в разделе "{{section}}"'
   }
 }

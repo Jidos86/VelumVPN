@@ -1048,10 +1048,12 @@ export default {
     emptyExcludedDomains: 'No excluded domains',
     emptyExcludedProcesses: 'No excluded apps',
     vpnIPs: 'IPs via VPN',
-    vpnIPDesc: 'Specific IP addresses always routed through VPN (e.g. {{example}})',
+    vpnIPDesc: 'IP addresses or subnets (CIDR) always routed through VPN (e.g. {{example}})',
     directIPs: 'IPs bypassing VPN',
-    directIPDesc: 'Specific IP addresses always going directly (e.g. {{example}})',
+    directIPDesc: 'IP addresses or subnets (CIDR) always going directly (e.g. {{example}})',
     emptyIPs: 'No IPs added',
-    emptyExcludedIPs: 'No excluded IPs'
+    emptyExcludedIPs: 'No excluded IPs',
+    conflictWarning: '"{{item}}" is already in "{{section}}" — remove it there first',
+    conflictBulkWarning: '{{count}} items skipped — already present in "{{section}}"'
   }
 }

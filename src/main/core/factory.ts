@@ -341,7 +341,11 @@ function injectProxiesIntoTemplate(
 
 function ipCidrRule(ip: string, target: string): string {
   const clean = ip.replace(/:\d+$/, '').replace(/^\[(.+)\]$/, '$1')
-  const isV6 = clean.includes(':')
+  const hasMask = clean.includes('/')
+  const isV6 = clean.split('/')[0].includes(':')
+  if (hasMask) {
+    return isV6 ? `IP-CIDR6,${clean},${target},no-resolve` : `IP-CIDR,${clean},${target},no-resolve`
+  }
   return isV6 ? `IP-CIDR6,${clean}/128,${target},no-resolve` : `IP-CIDR,${clean}/32,${target},no-resolve`
 }
 
