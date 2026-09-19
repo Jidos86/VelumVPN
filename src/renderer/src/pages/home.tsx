@@ -220,14 +220,26 @@ const Home: React.FC = () => {
     expireTimestamp > 0 ? Math.max(0, dayjs.unix(expireTimestamp).diff(dayjs(), 'day')) : 0
 
   const { data: customRules } = useSWR('customRulesCount', getCustomRules)
-  const customRulesCount = customRules
-    ? customRules.domains.length +
-      customRules.processes.length +
-      customRules.excluded.length +
-      customRules.excludedProcesses.length +
-      customRules.ips.length +
-      customRules.excludedIPs.length
-    : 0
+  const rulesSummary = [
+    {
+      key: 'app',
+      label: t('velumUi.rules.tabApps'),
+      vpn: customRules?.processes.length ?? 0,
+      direct: customRules?.excludedProcesses.length ?? 0
+    },
+    {
+      key: 'domain',
+      label: t('velumUi.rules.tabDomains'),
+      vpn: customRules?.domains.length ?? 0,
+      direct: customRules?.excluded.length ?? 0
+    },
+    {
+      key: 'ip',
+      label: t('velumUi.rules.tabIPs'),
+      vpn: customRules?.ips.length ?? 0,
+      direct: customRules?.excludedIPs.length ?? 0
+    }
+  ]
 
   const onValueChange = async (enable: boolean): Promise<void> => {
     setLoading(true)
@@ -562,15 +574,28 @@ const Home: React.FC = () => {
         <button
           type="button"
           onClick={() => navigate('/custom-rules')}
-          className={`${panel} flex cursor-pointer items-center justify-between p-4 text-left transition-colors hover:border-vl-line-strong`}
+          className={`${panel} flex cursor-pointer flex-col gap-3 p-4 text-left transition-colors hover:border-vl-line-strong`}
         >
-          <div>
+          <div className="flex w-full items-center justify-between">
             <div className="text-sm font-bold text-vl-text">{t('sider.myRules')}</div>
-            <div className="mt-0.5 text-xs text-vl-muted">
-              {t('velumUi.myRules.configured', { count: customRulesCount })}
-            </div>
+            <ChevronRight className="size-4 text-vl-faint" />
           </div>
-          <ChevronRight className="size-4 text-vl-faint" />
+          <div className="flex w-full flex-col gap-1.5 text-xs tabular-nums">
+            {rulesSummary.map((row) => (
+              <div key={row.key} className="flex items-center justify-between gap-3">
+                <span className="text-vl-muted">{row.label}</span>
+                <span className="flex items-center gap-3">
+                  <span className={row.vpn > 0 ? 'text-vl-text' : 'text-vl-faint'}>
+                    <span className="text-vl-accent">{t('velumUi.rules.summaryVpn')}</span> {row.vpn}
+                  </span>
+                  <span className="h-3 w-px bg-vl-line-strong" />
+                  <span className={row.direct > 0 ? 'text-vl-text' : 'text-vl-faint'}>
+                    <span className="text-vl-muted">{t('velumUi.rules.summaryDirect')}</span> {row.direct}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
         </button>
 
         <button

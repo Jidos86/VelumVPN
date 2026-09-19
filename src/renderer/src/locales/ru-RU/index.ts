@@ -1088,8 +1088,9 @@ export default {
       notTested: 'Не проверен'
     },
     subscription: { title: 'Подписка', refresh: 'Обновить', daysLeft: 'дней осталось', expires: 'дата окончания' },
-    myRules: { configured: 'Настроено: {{count}}' },
     rules: {
+      summaryVpn: 'В VPN',
+      summaryDirect: 'В обход',
       subtitle: 'Правила работают независимо от режима маршрутизации.',
       tabApps: 'Приложения',
       tabDomains: 'Домены',

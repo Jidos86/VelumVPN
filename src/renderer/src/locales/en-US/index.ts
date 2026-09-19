@@ -1086,8 +1086,9 @@ export default {
       notTested: 'Not tested'
     },
     subscription: { title: 'Subscription', refresh: 'Refresh', daysLeft: 'days left', expires: 'expires' },
-    myRules: { configured: 'Configured: {{count}}' },
     rules: {
+      summaryVpn: 'VPN',
+      summaryDirect: 'Bypass',
       subtitle: 'Rules work regardless of the routing mode.',
       tabApps: 'Apps',
       tabDomains: 'Domains',
