@@ -228,7 +228,10 @@ const Home: React.FC = () => {
       // Dev aid: the manual check can be made to "find" a fake update (see velum/dev/simulated-update.ts).
       const res = SIMULATED_UPDATE ?? (await checkUpdate())
       await mutate(['checkUpdate'], res, { revalidate: false })
-      if (!res) setUpToDate(true)
+      if (!res) {
+        setUpToDate(true)
+        toast.success(t('velumUi.update.upToDate'))
+      }
     } catch (e) {
       toast.error(`${e}`)
     } finally {
