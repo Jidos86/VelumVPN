@@ -440,7 +440,7 @@ const RulesPage: React.FC = () => {
           </div>
         )}
 
-        <div className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pb-4 pl-4 pr-2 [scrollbar-gutter:stable]">
+        <div className="custom-scrollbar flex min-h-0 flex-1 snap-y snap-mandatory flex-col gap-1.5 overflow-y-auto pb-4 pl-4 pr-2 [scrollbar-gutter:stable]">
           {items.length === 0 && (
             <div className="py-6 text-center text-sm text-vl-faint">{t('velumUi.rules.empty')}</div>
           )}
@@ -472,7 +472,7 @@ const RulesPage: React.FC = () => {
                         })
                     : undefined
                 }
-                className={`group flex items-center gap-2.5 rounded-xl border px-2.5 py-2 transition-colors ${
+                className={`group flex snap-start items-center gap-2.5 rounded-xl border px-2.5 py-2 transition-colors ${
                   isSelecting ? 'cursor-pointer select-none' : canDrag ? 'cursor-grab active:cursor-grabbing' : ''
                 } ${
                   dragging?.side === side && dragging.item === item
