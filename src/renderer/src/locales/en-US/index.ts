@@ -1114,6 +1114,11 @@ export default {
       noLink: 'no link',
       noReply: 'no reply',
       hint: 'Click a process or address to send it through the VPN or around it'
+    },
+    settings: {
+      tabConnection: 'Connection',
+      tabApp: 'App',
+      tabAdvanced: 'Advanced'
     }
   }
 }

@@ -1,5 +1,6 @@
-import { Button } from '@renderer/components/ui/button'
-import BasePage from '@renderer/components/base/base-page'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Github } from 'lucide-react'
 import GeneralConfig from '@renderer/components/settings/general-config'
 import AdvancedSettings from '@renderer/components/settings/advanced-settings'
 import Actions from '@renderer/components/settings/actions'
@@ -8,45 +9,68 @@ import AppearanceConfig from '@renderer/components/settings/appearance-confis'
 import LanguageConfig from '@renderer/components/settings/language-config'
 import ProxySwitches from '@renderer/components/settings/proxy-switches'
 import GeoAndTemplatesConfig from '@renderer/components/settings/geo-templates-config'
-import { useTranslation } from 'react-i18next'
-import { Github } from 'lucide-react'
-import { useState } from 'react'
+import { IconButton, PageShell, Segmented } from '@renderer/velum/ui/primitives'
+
+type Tab = 'connection' | 'app' | 'advanced'
 
 const Settings: React.FC = () => {
   const { t } = useTranslation()
+  const [tab, setTab] = useState<Tab>('connection')
   const [showHiddenSettings, setShowHiddenSettings] = useState(false)
 
   return (
-    <BasePage
+    <PageShell
       title={t('pages.settings.title')}
-      header={
-        <>
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            className="app-nodrag"
-            title={t('pages.settings.githubRepo')}
-            onClick={() => {
-              window.open('https://github.com/Jidos86/VelumVPN')
-            }}
-          >
-            <Github className="text-lg" />
-          </Button>
-        </>
+      actions={
+        <IconButton
+          title={t('pages.settings.githubRepo')}
+          onClick={() => {
+            window.open('https://github.com/Jidos86/VelumVPN')
+          }}
+        >
+          <Github className="size-4" />
+        </IconButton>
       }
     >
-      <ProxySwitches />
-      <GeneralConfig showHiddenSettings={showHiddenSettings} />
-      <LanguageConfig />
-      <AppearanceConfig showHiddenSettings={showHiddenSettings} />
-      <AdvancedSettings showHiddenSettings={showHiddenSettings} />
-      <GeoAndTemplatesConfig />
-      <ShortcutConfig />
-      <Actions
-        showHiddenSettings={showHiddenSettings}
-        onUnlockHiddenSettings={() => setShowHiddenSettings(true)}
-      />
-    </BasePage>
+      <div>
+        <Segmented
+          value={tab}
+          onChange={setTab}
+          items={[
+            { key: 'connection', label: t('velumUi.settings.tabConnection') },
+            { key: 'app', label: t('velumUi.settings.tabApp') },
+            { key: 'advanced', label: t('velumUi.settings.tabAdvanced') }
+          ]}
+        />
+      </div>
+
+      {/* The existing setting cards keep their logic; only the grouping is new. */}
+      <div className="flex flex-col gap-1">
+        {tab === 'connection' && (
+          <>
+            <ProxySwitches />
+            <GeoAndTemplatesConfig />
+          </>
+        )}
+        {tab === 'app' && (
+          <>
+            <LanguageConfig />
+            <GeneralConfig showHiddenSettings={showHiddenSettings} />
+            <AppearanceConfig showHiddenSettings={showHiddenSettings} />
+          </>
+        )}
+        {tab === 'advanced' && (
+          <>
+            <AdvancedSettings showHiddenSettings={showHiddenSettings} />
+            <ShortcutConfig />
+            <Actions
+              showHiddenSettings={showHiddenSettings}
+              onUnlockHiddenSettings={() => setShowHiddenSettings(true)}
+            />
+          </>
+        )}
+      </div>
+    </PageShell>
   )
 }
 
