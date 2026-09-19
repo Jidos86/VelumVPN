@@ -116,7 +116,30 @@ export const ServerCard: React.FC = () => {
               : t('velumUi.server.title')}
           </div>
         </div>
-        {shown && <Ping delay={shown.delay} />}
+        {shown && (
+          // Clicking the ping re-tests the node in use without opening the picker.
+          <span
+            role="button"
+            tabIndex={0}
+            title={t('velumUi.server.check')}
+            onClick={(e) => {
+              e.stopPropagation()
+              servers.testOne(shown.name)
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter') return
+              e.stopPropagation()
+              servers.testOne(shown.name)
+            }}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 transition-colors hover:bg-white/5"
+          >
+            {servers.testing.has(shown.name) ? (
+              <RefreshCw className="size-3.5 animate-spin text-vl-accent" />
+            ) : (
+              <Ping delay={shown.delay} />
+            )}
+          </span>
+        )}
         <ChevronRight className="size-4 shrink-0 text-vl-faint" />
       </button>
       {open && <ServerPickerModal servers={servers} onClose={() => setOpen(false)} />}
