@@ -1109,6 +1109,8 @@ export default {
       colDirect: 'Bypass VPN',
       dragHint: 'Drag an entry to the other column to change its route',
       edit: 'Edit',
+      invalid: 'Not valid: {{item}}. Check the format',
+      invalidBulk: 'Skipped entries with a wrong format: {{count}}',
       alreadyThere: 'is already in the list',
       empty: 'Nothing here yet'
     },

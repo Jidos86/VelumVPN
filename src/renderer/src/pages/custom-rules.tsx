@@ -51,8 +51,37 @@ const EMPTY: CustomRules = {
   excludedIPs: []
 }
 
-const clean = (kind: Kind, val: string): string =>
-  kind === 'domain' ? val.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '') : val.trim()
+const IPV4 = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/
+const IPV6 = /^[0-9a-f:]*:[0-9a-f:.]*$/i
+const DOMAIN = /^[^\s/\\:,;@?#*'"<>|]+(\.[^\s/\\:,;@?#*'"<>|]+)*$/
+const PROCESS_BAD_CHARS = /[\\/:*?"<>|,;]/
+
+// Turns what the user typed into a value the core accepts, or null when it can't be one.
+// Things that are just pasted around the value (https://, port, path) are stripped instead of rejected.
+const normalize = (kind: Kind, raw: string): string | null => {
+  let v = raw.trim()
+  if (!v) return null
+  if (kind === 'app') {
+    // "C:\Games\App.exe" -> "App.exe"
+    v = v.replace(/^.*[\\/]/, '').trim()
+    return v && !PROCESS_BAD_CHARS.test(v) ? v : null
+  }
+  v = v.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
+  if (kind === 'domain') {
+    v = v.replace(/[/?#].*$/, '').replace(/:\d+$/, '').replace(/^\*?\./, '').toLowerCase()
+    return DOMAIN.test(v) ? v : null
+  }
+  // ip: address or CIDR, IPv4 or IPv6
+  const [addr, mask, ...rest] = v.replace(/[?#].*$/, '').split('/')
+  if (rest.length > 0 && rest.some((s) => s !== '')) return null
+  let host = addr.replace(/^\[|\]$/g, '')
+  host = host.replace(/^(\d+\.\d+\.\d+\.\d+):\d+$/, '$1')
+  const v6 = IPV6.test(host)
+  if (!v6 && !IPV4.test(host)) return null
+  if (mask === undefined || mask === '') return host
+  const max = v6 ? 128 : 32
+  return /^\d{1,3}$/.test(mask) && Number(mask) <= max ? `${host}/${mask}` : null
+}
 
 const badgeText = (kind: Kind, name: string): string =>
   kind === 'ip' ? 'IP' : (name.trim()[0] ?? '?').toUpperCase()
@@ -111,11 +140,12 @@ const ImportModal: React.FC<{
   }, [])
 
   const confirm = (): void => {
+    // Validation and cleanup happen in addItems, so invalid lines get reported there.
     const items = [
       ...new Set(
         text
           .split(/[\n,]+/)
-          .map((s) => clean(kind, s))
+          .map((s) => s.trim())
           .filter(Boolean)
       )
     ]
@@ -191,7 +221,17 @@ const RulesPage: React.FC = () => {
   const addItems = (side: Side, raw: string[]): void => {
     const own = FIELD[kind][side]
     const opp = FIELD[kind][otherSide(side)]
-    const cleaned = [...new Set(raw.map((v) => clean(kind, v)).filter(Boolean))]
+    const entered = raw.filter((v) => v.trim())
+    const normalized = entered.map((v) => normalize(kind, v))
+    const invalid = entered.filter((_, i) => normalized[i] === null)
+    if (invalid.length > 0) {
+      toast.error(
+        invalid.length === 1
+          ? t('velumUi.rules.invalid', { item: invalid[0] })
+          : t('velumUi.rules.invalidBulk', { count: invalid.length })
+      )
+    }
+    const cleaned = [...new Set(normalized.filter((v): v is string => v !== null))]
     const conflicts = cleaned.filter((x) => rules[opp].includes(x))
     if (conflicts.length > 0) {
       const section = t(SECTION_KEY[kind][otherSide(side)])
@@ -233,8 +273,13 @@ const RulesPage: React.FC = () => {
     editDone.current = true
     const { side, item } = editing
     setEditing(null)
-    const next = clean(kind, editValue)
-    if (!next || next === item) return
+    if (!editValue.trim()) return
+    const next = normalize(kind, editValue)
+    if (next === null) {
+      toast.error(t('velumUi.rules.invalid', { item: editValue.trim() }))
+      return
+    }
+    if (next === item) return
     const own = FIELD[kind][side]
     const opp = FIELD[kind][otherSide(side)]
     if (rules[opp].includes(next)) {
