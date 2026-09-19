@@ -241,7 +241,7 @@ const RulesPage: React.FC = () => {
         <div className="flex items-center justify-between gap-2 border-b border-vl-line px-4 py-3">
           <div className="flex min-w-0 items-center gap-2">
             <span
-              className={`size-2 shrink-0 rounded-full ${side === 'vpn' ? 'bg-vl-accent' : 'bg-vl-muted'}`}
+              className={`size-2 shrink-0 rounded-full ${side === 'vpn' ? 'bg-vl-accent' : 'bg-vl-danger'}`}
             />
             <span className="truncate text-sm font-bold text-vl-text">
               {side === 'vpn' ? t('velumUi.rules.colVpn') : t('velumUi.rules.colDirect')}
