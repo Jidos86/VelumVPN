@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, ChevronRight, RefreshCw, Search, Sparkles, X } from 'lucide-react'
+import { ChevronRight, RefreshCw, Search, Sparkles, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useServers } from './use-servers'
@@ -250,7 +250,6 @@ const ServerPickerModal: React.FC<{
                     <RefreshCw className={`size-3.5 ${busy ? 'animate-spin' : ''}`} />
                   </button>
                 )}
-                {selected && <Check className="size-4 shrink-0 text-vl-accent" />}
               </div>
             )
           })}
