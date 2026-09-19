@@ -24,6 +24,7 @@ import { calcTraffic } from '@renderer/utils/calc'
 import { useTrafficStore } from '@renderer/store/traffic-store'
 import { ServerCard } from '@renderer/velum/servers/server-picker'
 import UpdaterButton from '@renderer/components/updater/updater-button'
+import { Switch } from '@renderer/velum/ui/primitives'
 import Power from '@renderer/assets/on_icon.svg'
 import Pause from '@renderer/assets/pause_icon.svg'
 import { Spinner } from '@renderer/components/ui/spinner'
@@ -51,6 +52,7 @@ const Home: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     mainSwitchMode = 'tun',
+    expertMode = false,
     sysProxy,
     proxyMode = false,
     onlyActiveDevice = false,
@@ -679,6 +681,33 @@ const Home: React.FC = () => {
               </span>
             </button>
           )}
+
+          {/* Expert mode: same switch as in Settings > App, kept handy here */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => patchAppConfig({ expertMode: !expertMode })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') patchAppConfig({ expertMode: !expertMode })
+            }}
+            className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-vl-line bg-vl-panel px-3.5 py-2.5 text-left transition-colors hover:border-vl-line-strong"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-vl-text">
+                {t('settings.general.expertMode')}
+              </span>
+              <span className="block truncate text-xs text-vl-muted">
+                {t('settings.general.expertModeDesc')}
+              </span>
+            </span>
+            <span onClick={(e) => e.stopPropagation()}>
+              <Switch
+                checked={expertMode}
+                onChange={(value) => patchAppConfig({ expertMode: value })}
+                label={t('settings.general.expertMode')}
+              />
+            </span>
+          </div>
         </div>
       </aside>
     </div>
