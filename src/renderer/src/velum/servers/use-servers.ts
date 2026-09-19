@@ -49,6 +49,12 @@ export function useServers(): {
         result.push({ name: item.name, label, code, delay: lastDelay(item), isAuto: false })
       }
     }
+    // An auto group has no ping of its own: show the node it currently resolves to.
+    for (const e of result) {
+      if (!e.isAuto || !e.resolvedName) continue
+      const target = result.find((x) => x.name === e.resolvedName)
+      if (target) e.delay = target.delay
+    }
     return result
   }, [group])
 

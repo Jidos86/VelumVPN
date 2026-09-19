@@ -43,6 +43,9 @@ const Ping: React.FC<{ delay: number; withMs?: boolean }> = ({ delay, withMs }) 
   )
 }
 
+// Names already auto-tested this session, so re-mounting the card does not re-run the test.
+const autoTested = new Set<string>()
+
 // Collapsed row on the home screen: current server + ping, opens the picker.
 export const ServerCard: React.FC = () => {
   const { t } = useTranslation()
@@ -58,6 +61,16 @@ export const ServerCard: React.FC = () => {
     [current, servers.entries]
   )
   const shown = resolved ?? current
+
+  // Fetch the ping of the node in use once, so the card is not stuck on "not tested".
+  const shownName = shown?.name
+  const shownUntested = shown !== undefined && shown.delay === -1
+  useEffect(() => {
+    if (!shownName || !shownUntested || autoTested.has(shownName)) return
+    autoTested.add(shownName)
+    servers.testOne(shownName)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shownName, shownUntested])
 
   if (!servers.groupName) return null
 
@@ -124,7 +137,7 @@ const ServerPickerModal: React.FC<{
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm"
+      className="fixed inset-x-0 bottom-0 top-8 z-50 flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
