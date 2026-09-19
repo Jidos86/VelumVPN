@@ -440,7 +440,7 @@ const RulesPage: React.FC = () => {
           </div>
         )}
 
-        <div className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-4">
+        <div className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto py-4 pl-4 pr-2 [scrollbar-gutter:stable]">
           {items.length === 0 && (
             <div className="py-6 text-center text-sm text-vl-faint">{t('velumUi.rules.empty')}</div>
           )}
