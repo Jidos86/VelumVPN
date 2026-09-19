@@ -273,7 +273,7 @@ const RulesPage: React.FC = () => {
     const allSelected = items.length > 0 && selected.size === items.length
     return (
       <div
-        className={`${panelClass} flex min-w-0 flex-1 flex-col transition-shadow ${
+        className={`${panelClass} flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-shadow ${
           dropSide === side
             ? side === 'vpn'
               ? 'ring-2 ring-vl-accent/60'
@@ -395,7 +395,7 @@ const RulesPage: React.FC = () => {
           </div>
         )}
 
-        <div className="flex flex-col gap-1.5 p-4">
+        <div className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-4">
           {items.length === 0 && (
             <div className="py-6 text-center text-sm text-vl-faint">{t('velumUi.rules.empty')}</div>
           )}
@@ -508,7 +508,7 @@ const RulesPage: React.FC = () => {
         />
         <span className="text-xs text-vl-faint">{t('velumUi.rules.dragHint')}</span>
       </div>
-      <div className="flex min-h-0 gap-4">
+      <div className="flex min-h-0 flex-1 gap-4">
         {renderColumn('vpn')}
         {renderColumn('direct')}
       </div>
