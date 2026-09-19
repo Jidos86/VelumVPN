@@ -522,6 +522,8 @@ export interface CustomRules {
   processes: string[]
   excluded: string[]
   excludedProcesses: string[]
+  ips: string[]
+  excludedIPs: string[]
 }
 
 export async function getCustomRules(): Promise<CustomRules> {

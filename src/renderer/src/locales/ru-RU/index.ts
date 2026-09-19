@@ -1057,5 +1057,37 @@ export default {
     emptyExcludedIPs: 'Нет исключённых IP',
     conflictWarning: '«{{item}}» уже есть в разделе "{{section}}" — сначала удалите его оттуда',
     conflictBulkWarning: '{{count}} пунктов пропущено — они уже есть в разделе "{{section}}"'
+  },
+  velumUi: {
+    nav: { quit: 'Выход' },
+    status: {
+      offTitle: 'Отключено',
+      offSub: 'Нажмите, чтобы включить защиту соединения',
+      connectingTitle: 'Подключение…',
+      connectingSub: 'Устанавливаем защищённый туннель',
+      disconnectingTitle: 'Отключение…',
+      disconnectingSub: 'Закрываем туннель',
+      onTitle: 'Вы под защитой',
+      onSub: 'Трафик зашифрован и защищён'
+    },
+    routing: {
+      title: 'Режим маршрутизации',
+      blockedDesc: 'Через VPN — только заблокированные в РФ сайты',
+      allExceptRuDesc: 'Через VPN — весь зарубежный трафик',
+      allDesc: 'Весь трафик идёт через туннель'
+    },
+    server: {
+      title: 'Сервер',
+      choose: 'Выбор сервера',
+      search: 'Поиск по названию',
+      auto: 'Автовыбор лучшего сервера',
+      now: 'Сейчас',
+      checkAll: 'Проверить пинги',
+      check: 'Проверить пинг',
+      empty: 'Ничего не найдено',
+      notTested: 'Не проверен'
+    },
+    subscription: { title: 'Подписка', refresh: 'Обновить', daysLeft: 'дней осталось', expires: 'дата окончания' },
+    myRules: { configured: 'Настроено: {{count}}' }
   }
 }

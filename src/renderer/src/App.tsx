@@ -17,7 +17,8 @@ import { platform } from '@renderer/utils/init'
 import useSWR from 'swr'
 import ConfirmModal from '@renderer/components/base/base-confirm'
 import { SidebarProvider } from '@renderer/components/ui/sidebar'
-import AppSidebar from '@renderer/components/app-sidebar'
+import TitleBar from '@renderer/velum/shell/title-bar'
+import NavRail from '@renderer/velum/shell/nav-rail'
 import HwidLimitAlert from '@renderer/components/profiles/hwid-limit-alert'
 import ExpiryAlert from '@renderer/components/profiles/expiry-alert'
 import WindowControls from '@renderer/components/window-controls'
@@ -31,12 +32,8 @@ let navigate: NavigateFunction
 const App: React.FC = () => {
   const { t } = useTranslation()
   const { appConfig } = useAppConfig()
-  const {
-    appTheme = 'dark',
-    customTheme,
-    autoCheckUpdate
-  } = appConfig || {}
-  const { setTheme, systemTheme, resolvedTheme } = useTheme()
+  const { customTheme, autoCheckUpdate } = appConfig || {}
+  const { setTheme } = useTheme()
   navigate = useNavigate()
   const page = useRoutes(routes)
   const { data: latest } = useSWR(
@@ -146,17 +143,8 @@ const App: React.FC = () => {
   return (
     <SidebarProvider
       defaultOpen={false}
-      className="relative w-full h-screen overflow-hidden bg-background"
+      className="relative w-full h-screen overflow-hidden bg-vl-bg font-sans text-vl-text"
     >
-      {/* Subtle radial glow — teal top-center */}
-      <div
-        className="pointer-events-none absolute inset-0 z-0"
-        style={{
-          background: resolvedTheme === 'dark'
-            ? 'radial-gradient(ellipse 70% 50% at 60% 0%, oklch(0.75 0.19 196 / 8%) 0%, transparent 70%)'
-            : 'radial-gradient(ellipse 70% 50% at 60% 0%, oklch(0.75 0.19 196 / 6%) 0%, transparent 70%)'
-        }}
-      />
       {showQuitConfirm && (
         <ConfirmModal
           title={t('modal.confirmQuit')}
@@ -239,8 +227,13 @@ const App: React.FC = () => {
           <WindowControls />
         </div>
       )}
-      <AppSidebar latest={latest} />
-      <div className="relative main grow h-full overflow-y-auto">{page}</div>
+      <div className="flex h-full w-full flex-col">
+        <TitleBar />
+        <div className="flex min-h-0 flex-1">
+          <NavRail latest={latest} />
+          <div className="relative main min-w-0 grow h-full overflow-y-auto">{page}</div>
+        </div>
+      </div>
     </SidebarProvider>
   )
 }

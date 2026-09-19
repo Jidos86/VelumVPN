@@ -1,12 +1,9 @@
 import { Button } from '@renderer/components/ui/button'
-import { platform } from '@renderer/utils/init'
-import WindowControls from '@renderer/components/window-controls'
 import React, { forwardRef, useImperativeHandle, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 
 const sidebarPaths = new Set(['/home', '/profiles', '/proxies', '/connections', '/rules', '/logs', '/settings'])
-const isMac = platform === 'darwin'
 
 interface Props {
   title?: React.ReactNode
@@ -45,11 +42,10 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
           </div>
           <div className="header flex gap-1 h-full items-center">
             {props.header}
-            {!isMac && <WindowControls />}
           </div>
         </div>
       </div>
-      <div className="content h-[calc(100vh-57px)] overflow-y-auto custom-scrollbar">
+      <div className="content h-[calc(100vh-32px-57px)] overflow-y-auto custom-scrollbar">
         {props.children}
       </div>
     </div>

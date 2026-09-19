@@ -1055,5 +1055,37 @@ export default {
     emptyExcludedIPs: 'No excluded IPs',
     conflictWarning: '"{{item}}" is already in "{{section}}" — remove it there first',
     conflictBulkWarning: '{{count}} items skipped — already present in "{{section}}"'
+  },
+  velumUi: {
+    nav: { quit: 'Quit' },
+    status: {
+      offTitle: 'Disconnected',
+      offSub: 'Tap to turn on connection protection',
+      connectingTitle: 'Connecting…',
+      connectingSub: 'Establishing a secure tunnel',
+      disconnectingTitle: 'Disconnecting…',
+      disconnectingSub: 'Closing the tunnel',
+      onTitle: 'You are protected',
+      onSub: 'Your traffic is encrypted and secure'
+    },
+    routing: {
+      title: 'Routing mode',
+      blockedDesc: 'Only sites blocked in Russia go through the VPN',
+      allExceptRuDesc: 'All foreign traffic goes through the VPN',
+      allDesc: 'All traffic goes through the tunnel'
+    },
+    server: {
+      title: 'Server',
+      choose: 'Choose server',
+      search: 'Search by name',
+      auto: 'Automatically pick the best server',
+      now: 'Now',
+      checkAll: 'Test pings',
+      check: 'Test ping',
+      empty: 'Nothing found',
+      notTested: 'Not tested'
+    },
+    subscription: { title: 'Subscription', refresh: 'Refresh', daysLeft: 'days left', expires: 'expires' },
+    myRules: { configured: 'Configured: {{count}}' }
   }
 }

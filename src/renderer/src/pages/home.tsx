@@ -1,24 +1,27 @@
 import { toast } from 'sonner'
-import BasePage from '@renderer/components/base/base-page'
+import useSWR from 'swr'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
-import { useGroups } from '@renderer/hooks/use-groups'
-import { triggerSysProxy, updateTrayIcon, mihomoHotReloadConfig, updateGeodata, mihomoCloseAllConnections } from '@renderer/utils/ipc'
+import {
+  triggerSysProxy,
+  updateTrayIcon,
+  mihomoHotReloadConfig,
+  updateGeodata,
+  mihomoCloseAllConnections,
+  getCustomRules
+} from '@renderer/utils/ipc'
 import NumberFlow from '@number-flow/react'
 import { useTranslation } from 'react-i18next'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
-import Power from '@renderer/assets/on_icon.svg'
-import Pause from '@renderer/assets/pause_icon.svg'
-import { InfinityIcon, WifiOff, PlusCircle, ChevronRight, ArrowUp, ArrowDown, RefreshCcw } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronRight, InfinityIcon, PlusCircle, RefreshCcw, WifiOff } from 'lucide-react'
 import { SiTelegram } from 'react-icons/si'
 import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
-import { Spinner } from '@renderer/components/ui/spinner'
-import { CharacterMorph } from '@renderer/components/ui/character-morph'
 import { calcTraffic } from '@renderer/utils/calc'
 import { useTrafficStore } from '@renderer/store/traffic-store'
+import { ServerCard } from '@renderer/velum/servers/server-picker'
 
 function formatBytes(bytes: number): string {
   if (bytes <= 0) return '0 B'
@@ -30,9 +33,26 @@ function formatBytes(bytes: number): string {
 // Module-level variable: persists across component mounts/unmounts
 let connectionStartTime: number | null = null
 
-const TEAL = 'oklch(0.82 0.16 196)'
-const TEAL_DIM = 'oklch(0.75 0.19 196 / 20%)'
-const TEAL_GLOW = '0 0 32px oklch(0.75 0.19 196 / 35%), 0 0 8px oklch(0.75 0.19 196 / 20%)'
+const RING_R = 49
+const RING_C = 2 * Math.PI * RING_R
+
+type Phase = 'off' | 'connecting' | 'disconnecting' | 'on'
+
+const panel = 'rounded-2xl border border-vl-line bg-vl-panel'
+
+const PowerIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    className={className}
+  >
+    <path d="M12 2.5v9" />
+    <path d="M6.2 6.5a7 7 0 1 0 11.6 0" />
+  </svg>
+)
 
 const Home: React.FC = () => {
   const { t } = useTranslation()
@@ -52,7 +72,6 @@ const Home: React.FC = () => {
   const sysProxyDisabled = mixedPort == 0
 
   const { profileConfig, addProfileItem } = useProfileConfig()
-  const { groups } = useGroups()
   const navigate = useNavigate()
   const hasProfiles = (profileConfig?.items?.length ?? 0) > 0
   const [showEditModal, setShowEditModal] = useState(false)
@@ -113,20 +132,14 @@ const Home: React.FC = () => {
     geodataProgress !== null ||
     (mainSwitchMode === 'sysproxy' && writeSysProxy && mode == 'manual' && sysProxyDisabled)
 
-  const status = loading
+  const phase: Phase = loading
     ? loadingDirection === 'connecting'
-      ? t('pages.home.connecting')
-      : t('pages.home.disconnecting')
+      ? 'connecting'
+      : 'disconnecting'
     : isSelected
-      ? t('pages.home.connected')
-      : t('pages.home.disconnected')
-  const statusWidthTexts = [
-    t('pages.home.connecting'),
-    t('pages.home.disconnecting'),
-    t('pages.home.connected'),
-    t('pages.home.disconnected')
-  ]
-  const showConnectedTimer = !loading && isSelected
+      ? 'on'
+      : 'off'
+  const showConnectedTimer = phase === 'on'
   const elapsedHours = Math.floor(elapsed / 3600)
   const elapsedMinutes = Math.floor((elapsed % 3600) / 60)
   const elapsedSeconds = elapsed % 60
@@ -206,7 +219,16 @@ const Home: React.FC = () => {
   const daysRemaining =
     expireTimestamp > 0 ? Math.max(0, dayjs.unix(expireTimestamp).diff(dayjs(), 'day')) : 0
 
-  const firstGroup = groups?.[0]
+  const { data: customRules } = useSWR('customRulesCount', getCustomRules)
+  const customRulesCount = customRules
+    ? customRules.domains.length +
+      customRules.processes.length +
+      customRules.excluded.length +
+      customRules.excludedProcesses.length +
+      customRules.ips.length +
+      customRules.excludedIPs.length
+    : 0
+
   const onValueChange = async (enable: boolean): Promise<void> => {
     setLoading(true)
     setLoadingDirection(enable ? 'connecting' : 'disconnecting')
@@ -249,375 +271,322 @@ const Home: React.FC = () => {
     }
   }
 
-  const routeModeLabels: Record<string, string> = {
-    blocked: routeModeNames?.blocked || t('pages.home.routeMode.blocked'),
-    'all-except-ru': routeModeNames?.['all-except-ru'] || t('pages.home.routeMode.allExceptRu'),
-    all: routeModeNames?.all || t('pages.home.routeMode.all')
+  const routeModes = [
+    {
+      key: 'blocked' as const,
+      label: routeModeNames?.blocked || t('pages.home.routeMode.blocked'),
+      desc: t('velumUi.routing.blockedDesc')
+    },
+    {
+      key: 'all-except-ru' as const,
+      label: routeModeNames?.['all-except-ru'] || t('pages.home.routeMode.allExceptRu'),
+      desc: t('velumUi.routing.allExceptRuDesc')
+    },
+    {
+      key: 'all' as const,
+      label: routeModeNames?.all || t('pages.home.routeMode.all'),
+      desc: t('velumUi.routing.allDesc')
+    }
+  ]
+
+  if (!hasProfiles) {
+    return (
+      <div className="flex h-full w-full items-center justify-center p-6">
+        <div className={`${panel} flex max-w-xs flex-col items-center gap-4 p-8`}>
+          <WifiOff className="size-14 text-vl-accent" strokeWidth={1.5} />
+          <h2 className="text-lg font-bold text-vl-text">{t('pages.profiles.emptyTitle')}</h2>
+          <p className="text-center text-sm font-medium text-vl-muted">
+            {t('pages.profiles.emptyDescription')}
+          </p>
+          <button
+            onClick={handleAddProfile}
+            data-guide="home-add-profile-btn"
+            className="flex cursor-pointer items-center gap-2 rounded-xl border border-vl-accent bg-vl-accent/15 px-6 py-3 text-sm font-semibold text-vl-accent transition-colors hover:bg-vl-accent/25"
+          >
+            <PlusCircle className="size-5" />
+            <span>{t('pages.profiles.addProfile')}</span>
+          </button>
+        </div>
+        {showEditModal && editingItem && (
+          <EditInfoModal
+            item={editingItem}
+            isCurrent={false}
+            updateProfileItem={async (item: ProfileItem) => {
+              await addProfileItem(item)
+              setShowEditModal(false)
+              setEditingItem(null)
+            }}
+            onClose={() => {
+              setShowEditModal(false)
+              setEditingItem(null)
+            }}
+          />
+        )}
+      </div>
+    )
   }
 
+  const ringStroke =
+    phase === 'on' || phase === 'connecting' || phase === 'disconnecting'
+      ? 'var(--color-vl-accent)'
+      : 'rgb(255 255 255 / 0.15)'
+  const ringDash =
+    phase === 'on'
+      ? `${RING_C} ${RING_C}`
+      : phase === 'off'
+        ? `0 ${RING_C}`
+        : `${RING_C * 0.28} ${RING_C * 0.72}`
+  const busy = phase === 'connecting' || phase === 'disconnecting'
+
   return (
-    <BasePage>
-      {!hasProfiles ? (
-        /* ── Empty state ── */
-        <div className="h-full w-full flex items-center justify-center">
+    <div className="flex h-full min-h-0 gap-5 overflow-y-auto p-5">
+      {/* ── Main column ── */}
+      <section className="flex min-w-0 flex-1 flex-col gap-4">
+        <h1 className="text-xl font-extrabold text-vl-text">{t('sider.home')}</h1>
+
+        <div className={`${panel} relative flex flex-1 flex-col items-center justify-center gap-3 overflow-hidden px-6 py-8`}>
           <div
-            className="flex flex-col items-center gap-4 max-w-75 rounded-2xl p-8"
+            className="pointer-events-none absolute inset-0 transition-opacity duration-500"
             style={{
-              background: 'oklch(0.175 0.03 240)',
-              border: '1px solid oklch(0.28 0.045 240)'
+              opacity: phase === 'off' ? 0 : 1,
+              background:
+                'radial-gradient(closest-side at 50% 38%, oklch(0.82 0.16 196 / 0.16), transparent 70%)'
             }}
-          >
-            <WifiOff className="size-16" style={{ color: TEAL }} />
-            <h2 className="text-xl font-bold text-foreground">{t('pages.profiles.emptyTitle')}</h2>
-            <p className="text-sm font-medium text-muted-foreground text-center">
-              {t('pages.profiles.emptyDescription')}
-            </p>
-            <button
-              onClick={handleAddProfile}
-              data-guide="home-add-profile-btn"
-              className="flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all cursor-pointer"
-              style={{
-                background: TEAL_DIM,
-                border: `1px solid ${TEAL}`,
-                color: TEAL
-              }}
+          />
+          <div className="relative size-28">
+            <svg
+              width="112"
+              height="112"
+              className={`-rotate-90 ${busy ? 'animate-spin' : ''}`}
+              style={{ animationDuration: busy ? '1.4s' : undefined }}
             >
-              <PlusCircle className="size-5" />
-              <span>{t('pages.profiles.addProfile')}</span>
-            </button>
-          </div>
-          {showEditModal && editingItem && (
-            <EditInfoModal
-              item={editingItem}
-              isCurrent={false}
-              updateProfileItem={async (item: ProfileItem) => {
-                await addProfileItem(item)
-                setShowEditModal(false)
-                setEditingItem(null)
-              }}
-              onClose={() => {
-                setShowEditModal(false)
-                setEditingItem(null)
-              }}
-            />
-          )}
-        </div>
-      ) : (
-        <div className="flex flex-col h-full px-3 pb-3 pt-1 gap-3">
-
-          {/* ── Profile + subscription card ── */}
-          {currentProfile && (
-            <div
-              className="rounded-2xl p-4"
-              style={{
-                background: 'oklch(0.175 0.03 240)',
-                border: '1px solid oklch(0.28 0.045 240)'
-              }}
-            >
-              {/* Profile name row */}
-              <div
-                data-guide="home-profile-header"
-                className="flex items-center gap-2 mb-3"
-              >
-                {currentProfile.logo && (
-                  <img
-                    src={currentProfile.logo}
-                    alt=""
-                    className="w-8 h-8 rounded-full shrink-0"
-                    onError={(e) => {
-                      ;(e.target as HTMLImageElement).style.display = 'none'
-                    }}
-                  />
-                )}
-                <span className="font-semibold text-sm flex-1 truncate">{currentProfile.name}</span>
-                {currentProfile.type === 'remote' && (
-                  <button
-                    onClick={handleUpdateProfile}
-                    disabled={updating}
-                    className="p-1.5 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
-                    style={{ color: 'oklch(0.58 0.04 230)' }}
-                    title="Обновить подписку"
-                  >
-                    <RefreshCcw className={`size-3.5 ${updating ? 'animate-spin' : ''}`} />
-                  </button>
-                )}
-              </div>
-
-              {/* Subscription stats */}
-              {subscription && (
-                <>
-                  <div className="grid grid-cols-3 gap-2 mb-3">
-                    <div
-                      className="flex flex-col items-center py-2 rounded-xl cursor-default"
-                      style={{ background: 'oklch(0.13 0.025 240)' }}
-                      title={t('pages.home.trafficRemainingHint')}
-                    >
-                      <span className="text-[10px] text-muted-foreground mb-0.5">
-                        {t('pages.home.trafficRemaining')}
-                      </span>
-                      <span className="font-bold text-sm" style={{ color: TEAL }}>
-                        {trafficTotal > 0 ? formatBytes(trafficRemaining) : <InfinityIcon className="size-4" />}
-                      </span>
-                    </div>
-                    <div
-                      className="flex flex-col items-center py-2 rounded-xl"
-                      style={{ background: 'oklch(0.13 0.025 240)' }}
-                    >
-                      <span className="text-[10px] text-muted-foreground mb-0.5">
-                        {t('pages.home.daysRemaining')}
-                      </span>
-                      <span className="font-bold text-sm" style={{ color: TEAL }}>
-                        {expireTimestamp > 0 ? daysRemaining : <InfinityIcon className="size-4" />}
-                      </span>
-                    </div>
-                    <div
-                      className="flex flex-col items-center py-2 rounded-xl"
-                      style={{ background: 'oklch(0.13 0.025 240)' }}
-                    >
-                      <span className="text-[10px] text-muted-foreground mb-0.5">
-                        {t('pages.home.expires')}
-                      </span>
-                      <span className="font-bold text-sm text-foreground">{expireDate}</span>
-                    </div>
-                  </div>
-
-                  {/* Traffic progress bar */}
-                  {trafficTotal > 0 && (
-                    <div>
-                      <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                        <span>{formatBytes(trafficUsed)} использовано</span>
-                        <span>{formatBytes(trafficTotal)}</span>
-                      </div>
-                      <div
-                        className="h-1.5 rounded-full overflow-hidden"
-                        style={{ background: 'oklch(0.13 0.025 240)' }}
-                      >
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${trafficPercent}%`,
-                            background: `linear-gradient(90deg, oklch(0.75 0.19 196), oklch(0.68 0.22 210))`
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
-
-          {/* ── Connect button area ── */}
-          <div className="flex flex-col grow items-center justify-center min-h-0 gap-2">
-            {/* Status label */}
-            <div
-              className="flex h-5 items-center justify-center transition-colors duration-300"
-              style={{ color: isSelected ? TEAL : 'oklch(0.58 0.04 230)' }}
-            >
-              <CharacterMorph
-                texts={[status]}
-                reserveTexts={statusWidthTexts}
-                interval={3000}
-                className="h-5 leading-none text-xs font-semibold uppercase tracking-widest"
+              <circle cx="56" cy="56" r={RING_R} fill="none" stroke="rgb(255 255 255 / 0.06)" strokeWidth="3" />
+              <circle
+                cx="56"
+                cy="56"
+                r={RING_R}
+                fill="none"
+                stroke={ringStroke}
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeDasharray={ringDash}
+                style={{ transition: 'stroke-dasharray 0.6s ease, stroke 0.3s ease' }}
               />
-            </div>
-
-            {/* Power button */}
+            </svg>
             <button
+              type="button"
               disabled={isDisabled}
-              onClick={() => onValueChange(!isSelected)}
               data-guide="home-power-toggle"
-              className="relative group transition-transform active:scale-95 cursor-pointer my-1"
-            >
-              <div
-                className="w-28 h-28 rounded-full flex items-center justify-center transition-all duration-400"
-                style={{
-                  background: isSelected
-                    ? `radial-gradient(circle at 35% 40%, oklch(0.28 0.08 196), oklch(0.16 0.04 220))`
-                    : `radial-gradient(circle at 35% 40%, oklch(0.22 0.04 240), oklch(0.14 0.025 240))`,
-                  border: isSelected
-                    ? `2px solid oklch(0.75 0.19 196 / 70%)`
-                    : `2px solid oklch(0.28 0.045 240)`,
-                  boxShadow: isSelected ? TEAL_GLOW : 'none'
-                }}
-              >
-                <div className="relative size-14">
-                  <Spinner
-                    className={`absolute inset-0 m-auto size-14 transition-all duration-300 ease-out ${
-                      loading ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
-                    }`}
-                    style={{ color: TEAL }}
-                  />
-                  <img
-                    src={Pause}
-                    alt=""
-                    className={`absolute inset-0 size-14 transition-all duration-300 ease-out ${
-                      !loading && isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
-                    }`}
-                  />
-                  <img
-                    src={Power}
-                    alt=""
-                    className={`absolute inset-0 size-14 transition-all duration-300 ease-out ${
-                      !loading && !isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
-                    }`}
-                  />
-                </div>
-              </div>
-            </button>
-
-            {/* Timer */}
-            <div className="h-7 flex items-center justify-center">
-              <div
-                aria-hidden={!showConnectedTimer}
-                className={`inline-flex items-center gap-0.5 text-lg font-bold tabular-nums transition-all duration-300 ease-out ${
-                  showConnectedTimer ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'
-                }`}
-                style={{ color: TEAL }}
-              >
-                <NumberFlow value={elapsedHours} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
-                <span>:</span>
-                <NumberFlow value={elapsedMinutes} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
-                <span>:</span>
-                <NumberFlow value={elapsedSeconds} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
-              </div>
-            </div>
-
-            {/* Up/Down traffic */}
-            <div
-              aria-hidden={!showConnectedTimer}
-              className={`flex items-center gap-4 tabular-nums transition-all duration-300 ease-out ${
-                showConnectedTimer ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'
+              aria-label={t(`velumUi.status.${phase}Title`)}
+              onClick={() => onValueChange(!isSelected)}
+              className={`absolute inset-3.5 flex cursor-pointer items-center justify-center rounded-full transition-all duration-300 active:scale-95 disabled:cursor-default ${
+                phase === 'off'
+                  ? 'bg-vl-tile text-vl-muted hover:text-vl-text'
+                  : 'bg-vl-accent text-vl-bg shadow-[0_0_32px_oklch(0.82_0.16_196/0.35)]'
               }`}
             >
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <ArrowUp className="size-3" style={{ color: TEAL }} />
-                <span>{calcTraffic(trafficInfo.upTotal)}</span>
-              </div>
-              <div className="h-3 w-px" style={{ background: 'oklch(0.28 0.045 240)' }} />
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <ArrowDown className="size-3" style={{ color: TEAL }} />
-                <span>{calcTraffic(trafficInfo.downTotal)}</span>
-              </div>
-            </div>
+              <PowerIcon className={`size-7 ${busy ? 'opacity-60' : ''}`} />
+            </button>
           </div>
 
-          {/* ── Route mode selector ── */}
-          {currentProfile && (
-            <div className="flex flex-col gap-2">
-              <div
-                className="flex rounded-xl p-1 gap-1"
-                style={{
-                  background: 'oklch(0.175 0.03 240)',
-                  border: '1px solid oklch(0.28 0.045 240)'
-                }}
-              >
-                {(['blocked', 'all-except-ru', 'all'] as const).map((m) => {
-                  const active = routeMode === m
-                  return (
-                    <button
-                      key={m}
-                      disabled={routeLoading}
-                      onClick={() => handleRouteModeChange(m)}
-                      className={`flex-1 text-xs py-1.5 px-1 rounded-lg transition-all duration-200 cursor-pointer font-medium ${
-                        routeLoading ? 'opacity-50' : ''
-                      }`}
-                      style={
-                        active
-                          ? {
-                              background: `linear-gradient(135deg, oklch(0.75 0.19 196 / 22%), oklch(0.68 0.22 210 / 22%))`,
-                              border: `1px solid oklch(0.75 0.19 196 / 50%)`,
-                              color: TEAL
-                            }
-                          : {
-                              background: 'transparent',
-                              border: '1px solid transparent',
-                              color: 'oklch(0.58 0.04 230)'
-                            }
-                      }
-                    >
-                      {routeModeLabels[m]}
-                    </button>
-                  )
-                })}
-              </div>
+          <div className="text-center">
+            <div className="text-lg font-bold text-vl-text">{t(`velumUi.status.${phase}Title`)}</div>
+            <div className="mt-0.5 text-sm text-vl-muted">{t(`velumUi.status.${phase}Sub`)}</div>
+          </div>
 
-              {/* Geodata update */}
-              {geodataProgress !== null ? (
-                <div className="flex flex-col gap-1 px-1">
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span className="truncate">
-                      {geodataAuto
-                        ? `Загрузка геоданных: ${geodataFile || '...'}`
-                        : geodataFile || 'Загрузка...'}
-                    </span>
-                    <span>{geodataProgress}%</span>
-                  </div>
-                  <div
-                    className="h-1.5 rounded-full overflow-hidden"
-                    style={{ background: 'oklch(0.22 0.04 240)' }}
-                  >
-                    <div
-                      className="h-full rounded-full transition-all duration-300"
-                      style={{
-                        width: `${geodataProgress}%`,
-                        background: `linear-gradient(90deg, oklch(0.75 0.19 196), oklch(0.68 0.22 210))`
-                      }}
-                    />
-                  </div>
-                  {geodataAuto && (
-                    <p className="text-[10px] text-center" style={{ color: 'oklch(0.48 0.04 230)' }}>
-                      VPN будет доступен после завершения загрузки
-                    </p>
-                  )}
-                </div>
-              ) : (
+          <div
+            aria-hidden={!showConnectedTimer}
+            className={`flex flex-col items-center gap-1.5 tabular-nums transition-all duration-300 ${
+              showConnectedTimer ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-1 opacity-0'
+            }`}
+          >
+            <div className="inline-flex items-center gap-0.5 text-base font-bold text-vl-accent">
+              <NumberFlow value={elapsedHours} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
+              <span>:</span>
+              <NumberFlow value={elapsedMinutes} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
+              <span>:</span>
+              <NumberFlow value={elapsedSeconds} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
+            </div>
+            <div className="flex items-center gap-4 text-xs text-vl-muted">
+              <span className="flex items-center gap-1.5">
+                <ArrowUp className="size-3 text-vl-accent" />
+                {calcTraffic(trafficInfo.upTotal)}
+              </span>
+              <span className="h-3 w-px bg-vl-line-strong" />
+              <span className="flex items-center gap-1.5">
+                <ArrowDown className="size-3 text-vl-accent" />
+                {calcTraffic(trafficInfo.downTotal)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <ServerCard />
+
+        <div>
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-vl-faint">
+            {t('velumUi.routing.title')}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            {routeModes.map((m) => {
+              const active = routeMode === m.key
+              return (
                 <button
-                  onClick={handleUpdateGeodata}
-                  className="flex items-center justify-center gap-1.5 text-[11px] transition-colors py-0.5 cursor-pointer"
-                  style={{ color: 'oklch(0.48 0.04 230)' }}
+                  key={m.key}
+                  type="button"
+                  disabled={routeLoading}
+                  onClick={() => handleRouteModeChange(m.key)}
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors ${
+                    active
+                      ? 'border-vl-accent/35 bg-vl-accent/10'
+                      : 'border-vl-line bg-vl-panel hover:border-vl-line-strong'
+                  } ${routeLoading ? 'opacity-60' : ''}`}
                 >
-                  <RefreshCcw className="size-3" />
-                  Обновить геоданные
+                  <span
+                    className={`flex size-4 shrink-0 items-center justify-center rounded-full border-[1.5px] ${
+                      active ? 'border-vl-accent' : 'border-white/25'
+                    }`}
+                  >
+                    {active && <span className="size-2 rounded-full bg-vl-accent" />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-vl-text">{m.label}</span>
+                    <span className="block truncate text-xs text-vl-muted">{m.desc}</span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          {geodataProgress !== null ? (
+            <div className="mt-2 flex flex-col gap-1 px-1">
+              <div className="flex justify-between text-[11px] text-vl-muted">
+                <span className="truncate">
+                  {geodataAuto
+                    ? `Загрузка геоданных: ${geodataFile || '...'}`
+                    : geodataFile || 'Загрузка...'}
+                </span>
+                <span>{geodataProgress}%</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
+                <div
+                  className="h-full rounded-full bg-vl-accent transition-all duration-300"
+                  style={{ width: `${geodataProgress}%` }}
+                />
+              </div>
+              {geodataAuto && (
+                <p className="text-center text-[11px] text-vl-faint">
+                  VPN будет доступен после завершения загрузки
+                </p>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleUpdateGeodata}
+              className="mt-2 inline-flex cursor-pointer items-center gap-1.5 px-1 text-[11px] text-vl-faint transition-colors hover:text-vl-muted"
+            >
+              <RefreshCcw className="size-3" />
+              Обновить геоданные
+            </button>
+          )}
+        </div>
+      </section>
+
+      {/* ── Side column ── */}
+      <aside className="flex w-72 shrink-0 flex-col gap-4 pt-10">
+        {currentProfile && (
+          <div className={`${panel} p-4`}>
+            <div data-guide="home-profile-header" className="mb-3 flex items-center gap-2">
+              {currentProfile.logo && (
+                <img
+                  src={currentProfile.logo}
+                  alt=""
+                  className="size-6 shrink-0 rounded-full"
+                  onError={(e) => {
+                    ;(e.target as HTMLImageElement).style.display = 'none'
+                  }}
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-vl-faint">
+                  {t('velumUi.subscription.title')}
+                </div>
+                <div className="truncate text-sm font-bold text-vl-text">{currentProfile.name}</div>
+              </div>
+              {currentProfile.type === 'remote' && (
+                <button
+                  type="button"
+                  onClick={handleUpdateProfile}
+                  disabled={updating}
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-vl-accent transition-colors hover:bg-white/5 disabled:opacity-50"
+                >
+                  <RefreshCcw className={`size-3 ${updating ? 'animate-spin' : ''}`} />
+                  {t('velumUi.subscription.refresh')}
                 </button>
               )}
             </div>
-          )}
 
-          {/* ── Server selector ── */}
-          {firstGroup && (
-            <div
-              className="flex items-center justify-between h-10 rounded-xl px-3 cursor-pointer transition-all"
-              data-guide="home-group-selector"
-              style={{
-                background: 'oklch(0.175 0.03 240)',
-                border: '1px solid oklch(0.28 0.045 240)'
-              }}
-              onClick={() => navigate('/proxies', { state: { fromHome: true } })}
-            >
-              <span className="flag-emoji text-sm truncate max-w-52 text-foreground">
-                {firstGroup.now || firstGroup.name}
-              </span>
-              <ChevronRight className="size-4 text-muted-foreground shrink-0" />
-            </div>
-          )}
-
-          {/* ── Support link ── */}
-          <div className="flex justify-center">
-            <button
-              data-guide="home-support-link"
-              type="button"
-              onClick={() => open('https://t.me/Veluum_support_bot')}
-              className="inline-flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
-              style={{ color: 'oklch(0.48 0.04 230)' }}
-            >
-              <SiTelegram className="size-3.5" />
-              <span>{t('pages.profiles.support')}</span>
-            </button>
+            {subscription && (
+              <>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-vl-muted">{t('pages.home.trafficRemaining')}</span>
+                  <span className="font-bold text-vl-text">
+                    {trafficTotal > 0 ? formatBytes(trafficRemaining) : <InfinityIcon className="size-4" />}
+                  </span>
+                </div>
+                {trafficTotal > 0 && (
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/8">
+                    <div
+                      className="h-full rounded-full bg-vl-accent transition-all duration-500"
+                      style={{ width: `${trafficPercent}%` }}
+                    />
+                  </div>
+                )}
+                <div className="mt-4 flex items-end justify-between">
+                  <div>
+                    <div className="text-2xl font-extrabold leading-none text-vl-text">
+                      {expireTimestamp > 0 ? daysRemaining : <InfinityIcon className="size-6" />}
+                    </div>
+                    <div className="mt-1 text-[11px] text-vl-muted">{t('velumUi.subscription.daysLeft')}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-bold text-vl-text">{expireDate}</div>
+                    <div className="mt-1 text-[11px] text-vl-muted">{t('velumUi.subscription.expires')}</div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-        </div>
-      )}
-    </BasePage>
+        )}
+
+        <button
+          type="button"
+          onClick={() => navigate('/custom-rules')}
+          className={`${panel} flex cursor-pointer items-center justify-between p-4 text-left transition-colors hover:border-vl-line-strong`}
+        >
+          <div>
+            <div className="text-sm font-bold text-vl-text">{t('sider.myRules')}</div>
+            <div className="mt-0.5 text-xs text-vl-muted">
+              {t('velumUi.myRules.configured', { count: customRulesCount })}
+            </div>
+          </div>
+          <ChevronRight className="size-4 text-vl-faint" />
+        </button>
+
+        <button
+          type="button"
+          data-guide="home-support-link"
+          onClick={() => open('https://t.me/Veluum_support_bot')}
+          className={`${panel} flex cursor-pointer items-center gap-3 p-4 text-left transition-colors hover:border-vl-line-strong`}
+        >
+          <SiTelegram className="size-4 shrink-0 text-vl-accent" />
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold text-vl-text">{t('pages.profiles.support')}</div>
+            <div className="truncate text-xs text-vl-muted">Telegram</div>
+          </div>
+        </button>
+      </aside>
+    </div>
   )
 }
 
