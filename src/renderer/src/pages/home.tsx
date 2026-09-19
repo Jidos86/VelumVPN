@@ -510,7 +510,7 @@ const Home: React.FC = () => {
 
       {/* ── Side column ── */}
       <aside className="contents">
-        <div className="col-start-2 row-start-2 flex min-h-0 flex-col gap-4">
+        <div className="col-start-2 row-start-2 flex flex-col gap-4">
         {currentProfile && (
           <div className={`${panel} p-4`}>
             <div data-guide="home-profile-header" className="mb-3 flex items-center gap-2">
