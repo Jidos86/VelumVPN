@@ -342,7 +342,7 @@ const RulesPage: React.FC = () => {
           setDropSide(null)
         }}
       >
-        <div className="flex items-center justify-between gap-2 border-b border-vl-line px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-vl-line px-4 py-3">
           <div className="flex min-w-0 items-center gap-2">
             <span
               className={`size-2 shrink-0 rounded-full ${side === 'vpn' ? 'bg-vl-accent' : 'bg-vl-danger'}`}
@@ -389,7 +389,7 @@ const RulesPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex gap-2 px-4 pt-3">
+        <div className="flex shrink-0 gap-2 px-4 pt-3">
           <TextInput
             value={inputs[side]}
             disabled={isSelecting}
@@ -409,7 +409,7 @@ const RulesPage: React.FC = () => {
         </div>
 
         {isSelecting && (
-          <div className="flex items-center justify-between px-4 pt-3">
+          <div className="flex shrink-0 items-center justify-between px-4 pt-3">
             <button
               type="button"
               className="flex cursor-pointer items-center gap-1.5 text-xs text-vl-muted transition-colors hover:text-vl-text"
