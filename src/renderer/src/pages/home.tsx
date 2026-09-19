@@ -595,12 +595,16 @@ const Home: React.FC = () => {
               <div key={row.key} className="flex items-center justify-between gap-3">
                 <span className="text-vl-muted">{row.label}</span>
                 <span className="flex items-center gap-3">
-                  <span className={row.vpn > 0 ? 'text-vl-text' : 'text-vl-faint'}>
-                    <span className="text-vl-accent">{t('velumUi.rules.summaryVpn')}</span> {row.vpn}
+                  <span className="flex w-16 items-center justify-between gap-2">
+                    <span className="text-vl-accent">{t('velumUi.rules.summaryVpn')}</span>
+                    <span className={row.vpn > 0 ? 'text-vl-text' : 'text-vl-faint'}>{row.vpn}</span>
                   </span>
                   <span className="h-3 w-px bg-vl-line-strong" />
-                  <span className={row.direct > 0 ? 'text-vl-text' : 'text-vl-faint'}>
-                    <span className="text-vl-muted">{t('velumUi.rules.summaryDirect')}</span> {row.direct}
+                  <span className="flex w-20 items-center justify-between gap-2">
+                    <span className="text-vl-muted">{t('velumUi.rules.summaryDirect')}</span>
+                    <span className={row.direct > 0 ? 'text-vl-text' : 'text-vl-faint'}>
+                      {row.direct}
+                    </span>
                   </span>
                 </span>
               </div>
