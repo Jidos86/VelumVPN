@@ -151,8 +151,8 @@ const ServerPickerModal: React.FC<{
 
   const choose = async (entry: ServerEntry): Promise<void> => {
     try {
+      // The picker stays open so several servers can be compared and pinged in a row.
       await servers.select(entry.name)
-      onClose()
     } catch (e) {
       toast.error(`${e}`)
     }
