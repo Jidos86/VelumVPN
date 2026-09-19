@@ -3,13 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { useSWRConfig } from 'swr'
 import { toast } from 'sonner'
 import { ArrowRightLeft, CheckSquare, ListTree, Plus, Square, Trash2, Upload, X } from 'lucide-react'
-import {
-  CustomRules,
-  getCustomRules,
-  mihomoHotReloadConfig,
-  restartCore,
-  setCustomRules
-} from '@renderer/utils/ipc'
+import { CustomRules, getCustomRules, setCustomRules } from '@renderer/utils/ipc'
+import { applyRulesChange } from '@renderer/velum/rules/apply-rules'
 import { useConnectionsStore } from '@renderer/store/connections-store'
 import {
   GhostButton,
@@ -177,12 +172,7 @@ const RulesPage: React.FC = () => {
     setSaving(true)
     try {
       await setCustomRules(next)
-      // Prefer a hot reload so open connections (games, calls) survive; fall back to a restart.
-      try {
-        await mihomoHotReloadConfig()
-      } catch {
-        await restartCore()
-      }
+      await applyRulesChange()
       mutate('customRulesCount')
       toast.success(t('customRules.rulesApplied'))
     } catch (err) {

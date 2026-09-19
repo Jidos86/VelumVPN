@@ -1,15 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import BasePage from '@renderer/components/base/base-page'
-import { useConnectionsStore } from '@renderer/store/connections-store'
-import { getCustomRules, setCustomRules, restartCore } from '@renderer/utils/ipc'
-import { Button } from '@renderer/components/ui/button'
-import { ArrowRight, ArrowLeft, Trash2, ArrowUpDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
-
-const TEAL = 'oklch(0.82 0.16 196)'
-const RED = 'oklch(0.65 0.2 25)'
-const AMBER = 'oklch(0.78 0.16 70)'
+import { ArrowDownUp, ArrowLeft, ArrowRight, Check, Trash2 } from 'lucide-react'
+import { useConnectionsStore } from '@renderer/store/connections-store'
+import { CustomRules, getCustomRules, setCustomRules } from '@renderer/utils/ipc'
+import { applyRulesChange } from '@renderer/velum/rules/apply-rules'
+import { GhostButton, PageShell, Segmented, panelClass } from '@renderer/velum/ui/primitives'
 
 type Filter = 'all' | 'errors' | 'direct' | 'vpn'
 type SortBy = 'time-desc' | 'time-asc' | 'process' | 'host' | 'errors-first'
@@ -30,31 +27,52 @@ function stripPort(ip: string): string {
   return ip.replace(/:\d+$/, '').replace(/^\[(.+)\]$/, '$1')
 }
 
+// Where an action from this page lands: list field, whether it is the VPN side, toast label.
+const TARGETS = {
+  domains: { vpn: true, label: 'Сайты через VPN' },
+  excluded: { vpn: false, label: 'Сайты в обход VPN' },
+  ips: { vpn: true, label: 'IP через VPN' },
+  excludedIPs: { vpn: false, label: 'IP в обход VPN' },
+  processes: { vpn: true, label: 'Приложения через VPN' },
+  excludedProcesses: { vpn: false, label: 'Приложения в обход VPN' }
+} as const
+
+const sortOptions: SortBy[] = ['time-desc', 'time-asc', 'process', 'host', 'errors-first']
+
 const Diagnostics: React.FC = () => {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const closed = useConnectionsStore((s) => s.closed)
   const clearAllClosed = useConnectionsStore((s) => s.clearAllClosed)
   const [filter, setFilter] = useState<Filter>('all')
   const [sortBy, setSortBy] = useState<SortBy>('time-desc')
   const [sel, setSel] = useState<Selected | null>(null)
   const [acting, setActing] = useState<string | null>(null)
-  const [rules, setRules] = useState<Awaited<ReturnType<typeof getCustomRules>> | null>(null)
+  const [rules, setRules] = useState<CustomRules | null>(null)
 
-  const refreshRules = (): void => { getCustomRules().then(setRules) }
-  useEffect(() => { refreshRules() }, [])
+  const refreshRules = (): void => {
+    getCustomRules().then(setRules)
+  }
+  useEffect(() => {
+    refreshRules()
+  }, [])
 
   const rows = useMemo(() => {
-    return closed.map((conn) => {
-      const process = conn.metadata.process || conn.metadata.processPath?.split(/[\\/]/).pop() || '—'
-      const host = conn.metadata.host || conn.metadata.sniffHost || conn.metadata.destinationIP || '—'
-      const isVpn = conn.chains.some((c) => c !== 'DIRECT' && c !== 'REJECT')
-      const isDirect = conn.chains.includes('DIRECT')
-      const isReject = conn.chains.includes('REJECT')
-      const hasError = !isReject && conn.upload === 0 && conn.download === 0
-      const isSuspect = !isReject && !hasError && conn.upload > 0 && conn.download === 0
-      const hostIsIP = isIPAddress(host)
-      return { conn, process, host, isVpn, isDirect, isReject, hasError, isSuspect, hostIsIP }
-    }).reverse()
+    return closed
+      .map((conn) => {
+        const process =
+          conn.metadata.process || conn.metadata.processPath?.split(/[\\/]/).pop() || '—'
+        const host =
+          conn.metadata.host || conn.metadata.sniffHost || conn.metadata.destinationIP || '—'
+        const isVpn = conn.chains.some((c) => c !== 'DIRECT' && c !== 'REJECT')
+        const isDirect = conn.chains.includes('DIRECT')
+        const isReject = conn.chains.includes('REJECT')
+        const hasError = !isReject && conn.upload === 0 && conn.download === 0
+        const isSuspect = !isReject && !hasError && conn.upload > 0 && conn.download === 0
+        const hostIsIP = isIPAddress(host)
+        return { conn, process, host, isVpn, isDirect, isReject, hasError, isSuspect, hostIsIP }
+      })
+      .reverse()
   }, [closed])
 
   const errorCount = useMemo(() => rows.filter((r) => r.hasError || r.isSuspect).length, [rows])
@@ -62,305 +80,296 @@ const Diagnostics: React.FC = () => {
   const filtered = useMemo(() => {
     let result = rows
     switch (filter) {
-      case 'errors': result = rows.filter((r) => r.hasError || r.isSuspect); break
-      case 'direct': result = rows.filter((r) => r.isDirect); break
-      case 'vpn':    result = rows.filter((r) => r.isVpn);   break
+      case 'errors':
+        result = rows.filter((r) => r.hasError || r.isSuspect)
+        break
+      case 'direct':
+        result = rows.filter((r) => r.isDirect)
+        break
+      case 'vpn':
+        result = rows.filter((r) => r.isVpn)
+        break
     }
     switch (sortBy) {
-      case 'time-asc':     return [...result].reverse()
-      case 'process':      return [...result].sort((a, b) => a.process.localeCompare(b.process))
-      case 'host':         return [...result].sort((a, b) => a.host.localeCompare(b.host))
-      case 'errors-first': return [...result].sort((a, b) =>
-        (Number(b.hasError) * 2 + Number(b.isSuspect)) - (Number(a.hasError) * 2 + Number(a.isSuspect))
-      )
-      default:             return result
+      case 'time-asc':
+        return [...result].reverse()
+      case 'process':
+        return [...result].sort((a, b) => a.process.localeCompare(b.process))
+      case 'host':
+        return [...result].sort((a, b) => a.host.localeCompare(b.host))
+      case 'errors-first':
+        return [...result].sort(
+          (a, b) =>
+            Number(b.hasError) * 2 + Number(b.isSuspect) - (Number(a.hasError) * 2 + Number(a.isSuspect))
+        )
+      default:
+        return result
     }
   }, [rows, filter, sortBy])
 
-  const clickCell = (connId: string, target: SelTarget) => {
-    setSel((prev) => prev?.connId === connId && prev?.target === target ? null : { connId, target })
+  const clickCell = (connId: string, target: SelTarget): void => {
+    setSel((prev) => (prev?.connId === connId && prev?.target === target ? null : { connId, target }))
   }
 
-  const toMyRulesAction = { label: 'Мои правила →', onClick: () => navigate('/custom-rules') }
-
-  const run = async (key: string, fn: () => Promise<void>) => {
+  const run = async (key: string, fn: () => Promise<void>): Promise<void> => {
     setActing(key)
-    try { await fn() } finally { setActing(null); setSel(null); refreshRules() }
+    try {
+      await fn()
+    } catch (e) {
+      toast.error(String(e))
+    } finally {
+      setActing(null)
+      setSel(null)
+      refreshRules()
+    }
   }
 
-  const addDomainVpn = (host: string) => run(host, async () => {
-    const domain = host.replace(/^https?:\/\//, '').replace(/\/.*$/, '')
-    const rules = await getCustomRules()
-    if (rules.domains.includes(domain)) { toast.info(`${domain} уже в VPN`); return }
-    await setCustomRules({ ...rules, domains: [...rules.domains, domain] })
-    await restartCore()
-    toast.success(`${domain} → Сайты через VPN`, { action: toMyRulesAction })
-  })
+  const addTo = (field: keyof typeof TARGETS, value: string): Promise<void> =>
+    run(value, async () => {
+      const current = await getCustomRules()
+      const list = current[field] ?? []
+      if (list.includes(value)) {
+        toast.info(`${value} ${TARGETS[field].vpn ? 'уже в VPN' : 'уже в обходе'}`)
+        return
+      }
+      await setCustomRules({ ...current, [field]: [...list, value] })
+      await applyRulesChange()
+      toast.success(`${value} → ${TARGETS[field].label}`, {
+        action: { label: 'Мои правила →', onClick: () => navigate('/custom-rules') }
+      })
+    })
 
-  const addDomainDirect = (host: string) => run(host, async () => {
-    const domain = host.replace(/^https?:\/\//, '').replace(/\/.*$/, '')
-    const rules = await getCustomRules()
-    if (rules.excluded?.includes(domain)) { toast.info(`${domain} уже в обходе`); return }
-    await setCustomRules({ ...rules, excluded: [...(rules.excluded ?? []), domain] })
-    await restartCore()
-    toast.success(`${domain} → Сайты в обход VPN`, { action: toMyRulesAction })
-  })
+  const domainOf = (host: string): string => host.replace(/^https?:\/\//, '').replace(/\/.*$/, '')
 
-  const addIPVpn = (host: string) => run(host, async () => {
-    const ip = stripPort(host)
-    const rules = await getCustomRules()
-    if (rules.ips?.includes(ip)) { toast.info(`${ip} уже в VPN`); return }
-    await setCustomRules({ ...rules, ips: [...(rules.ips ?? []), ip] })
-    await restartCore()
-    toast.success(`${ip} → IP через VPN`, { action: toMyRulesAction })
-  })
-
-  const addIPDirect = (host: string) => run(host, async () => {
-    const ip = stripPort(host)
-    const rules = await getCustomRules()
-    if (rules.excludedIPs?.includes(ip)) { toast.info(`${ip} уже в обходе`); return }
-    await setCustomRules({ ...rules, excludedIPs: [...(rules.excludedIPs ?? []), ip] })
-    await restartCore()
-    toast.success(`${ip} → IP в обход VPN`, { action: toMyRulesAction })
-  })
-
-  const addProcVpn = (process: string) => run(process, async () => {
-    const rules = await getCustomRules()
-    if (rules.processes?.includes(process)) { toast.info(`${process} уже в VPN`); return }
-    await setCustomRules({ ...rules, processes: [...(rules.processes ?? []), process] })
-    await restartCore()
-    toast.success(`${process} → Приложения через VPN`, { action: toMyRulesAction })
-  })
-
-  const addProcDirect = (process: string) => run(process, async () => {
-    const rules = await getCustomRules()
-    if (rules.excludedProcesses?.includes(process)) { toast.info(`${process} уже в обходе`); return }
-    await setCustomRules({ ...rules, excludedProcesses: [...(rules.excludedProcesses ?? []), process] })
-    await restartCore()
-    toast.success(`${process} → Приложения в обход VPN`, { action: toMyRulesAction })
-  })
-
-  const tabs: { key: Filter; label: string; count?: number }[] = [
-    { key: 'all', label: 'Все', count: rows.length },
-    { key: 'errors', label: 'Ошибки', count: errorCount },
-    { key: 'direct', label: 'Напрямую', count: rows.filter((r) => r.isDirect).length },
-    { key: 'vpn', label: 'VPN', count: rows.filter((r) => r.isVpn).length },
+  const filterItems = [
+    { key: 'all' as const, label: `${t('velumUi.diag.all')} ${rows.length}` },
+    { key: 'errors' as const, label: `${t('velumUi.diag.errors')} ${errorCount}` },
+    { key: 'direct' as const, label: `${t('velumUi.diag.direct')} ${rows.filter((r) => r.isDirect).length}` },
+    { key: 'vpn' as const, label: `VPN ${rows.filter((r) => r.isVpn).length}` }
   ]
 
   const sortLabels: Record<SortBy, string> = {
-    'time-desc':   'Новые',
-    'time-asc':    'Старые',
-    'process':     'Процесс',
-    'host':        'Хост',
-    'errors-first':'Ошибки ↑'
+    'time-desc': t('velumUi.diag.sortNew'),
+    'time-asc': t('velumUi.diag.sortOld'),
+    process: t('velumUi.diag.sortProcess'),
+    host: t('velumUi.diag.sortHost'),
+    'errors-first': t('velumUi.diag.sortErrors')
   }
-  const sortOptions: SortBy[] = ['time-desc', 'time-asc', 'process', 'host', 'errors-first']
-  const nextSort = () => setSortBy((s) => sortOptions[(sortOptions.indexOf(s) + 1) % sortOptions.length])
+
+  const chip = (tone: 'accent' | 'danger' | 'warn', text: string): React.ReactNode => (
+    <span
+      className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
+        tone === 'accent'
+          ? 'bg-vl-accent/12 text-vl-accent'
+          : tone === 'danger'
+            ? 'bg-vl-danger/12 text-vl-danger'
+            : 'bg-vl-warn/12 text-vl-warn'
+      }`}
+    >
+      {text}
+    </span>
+  )
 
   return (
-    <BasePage
-      title="Диагностика"
-      header={
-        <div className="flex items-center gap-1 app-nodrag">
-          <Button size="sm" variant="ghost" onClick={nextSort} className="h-7 px-2 text-xs text-muted-foreground gap-1">
-            <ArrowUpDown className="size-3" />
+    <PageShell
+      title={t('sider.diagnostics')}
+      subtitle={t('velumUi.diag.subtitle')}
+      actions={
+        <>
+          <GhostButton
+            onClick={() => setSortBy((s) => sortOptions[(sortOptions.indexOf(s) + 1) % sortOptions.length])}
+          >
+            <ArrowDownUp className="size-3.5" />
             {sortLabels[sortBy]}
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => { clearAllClosed(); setSel(null) }} className="h-7 px-2 text-xs text-muted-foreground">
-            <Trash2 className="size-3.5 mr-1" />
-            Очистить
-          </Button>
-        </div>
+          </GhostButton>
+          <GhostButton
+            onClick={() => {
+              clearAllClosed()
+              setSel(null)
+            }}
+          >
+            <Trash2 className="size-3.5" />
+            {t('velumUi.diag.clear')}
+          </GhostButton>
+        </>
       }
     >
-      <div className="p-4 flex flex-col gap-3">
-        {/* Filter tabs */}
-        <div className="flex gap-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => { setFilter(tab.key); setSel(null) }}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                filter === tab.key ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {tab.label}
-              {tab.count !== undefined && tab.count > 0 && (
-                <span className="ml-1" style={{ color: tab.key === 'errors' ? RED : 'oklch(0.6 0 0)' }}>
-                  ({tab.count})
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {filtered.length === 0 && (
-          <p className="text-xs text-muted-foreground italic py-4 text-center">Нет данных</p>
-        )}
-
-        <div className="flex flex-col gap-1.5">
-          {filtered.map(({ conn, process, host, isVpn, isDirect, isReject, hasError, isSuspect, hostIsIP }) => {
-            const selProc = sel?.connId === conn.id && sel?.target === 'process'
-            const selHost = sel?.connId === conn.id && sel?.target === 'host'
-            const isActing = acting === process || acting === host
-
-            // Cross-reference with current rules
-            const ip = hostIsIP ? stripPort(host) : null
-            const procRuleVpn = rules?.processes?.includes(process) ?? false
-            const procRuleDirect = rules?.excludedProcesses?.includes(process) ?? false
-            const hostRuleVpn = rules?.domains?.includes(host) || (ip ? rules?.ips?.includes(ip) : false) || false
-            const hostRuleDirect = rules?.excluded?.includes(host) || (ip ? rules?.excludedIPs?.includes(ip) : false) || false
-
-            return (
-              <div
-                key={conn.id}
-                className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm transition-colors ${
-                  hasError
-                    ? 'border-destructive/40 bg-destructive/5'
-                    : isSuspect
-                      ? 'border-amber-500/30 bg-amber-500/5'
-                      : 'border-border bg-card'
-                }`}
-                onClick={(e) => {
-                  if ((e.target as HTMLElement).closest('button[data-cell]')) return
-                  setSel(null)
-                }}
-              >
-                {/* Process — clickable cell */}
-                <button
-                  data-cell
-                  disabled={process === '—'}
-                  onClick={() => clickCell(conn.id, 'process')}
-                  className={`flex items-center gap-1.5 w-36 shrink-0 min-w-0 rounded px-1 py-0.5 text-left transition-colors ${
-                    selProc
-                      ? 'bg-primary/10 ring-1 ring-primary/40 text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
-                  } disabled:pointer-events-none`}
-                  title={
-                    procRuleVpn ? `${process} — в правилах VPN` :
-                    procRuleDirect ? `${process} — в обходе VPN` : process
-                  }
-                >
-                  {(procRuleVpn || procRuleDirect) && (
-                    <span
-                      className="size-1.5 rounded-full shrink-0"
-                      style={{ background: procRuleVpn ? TEAL : RED }}
-                    />
-                  )}
-                  <span className="text-xs font-mono truncate">{process}</span>
-                </button>
-
-                {/* Host — clickable cell */}
-                <button
-                  data-cell
-                  disabled={host === '—'}
-                  onClick={() => clickCell(conn.id, 'host')}
-                  className={`flex-1 min-w-0 rounded px-1 py-0.5 text-left transition-colors ${
-                    selHost
-                      ? 'bg-primary/10 ring-1 ring-primary/40 text-foreground'
-                      : 'hover:text-foreground'
-                  } disabled:pointer-events-none`}
-                  title={
-                    hostRuleVpn ? `${host} — в правилах VPN` :
-                    hostRuleDirect ? `${host} — в обходе VPN` : host
-                  }
-                >
-                  <span className="font-mono text-xs truncate flex items-center gap-1.5">
-                    {(hostRuleVpn || hostRuleDirect) && (
-                      <span
-                        className="size-1.5 rounded-full shrink-0"
-                        style={{ background: hostRuleVpn ? TEAL : RED }}
-                      />
-                    )}
-                    {host}
-                    {hostIsIP && <span className="text-muted-foreground/40 text-[10px]">IP</span>}
-                  </span>
-                </button>
-
-                {/* Route badge */}
-                <span
-                  className="text-xs font-medium shrink-0 w-12 text-right"
-                  style={{ color: isReject ? RED : isVpn ? TEAL : 'oklch(0.6 0 0)' }}
-                >
-                  {isReject ? 'REJECT' : isVpn ? 'VPN' : 'DIRECT'}
-                </span>
-
-                {hasError && (
-                  <span className="text-[10px] font-medium shrink-0 px-1 py-0.5 rounded" style={{ color: RED, background: 'oklch(0.65 0.2 25 / 0.12)' }}>
-                    нет связи
-                  </span>
-                )}
-                {isSuspect && (
-                  <span className="text-[10px] font-medium shrink-0 px-1 py-0.5 rounded" style={{ color: AMBER, background: 'oklch(0.78 0.16 70 / 0.12)' }}>
-                    нет ответа
-                  </span>
-                )}
-
-                {/* Action buttons — appear based on selected cell */}
-                <div className="flex items-center gap-1 shrink-0 w-28 justify-end">
-                  {selProc && process !== '—' && !isReject && (
-                    <>
-                      {procRuleVpn ? (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ color: TEAL, background: 'oklch(0.82 0.16 196 / 0.12)' }}>
-                          ✓ в VPN
-                        </span>
-                      ) : procRuleDirect ? (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ color: RED, background: 'oklch(0.65 0.2 25 / 0.12)' }}>
-                          ✓ в обходе
-                        </span>
-                      ) : (
-                        <>
-                          {isDirect && (
-                            <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
-                              onClick={() => addProcVpn(process)}>
-                              <ArrowRight className="size-3 mr-1" style={{ color: TEAL }} />VPN
-                            </Button>
-                          )}
-                          {isVpn && (
-                            <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
-                              onClick={() => addProcDirect(process)}>
-                              <ArrowLeft className="size-3 mr-1" style={{ color: RED }} />Direct
-                            </Button>
-                          )}
-                        </>
-                      )}
-                    </>
-                  )}
-                  {selHost && host !== '—' && !isReject && (
-                    <>
-                      {hostRuleVpn ? (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ color: TEAL, background: 'oklch(0.82 0.16 196 / 0.12)' }}>
-                          ✓ в VPN
-                        </span>
-                      ) : hostRuleDirect ? (
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ color: RED, background: 'oklch(0.65 0.2 25 / 0.12)' }}>
-                          ✓ в обходе
-                        </span>
-                      ) : (
-                        <>
-                          {isDirect && (
-                            <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
-                              onClick={() => hostIsIP ? addIPVpn(host) : addDomainVpn(host)}>
-                              <ArrowRight className="size-3 mr-1" style={{ color: TEAL }} />VPN
-                            </Button>
-                          )}
-                          {isVpn && (
-                            <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={isActing}
-                              onClick={() => hostIsIP ? addIPDirect(host) : addDomainDirect(host)}>
-                              <ArrowLeft className="size-3 mr-1" style={{ color: RED }} />Direct
-                            </Button>
-                          )}
-                        </>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
+      <div>
+        <Segmented
+          items={filterItems}
+          value={filter}
+          onChange={(k) => {
+            setFilter(k)
+            setSel(null)
+          }}
+        />
       </div>
-    </BasePage>
+
+      {filtered.length === 0 && (
+        <div className="py-10 text-center text-sm text-vl-faint">{t('velumUi.diag.empty')}</div>
+      )}
+
+      <div className={`${panelClass} ${filtered.length === 0 ? 'hidden' : ''} p-2`}>
+        {filtered.map(({ conn, process, host, isVpn, isDirect, isReject, hasError, isSuspect, hostIsIP }) => {
+          const selProc = sel?.connId === conn.id && sel?.target === 'process'
+          const selHost = sel?.connId === conn.id && sel?.target === 'host'
+          const isActing = acting === process || acting === host
+
+          // Cross-reference with current rules
+          const ip = hostIsIP ? stripPort(host) : null
+          const procRuleVpn = rules?.processes?.includes(process) ?? false
+          const procRuleDirect = rules?.excludedProcesses?.includes(process) ?? false
+          const hostRuleVpn =
+            rules?.domains?.includes(host) || (ip ? rules?.ips?.includes(ip) : false) || false
+          const hostRuleDirect =
+            rules?.excluded?.includes(host) || (ip ? rules?.excludedIPs?.includes(ip) : false) || false
+
+          const actionsFor = (
+            ruleVpn: boolean,
+            ruleDirect: boolean,
+            toVpn: () => void,
+            toDirect: () => void
+          ): React.ReactNode => {
+            if (ruleVpn) return chip('accent', '✓ VPN')
+            if (ruleDirect) return chip('danger', `✓ ${t('velumUi.diag.bypass')}`)
+            return (
+              <>
+                {isDirect && (
+                  <button
+                    type="button"
+                    disabled={isActing}
+                    onClick={toVpn}
+                    className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-vl-line px-2 py-1 text-xs font-semibold text-vl-text transition-colors hover:border-vl-accent/50 disabled:opacity-50"
+                  >
+                    <ArrowRight className="size-3 text-vl-accent" />
+                    VPN
+                  </button>
+                )}
+                {isVpn && (
+                  <button
+                    type="button"
+                    disabled={isActing}
+                    onClick={toDirect}
+                    className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-vl-line px-2 py-1 text-xs font-semibold text-vl-text transition-colors hover:border-vl-danger/50 disabled:opacity-50"
+                  >
+                    <ArrowLeft className="size-3 text-vl-danger" />
+                    {t('velumUi.diag.bypass')}
+                  </button>
+                )}
+              </>
+            )
+          }
+
+          const cellClass = (selected: boolean): string =>
+            `flex min-w-0 cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-left transition-colors disabled:pointer-events-none ${
+              selected
+                ? 'bg-vl-accent/12 text-vl-text ring-1 ring-vl-accent/40'
+                : 'text-vl-muted hover:bg-white/5 hover:text-vl-text'
+            }`
+
+          return (
+            <div
+              key={conn.id}
+              className={`flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm transition-colors ${
+                hasError
+                  ? 'bg-vl-danger/6'
+                  : isSuspect
+                    ? 'bg-vl-warn/6'
+                    : 'hover:bg-white/3'
+              }`}
+              onClick={(e) => {
+                if ((e.target as HTMLElement).closest('button[data-cell]')) return
+                setSel(null)
+              }}
+            >
+              <button
+                data-cell
+                type="button"
+                disabled={process === '—'}
+                onClick={() => clickCell(conn.id, 'process')}
+                className={`${cellClass(selProc)} w-36 shrink-0`}
+                title={
+                  procRuleVpn
+                    ? `${process} — в правилах VPN`
+                    : procRuleDirect
+                      ? `${process} — в обходе VPN`
+                      : process
+                }
+              >
+                {(procRuleVpn || procRuleDirect) && (
+                  <span
+                    className={`size-1.5 shrink-0 rounded-full ${procRuleVpn ? 'bg-vl-accent' : 'bg-vl-danger'}`}
+                  />
+                )}
+                <span className="truncate font-mono text-xs">{process}</span>
+              </button>
+
+              <button
+                data-cell
+                type="button"
+                disabled={host === '—'}
+                onClick={() => clickCell(conn.id, 'host')}
+                className={`${cellClass(selHost)} flex-1`}
+                title={
+                  hostRuleVpn
+                    ? `${host} — в правилах VPN`
+                    : hostRuleDirect
+                      ? `${host} — в обходе VPN`
+                      : host
+                }
+              >
+                {(hostRuleVpn || hostRuleDirect) && (
+                  <span
+                    className={`size-1.5 shrink-0 rounded-full ${hostRuleVpn ? 'bg-vl-accent' : 'bg-vl-danger'}`}
+                  />
+                )}
+                <span className="truncate font-mono text-xs">{host}</span>
+                {hostIsIP && <span className="text-[10px] text-vl-faint">IP</span>}
+              </button>
+
+              <span
+                className={`w-14 shrink-0 text-right text-xs font-semibold ${
+                  isReject ? 'text-vl-danger' : isVpn ? 'text-vl-accent' : 'text-vl-muted'
+                }`}
+              >
+                {isReject ? 'REJECT' : isVpn ? 'VPN' : 'DIRECT'}
+              </span>
+
+              {hasError && chip('danger', t('velumUi.diag.noLink'))}
+              {isSuspect && chip('warn', t('velumUi.diag.noReply'))}
+
+              <div className="flex w-32 shrink-0 items-center justify-end gap-1">
+                {selProc &&
+                  process !== '—' &&
+                  !isReject &&
+                  actionsFor(
+                    procRuleVpn,
+                    procRuleDirect,
+                    () => addTo('processes', process),
+                    () => addTo('excludedProcesses', process)
+                  )}
+                {selHost &&
+                  host !== '—' &&
+                  !isReject &&
+                  actionsFor(
+                    hostRuleVpn,
+                    hostRuleDirect,
+                    () => addTo(hostIsIP ? 'ips' : 'domains', hostIsIP ? stripPort(host) : domainOf(host)),
+                    () =>
+                      addTo(hostIsIP ? 'excludedIPs' : 'excluded', hostIsIP ? stripPort(host) : domainOf(host))
+                  )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      {filtered.length > 0 && (
+        <div className="flex items-center gap-1.5 px-1 text-[11px] text-vl-faint">
+          <Check className="size-3" />
+          {t('velumUi.diag.hint')}
+        </div>
+      )}
+    </PageShell>
   )
 }
 

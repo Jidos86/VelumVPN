@@ -1097,6 +1097,23 @@ export default {
       toDirect: 'Bypass',
       toVpn: 'Via VPN',
       empty: 'Nothing here yet'
+    },
+    diag: {
+      subtitle: 'Closed connections through the Mihomo core',
+      all: 'All',
+      errors: 'Errors',
+      direct: 'Direct',
+      sortNew: 'Newest',
+      sortOld: 'Oldest',
+      sortProcess: 'Process',
+      sortHost: 'Host',
+      sortErrors: 'Errors first',
+      clear: 'Clear',
+      empty: 'No data',
+      bypass: 'Bypass',
+      noLink: 'no link',
+      noReply: 'no reply',
+      hint: 'Click a process or address to send it through the VPN or around it'
     }
   }
 }

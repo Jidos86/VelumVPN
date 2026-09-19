@@ -16,3 +16,25 @@
   --color-vl-warn: oklch(0.8 0.14 80);
   --color-vl-danger: #e5484d;
 }
+
+/*
+ * Map the legacy (shadcn) dark tokens onto the new palette, so pages that have not been
+ * rebuilt yet (profiles, servers, connections, logs, settings) sit in the same look.
+ * :root.dark outranks the plain .dark block in main.css regardless of order.
+ */
+:root.dark {
+  --background: #0a0e14;
+  --card: #111826;
+  --popover: #0f1521;
+  --secondary: #141c2b;
+  --muted: #141c2b;
+  --accent: rgb(255 255 255 / 0.06);
+  --primary: oklch(0.82 0.16 196);
+  --primary-foreground: #0a0e14;
+  --border: rgb(255 255 255 / 0.07);
+  --input: rgb(255 255 255 / 0.1);
+  --destructive: #e5484d;
+  --sidebar: #080b10;
+  --sidebar-border: rgb(255 255 255 / 0.07);
+  --stroke: rgb(255 255 255 / 0.1);
+}

@@ -1099,6 +1099,23 @@ export default {
       toDirect: 'В обход',
       toVpn: 'Через VPN',
       empty: 'Пока пусто'
+    },
+    diag: {
+      subtitle: 'Закрытые соединения через ядро Mihomo',
+      all: 'Все',
+      errors: 'Ошибки',
+      direct: 'Напрямую',
+      sortNew: 'Новые',
+      sortOld: 'Старые',
+      sortProcess: 'Процесс',
+      sortHost: 'Хост',
+      sortErrors: 'Ошибки ↑',
+      clear: 'Очистить',
+      empty: 'Нет данных',
+      bypass: 'В обход',
+      noLink: 'нет связи',
+      noReply: 'нет ответа',
+      hint: 'Нажмите на процесс или адрес, чтобы отправить его через VPN или в обход'
     }
   }
 }
