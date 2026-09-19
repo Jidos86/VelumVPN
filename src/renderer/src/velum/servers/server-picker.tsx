@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronRight, RefreshCw, Search, Sparkles, X } from 'lucide-react'
+import { ChevronRight, MapPin, RefreshCw, Search, Sparkles, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useServers } from './use-servers'
@@ -214,6 +214,7 @@ const ServerPickerModal: React.FC<{
           {visible.map((entry) => {
             const selected = entry.name === servers.current?.name
             const busy = servers.testing.has(entry.name)
+            const pinned = servers.pinned === entry.name
             return (
               <div
                 key={entry.name}
@@ -226,7 +227,9 @@ const ServerPickerModal: React.FC<{
                 className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
                   selected
                     ? 'border-vl-accent/40 bg-vl-accent/10'
-                    : 'border-vl-line bg-vl-tile hover:border-vl-line-strong'
+                    : pinned
+                      ? 'border-amber-500/40 bg-amber-500/8'
+                      : 'border-vl-line bg-vl-tile hover:border-vl-line-strong'
                 }`}
               >
                 <CodeBadge entry={entry} />
@@ -237,6 +240,27 @@ const ServerPickerModal: React.FC<{
                   )}
                 </div>
                 <Ping delay={entry.delay} />
+                {!entry.isAuto && servers.canPin && (
+                  <button
+                    type="button"
+                    title={pinned ? t('velumUi.server.unpin') : t('velumUi.server.pin')}
+                    onClick={async (e) => {
+                      e.stopPropagation()
+                      try {
+                        await servers.togglePin(entry.name)
+                      } catch (err) {
+                        toast.error(`${err}`)
+                      }
+                    }}
+                    className={`cursor-pointer rounded-md p-1 transition-colors ${
+                      pinned
+                        ? 'text-amber-500 hover:text-amber-400'
+                        : 'text-vl-faint hover:text-amber-500'
+                    }`}
+                  >
+                    <MapPin className="size-3.5" />
+                  </button>
+                )}
                 {!entry.isAuto && (
                   <button
                     type="button"
