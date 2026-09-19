@@ -1104,6 +1104,10 @@ export default {
     },
     diag: {
       subtitle: 'Закрытые соединения через ядро Mihomo',
+      colProcess: 'Процесс',
+      colAddress: 'Адрес',
+      colRoute: 'Маршрут',
+      colStatus: 'Статус',
       all: 'Все',
       errors: 'Ошибки',
       direct: 'Напрямую',

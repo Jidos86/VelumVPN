@@ -6,7 +6,7 @@ import { ArrowDownUp, ArrowLeft, ArrowRight, Check, Trash2 } from 'lucide-react'
 import { useConnectionsStore } from '@renderer/store/connections-store'
 import { CustomRules, getCustomRules, setCustomRules } from '@renderer/utils/ipc'
 import { applyRulesChange } from '@renderer/velum/rules/apply-rules'
-import { GhostButton, PageShell, Segmented, panelClass } from '@renderer/velum/ui/primitives'
+import { GhostButton, PageShell, Segmented } from '@renderer/velum/ui/primitives'
 
 type Filter = 'all' | 'errors' | 'direct' | 'vpn'
 type SortBy = 'time-desc' | 'time-asc' | 'process' | 'host' | 'errors-first'
@@ -38,6 +38,9 @@ const TARGETS = {
 } as const
 
 const sortOptions: SortBy[] = ['time-desc', 'time-asc', 'process', 'host', 'errors-first']
+
+// Fixed columns so every row lines up: process | address | route | status | actions.
+const COLS = 'grid grid-cols-[9rem_minmax(0,1fr)_4.5rem_6.5rem_8rem] items-center gap-3'
 
 const Diagnostics: React.FC = () => {
   const navigate = useNavigate()
@@ -209,7 +212,16 @@ const Diagnostics: React.FC = () => {
         <div className="py-10 text-center text-sm text-vl-faint">{t('velumUi.diag.empty')}</div>
       )}
 
-      <div className={`${panelClass} ${filtered.length === 0 ? 'hidden' : ''} p-2`}>
+      <div className={`flex flex-col gap-1.5 ${filtered.length === 0 ? 'hidden' : ''}`}>
+        <div
+          className={`${COLS} px-3 text-[11px] font-semibold uppercase tracking-wider text-vl-faint`}
+        >
+          <span>{t('velumUi.diag.colProcess')}</span>
+          <span>{t('velumUi.diag.colAddress')}</span>
+          <span>{t('velumUi.diag.colRoute')}</span>
+          <span>{t('velumUi.diag.colStatus')}</span>
+          <span />
+        </div>
         {filtered.map(({ conn, process, host, isVpn, isDirect, isReject, hasError, isSuspect, hostIsIP }) => {
           const selProc = sel?.connId === conn.id && sel?.target === 'process'
           const selHost = sel?.connId === conn.id && sel?.target === 'host'
@@ -270,12 +282,12 @@ const Diagnostics: React.FC = () => {
           return (
             <div
               key={conn.id}
-              className={`flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm transition-colors ${
+              className={`${COLS} rounded-xl border px-3 py-2 text-sm transition-colors ${
                 hasError
-                  ? 'bg-vl-danger/6'
+                  ? 'border-vl-danger/30 bg-vl-danger/6'
                   : isSuspect
-                    ? 'bg-vl-warn/6'
-                    : 'hover:bg-white/3'
+                    ? 'border-vl-warn/30 bg-vl-warn/6'
+                    : 'border-vl-line bg-vl-tile hover:border-vl-line-strong'
               }`}
               onClick={(e) => {
                 if ((e.target as HTMLElement).closest('button[data-cell]')) return
@@ -287,7 +299,7 @@ const Diagnostics: React.FC = () => {
                 type="button"
                 disabled={process === '—'}
                 onClick={() => clickCell(conn.id, 'process')}
-                className={`${cellClass(selProc)} w-36 shrink-0`}
+                className={cellClass(selProc)}
                 title={
                   procRuleVpn
                     ? `${process} — в правилах VPN`
@@ -309,7 +321,7 @@ const Diagnostics: React.FC = () => {
                 type="button"
                 disabled={host === '—'}
                 onClick={() => clickCell(conn.id, 'host')}
-                className={`${cellClass(selHost)} flex-1`}
+                className={cellClass(selHost)}
                 title={
                   hostRuleVpn
                     ? `${host} — в правилах VPN`
@@ -328,17 +340,19 @@ const Diagnostics: React.FC = () => {
               </button>
 
               <span
-                className={`w-14 shrink-0 text-right text-xs font-semibold ${
+                className={`text-xs font-semibold ${
                   isReject ? 'text-vl-danger' : isVpn ? 'text-vl-accent' : 'text-vl-muted'
                 }`}
               >
                 {isReject ? 'REJECT' : isVpn ? 'VPN' : 'DIRECT'}
               </span>
 
-              {hasError && chip('danger', t('velumUi.diag.noLink'))}
-              {isSuspect && chip('warn', t('velumUi.diag.noReply'))}
+              <div className="flex items-center">
+                {hasError && chip('danger', t('velumUi.diag.noLink'))}
+                {isSuspect && chip('warn', t('velumUi.diag.noReply'))}
+              </div>
 
-              <div className="flex w-32 shrink-0 items-center justify-end gap-1">
+              <div className="flex items-center justify-end gap-1">
                 {selProc &&
                   process !== '—' &&
                   !isReject &&

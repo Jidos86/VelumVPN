@@ -1102,6 +1102,10 @@ export default {
     },
     diag: {
       subtitle: 'Closed connections through the Mihomo core',
+      colProcess: 'Process',
+      colAddress: 'Address',
+      colRoute: 'Route',
+      colStatus: 'Status',
       all: 'All',
       errors: 'Errors',
       direct: 'Direct',
