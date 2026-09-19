@@ -1088,6 +1088,14 @@ export default {
       notTested: 'Не проверен'
     },
     subscription: { title: 'Подписка', refresh: 'Обновить', daysLeft: 'дней осталось', expires: 'дата окончания' },
+    update: {
+      geodata: 'Обновить геофайлы',
+      check: 'Проверить обновления',
+      checking: 'Проверка…',
+      upToDate: 'Установлена последняя версия',
+      available: 'Доступна версия {{version}}',
+      install: 'Обновить'
+    },
     rules: {
       summaryVpn: 'В VPN',
       summaryDirect: 'В обход',

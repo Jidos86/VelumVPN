@@ -1,5 +1,5 @@
 import { toast } from 'sonner'
-import useSWR from 'swr'
+import useSWR, { useSWRConfig } from 'swr'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
@@ -9,7 +9,8 @@ import {
   mihomoHotReloadConfig,
   updateGeodata,
   mihomoCloseAllConnections,
-  getCustomRules
+  getCustomRules,
+  checkUpdate
 } from '@renderer/utils/ipc'
 import NumberFlow from '@number-flow/react'
 import { useTranslation } from 'react-i18next'
@@ -22,6 +23,7 @@ import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import { calcTraffic } from '@renderer/utils/calc'
 import { useTrafficStore } from '@renderer/store/traffic-store'
 import { ServerCard } from '@renderer/velum/servers/server-picker'
+import UpdaterButton from '@renderer/components/updater/updater-button'
 import Power from '@renderer/assets/on_icon.svg'
 import Pause from '@renderer/assets/pause_icon.svg'
 import { Spinner } from '@renderer/components/ui/spinner'
@@ -210,6 +212,25 @@ const Home: React.FC = () => {
     expireTimestamp > 0 ? Math.max(0, dayjs.unix(expireTimestamp).diff(dayjs(), 'day')) : 0
 
   const { data: customRules } = useSWR('customRulesCount', getCustomRules)
+
+  // App update: reuse the shared cache the app-level auto check fills; a manual check refreshes it.
+  const { mutate } = useSWRConfig()
+  const { data: latest } = useSWR<Awaited<ReturnType<typeof checkUpdate>>>(['checkUpdate'])
+  const [checking, setChecking] = useState(false)
+  const [upToDate, setUpToDate] = useState(false)
+  const handleCheckUpdate = async (): Promise<void> => {
+    setChecking(true)
+    setUpToDate(false)
+    try {
+      const res = await checkUpdate()
+      await mutate(['checkUpdate'], res, { revalidate: false })
+      if (!res) setUpToDate(true)
+    } catch (e) {
+      toast.error(`${e}`)
+    } finally {
+      setChecking(false)
+    }
+  }
   const rulesSummary = [
     {
       key: 'app',
@@ -482,38 +503,6 @@ const Home: React.FC = () => {
               )
             })}
           </div>
-          {geodataProgress !== null ? (
-            <div className="mt-2 flex flex-col gap-1 px-1">
-              <div className="flex justify-between text-[11px] text-vl-muted">
-                <span className="truncate">
-                  {geodataAuto
-                    ? `Загрузка геоданных: ${geodataFile || '...'}`
-                    : geodataFile || 'Загрузка...'}
-                </span>
-                <span>{geodataProgress}%</span>
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
-                <div
-                  className="h-full rounded-full bg-vl-accent transition-all duration-300"
-                  style={{ width: `${geodataProgress}%` }}
-                />
-              </div>
-              {geodataAuto && (
-                <p className="text-center text-[11px] text-vl-faint">
-                  VPN будет доступен после завершения загрузки
-                </p>
-              )}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={handleUpdateGeodata}
-              className="mt-2 inline-flex cursor-pointer items-center gap-1.5 px-1 text-[11px] text-vl-faint transition-colors hover:text-vl-muted"
-            >
-              <RefreshCcw className="size-3" />
-              Обновить геоданные
-            </button>
-          )}
         </div>
       </section>
 
@@ -625,6 +614,65 @@ const Home: React.FC = () => {
             <div className="truncate text-xs text-vl-muted">Telegram</div>
           </div>
         </button>
+        {/* Updates: geo files + application (right of the routing modes) */}
+        <div className={`${panel} col-start-2 row-start-4 flex flex-col gap-3 self-start p-4`}>
+          {geodataProgress !== null ? (
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between text-[11px] text-vl-muted">
+                <span className="truncate">
+                  {geodataAuto
+                    ? `Загрузка геоданных: ${geodataFile || '...'}`
+                    : geodataFile || 'Загрузка...'}
+                </span>
+                <span>{geodataProgress}%</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
+                <div
+                  className="h-full rounded-full bg-vl-accent transition-all duration-300"
+                  style={{ width: `${geodataProgress}%` }}
+                />
+              </div>
+              {geodataAuto && (
+                <p className="text-[11px] text-vl-faint">VPN будет доступен после завершения загрузки</p>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleUpdateGeodata}
+              className="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-0.5 text-left text-sm text-vl-muted transition-colors hover:text-vl-text"
+            >
+              <RefreshCcw className="size-3.5 shrink-0" />
+              {t('velumUi.update.geodata')}
+            </button>
+          )}
+
+          <div className="h-px bg-vl-line" />
+
+          {latest ? (
+            <div className="flex flex-col gap-2">
+              <div className="text-xs text-vl-muted">
+                {t('velumUi.update.available', { version: latest.version })}
+              </div>
+              <UpdaterButton latest={latest} label={t('velumUi.update.install')} />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <button
+                type="button"
+                disabled={checking}
+                onClick={handleCheckUpdate}
+                className="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-0.5 text-left text-sm text-vl-muted transition-colors hover:text-vl-text disabled:cursor-default disabled:opacity-60"
+              >
+                <RefreshCcw className={`size-3.5 shrink-0 ${checking ? 'animate-spin' : ''}`} />
+                {checking ? t('velumUi.update.checking') : t('velumUi.update.check')}
+              </button>
+              {upToDate && (
+                <div className="px-1 text-xs text-vl-faint">{t('velumUi.update.upToDate')}</div>
+              )}
+            </div>
+          )}
+        </div>
       </aside>
     </div>
   )

@@ -1086,6 +1086,14 @@ export default {
       notTested: 'Not tested'
     },
     subscription: { title: 'Subscription', refresh: 'Refresh', daysLeft: 'days left', expires: 'expires' },
+    update: {
+      geodata: 'Update geo files',
+      check: 'Check for updates',
+      checking: 'Checking…',
+      upToDate: 'You have the latest version',
+      available: 'Version {{version}} is available',
+      install: 'Update'
+    },
     rules: {
       summaryVpn: 'VPN',
       summaryDirect: 'Bypass',

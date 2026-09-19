@@ -9,6 +9,8 @@ import { CircleFadingArrowUp } from 'lucide-react'
 
 interface Props {
   iconOnly?: boolean
+  // Overrides the default "update available" caption of the wide button.
+  label?: string
   latest?: {
     version: string
     changelog: string
@@ -17,7 +19,7 @@ interface Props {
 
 const UpdaterButton: React.FC<Props> = (props) => {
   const { t } = useTranslation()
-  const { iconOnly, latest } = props
+  const { iconOnly, latest, label } = props
   const [openModal, setOpenModal] = useState(false)
   const updateStatus = useUpdaterStore(
     useShallow((s) => ({ downloading: s.downloading, progress: s.progress, error: s.error }))
@@ -66,7 +68,7 @@ const UpdaterButton: React.FC<Props> = (props) => {
           }}
         >
           <CircleFadingArrowUp />
-          <span className="truncate">{t('common.updateAvailable')}</span>
+          <span className="truncate">{label ?? t('common.updateAvailable')}</span>
         </Button>
       )}
     </>
