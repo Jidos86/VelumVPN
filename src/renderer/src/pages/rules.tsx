@@ -78,7 +78,7 @@ const Rules: React.FC = () => {
         </div>
         <Separator className="mx-2"/>
       </div>
-      <div className="h-[calc(100vh-108px)] mt-px">
+      <div className="h-[calc(100vh-143px)] mt-px">
         <Virtuoso
           data={filteredRules}
           itemContent={(i, rule) => (

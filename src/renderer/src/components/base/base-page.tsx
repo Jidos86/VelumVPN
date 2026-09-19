@@ -13,6 +13,8 @@ interface Props {
   showBackButton?: boolean
 }
 
+// Page frame for the pages that were not rebuilt yet. The header matches the new pages
+// (velum/ui/primitives PageShell): same paddings, same bold 20px title, actions on the right.
 const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
   const location = useLocation()
   const navigate = useNavigate()
@@ -24,28 +26,24 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
   })
 
   return (
-    <div ref={contentRef} className="w-full h-full">
-      <div className="sticky top-0 z-40 h-14.25 w-full">
-        <div className="app-drag px-2 pt-3 pb-2 flex justify-between h-14.25">
-          <div className="title h-full text-lg leading-8 flex items-center gap-1">
-            {(isSubPage || props.showBackButton) && (
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                className="app-nodrag"
-                onClick={() => navigate(-1)}
-              >
-                <ChevronLeft className="size-5" />
-              </Button>
-            )}
-            {props.title}
-          </div>
-          <div className="header flex gap-1 h-full items-center">
-            {props.header}
-          </div>
+    <div ref={contentRef} className="flex h-full w-full flex-col">
+      <div className="z-40 flex shrink-0 items-center justify-between gap-4 px-5 pt-5 pb-3">
+        <div className="title flex min-w-0 items-center gap-1 text-xl font-extrabold text-vl-text">
+          {(isSubPage || props.showBackButton) && (
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              className="app-nodrag -ml-2"
+              onClick={() => navigate(-1)}
+            >
+              <ChevronLeft className="size-5" />
+            </Button>
+          )}
+          {props.title}
         </div>
+        <div className="header flex shrink-0 items-center gap-1">{props.header}</div>
       </div>
-      <div className="content h-[calc(100vh-32px-57px)] overflow-y-auto custom-scrollbar">
+      <div className="content custom-scrollbar min-h-0 flex-1 overflow-y-auto px-3">
         {props.children}
       </div>
     </div>

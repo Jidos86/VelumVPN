@@ -760,7 +760,7 @@ const Connections: React.FC = () => {
           )}
         </div>
       </div>
-      <div className="h-[calc(100vh-106px)] mt-px mb-2">
+      <div className="h-[calc(100vh-141px)] mt-px mb-2">
         {isProcessListView ? (
           <Virtuoso data={filteredProcessGroups} itemContent={renderProcessItem} />
         ) : viewMode === 'list' ? (
