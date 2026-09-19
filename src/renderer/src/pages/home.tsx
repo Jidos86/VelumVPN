@@ -561,8 +561,8 @@ const Home: React.FC = () => {
                 )}
                 <div className="mt-4 flex items-end justify-between">
                   <div>
-                    <div className="text-base font-semibold leading-none text-vl-text">
-                      {expireTimestamp > 0 ? daysRemaining : <InfinityIcon className="size-4" />}
+                    <div className="text-2xl font-semibold leading-none text-vl-text">
+                      {expireTimestamp > 0 ? daysRemaining : <InfinityIcon className="size-6" />}
                     </div>
                     <div className="mt-1 text-[11px] text-vl-muted">{t('velumUi.subscription.daysLeft')}</div>
                   </div>
