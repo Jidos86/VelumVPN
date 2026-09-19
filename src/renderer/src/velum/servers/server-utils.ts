@@ -46,11 +46,12 @@ export function pingBand(delay: number): PingBand {
   return 'slow'
 }
 
+// Same colors as the previous server list (proxy-item.tsx), so the ping reads the same way.
 export const bandColor: Record<PingBand, string> = {
-  none: 'text-vl-faint',
-  timeout: 'text-vl-danger',
-  fast: 'text-vl-accent',
-  good: 'text-vl-text/70',
-  normal: 'text-vl-warn',
-  slow: 'text-vl-danger'
+  none: 'text-primary',
+  timeout: 'text-destructive',
+  fast: 'text-success',
+  good: 'text-emerald-500',
+  normal: 'text-warning',
+  slow: 'text-destructive'
 }

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, ChevronRight, RefreshCw, Search, Sparkles, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useServers } from './use-servers'
 import { bandColor, pingBand, PingBand, ServerEntry } from './server-utils'
 
@@ -20,7 +21,7 @@ function useBandLabel(): (band: PingBand) => string {
       case 'timeout':
         return t('proxies.timeout')
       default:
-        return t('velumUi.server.notTested')
+        return t('proxies.delayTest')
     }
   }
 }
@@ -31,14 +32,17 @@ const CodeBadge: React.FC<{ entry: ServerEntry }> = ({ entry }) => (
   </div>
 )
 
-const Ping: React.FC<{ delay: number; withMs?: boolean }> = ({ delay, withMs }) => {
+// Ping label follows the same rules as the previous list: a speed label by default,
+// or the number in ms when the "delay display" appearance setting is switched to numbers.
+const Ping: React.FC<{ delay: number }> = ({ delay }) => {
+  const { appConfig } = useAppConfig()
   const bandLabel = useBandLabel()
   const band = pingBand(delay)
+  const numberMode = (appConfig?.delayDisplayMode ?? 'text') === 'number'
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${bandColor[band]}`}>
       <span className="size-1.5 rounded-full bg-current" />
-      {bandLabel(band)}
-      {withMs && delay > 0 && <span className="font-medium text-vl-faint">· {delay} ms</span>}
+      {numberMode && delay > 0 ? `${delay} ms` : bandLabel(band)}
     </span>
   )
 }
@@ -213,7 +217,7 @@ const ServerPickerModal: React.FC<{
                     <div className="truncate text-xs text-vl-muted">{t('velumUi.server.auto')}</div>
                   )}
                 </div>
-                <Ping delay={entry.delay} withMs />
+                <Ping delay={entry.delay} />
                 {!entry.isAuto && (
                   <button
                     type="button"
