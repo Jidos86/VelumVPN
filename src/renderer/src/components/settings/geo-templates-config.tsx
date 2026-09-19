@@ -114,13 +114,13 @@ const GeoAndTemplatesConfig: React.FC = () => {
 
       {/* Mode names */}
       <SettingCard>
-        {ROUTE_MODE_KEYS.map((key, i) => (
-          <SettingItem key={key} title={t('settings.geoTemplates.modeName', { default: DEFAULT_MODE_LABELS[key] })} divider={i < ROUTE_MODE_KEYS.length - 1}>
+        {ROUTE_MODE_KEYS.map((key) => (
+          <SettingItem key={key} title={t('settings.geoTemplates.modeName', { default: DEFAULT_MODE_LABELS[key] })} divider>
             <Input
               value={modeNameInputs[key]}
               onChange={(e) => setModeNameInputs((prev) => ({ ...prev, [key]: e.target.value }))}
               placeholder={DEFAULT_MODE_LABELS[key]}
-              className="w-48 text-xs"
+              className="w-64 text-xs"
             />
           </SettingItem>
         ))}

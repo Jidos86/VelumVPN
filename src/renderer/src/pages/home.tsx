@@ -22,6 +22,10 @@ import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import { calcTraffic } from '@renderer/utils/calc'
 import { useTrafficStore } from '@renderer/store/traffic-store'
 import { ServerCard } from '@renderer/velum/servers/server-picker'
+import Power from '@renderer/assets/on_icon.svg'
+import Pause from '@renderer/assets/pause_icon.svg'
+import { Spinner } from '@renderer/components/ui/spinner'
+import { CharacterMorph } from '@renderer/components/ui/character-morph'
 
 function formatBytes(bytes: number): string {
   if (bytes <= 0) return '0 B'
@@ -33,26 +37,12 @@ function formatBytes(bytes: number): string {
 // Module-level variable: persists across component mounts/unmounts
 let connectionStartTime: number | null = null
 
-const RING_R = 49
-const RING_C = 2 * Math.PI * RING_R
+const TEAL = 'oklch(0.82 0.16 196)'
+const TEAL_GLOW = '0 0 32px oklch(0.75 0.19 196 / 35%), 0 0 8px oklch(0.75 0.19 196 / 20%)'
 
 type Phase = 'off' | 'connecting' | 'disconnecting' | 'on'
 
 const panel = 'rounded-2xl border border-vl-line bg-vl-panel'
-
-const PowerIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.2"
-    strokeLinecap="round"
-    className={className}
-  >
-    <path d="M12 2.5v9" />
-    <path d="M6.2 6.5a7 7 0 1 0 11.6 0" />
-  </svg>
-)
 
 const Home: React.FC = () => {
   const { t } = useTranslation()
@@ -338,17 +328,21 @@ const Home: React.FC = () => {
     )
   }
 
-  const ringStroke =
-    phase === 'on' || phase === 'connecting' || phase === 'disconnecting'
-      ? 'var(--color-vl-accent)'
-      : 'rgb(255 255 255 / 0.15)'
-  const ringDash =
-    phase === 'on'
-      ? `${RING_C} ${RING_C}`
-      : phase === 'off'
-        ? `0 ${RING_C}`
-        : `${RING_C * 0.28} ${RING_C * 0.72}`
-  const busy = phase === 'connecting' || phase === 'disconnecting'
+  // Status label above the button (same texts as before the redesign).
+  const status =
+    phase === 'connecting'
+      ? t('pages.home.connecting')
+      : phase === 'disconnecting'
+        ? t('pages.home.disconnecting')
+        : phase === 'on'
+          ? t('pages.home.connected')
+          : t('pages.home.disconnected')
+  const statusWidthTexts = [
+    t('pages.home.connecting'),
+    t('pages.home.disconnecting'),
+    t('pages.home.connected'),
+    t('pages.home.disconnected')
+  ]
 
   return (
     // One shared grid so left and right blocks line up row by row (title / connect + subscription /
@@ -358,80 +352,93 @@ const Home: React.FC = () => {
       <section className="contents">
         <h1 className="col-span-2 row-start-1 text-xl font-extrabold text-vl-text">{t('sider.home')}</h1>
 
-        <div className={`${panel} relative col-start-1 row-start-2 flex flex-col items-center justify-center gap-3 overflow-hidden px-6 py-8`}>
+        <div className={`${panel} col-start-1 row-start-2 flex flex-col items-center justify-center gap-2 overflow-hidden px-6 py-8`}>
+          {/* Status label */}
           <div
-            className="pointer-events-none absolute inset-0 transition-opacity duration-500"
-            style={{
-              opacity: phase === 'off' ? 0 : 1,
-              background:
-                'radial-gradient(closest-side at 50% 38%, oklch(0.82 0.16 196 / 0.16), transparent 70%)'
-            }}
-          />
-          <div className="relative size-28">
-            <svg
-              width="112"
-              height="112"
-              className={`-rotate-90 ${busy ? 'animate-spin' : ''}`}
-              style={{ animationDuration: busy ? '1.4s' : undefined }}
-            >
-              <circle cx="56" cy="56" r={RING_R} fill="none" stroke="rgb(255 255 255 / 0.06)" strokeWidth="3" />
-              <circle
-                cx="56"
-                cy="56"
-                r={RING_R}
-                fill="none"
-                stroke={ringStroke}
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeDasharray={ringDash}
-                style={{ transition: 'stroke-dasharray 0.6s ease, stroke 0.3s ease' }}
-              />
-            </svg>
-            <button
-              type="button"
-              disabled={isDisabled}
-              data-guide="home-power-toggle"
-              aria-label={t(`velumUi.status.${phase}Title`)}
-              onClick={() => onValueChange(!isSelected)}
-              className={`absolute inset-3.5 flex cursor-pointer items-center justify-center rounded-full transition-all duration-300 active:scale-95 disabled:cursor-default ${
-                phase === 'off'
-                  ? 'bg-vl-tile text-vl-muted hover:text-vl-text'
-                  : 'bg-vl-accent text-vl-bg shadow-[0_0_32px_oklch(0.82_0.16_196/0.35)]'
-              }`}
-            >
-              <PowerIcon className={`size-7 ${busy ? 'opacity-60' : ''}`} />
-            </button>
-          </div>
-
-          <div className="text-center">
-            <div className="text-lg font-bold text-vl-text">{t(`velumUi.status.${phase}Title`)}</div>
-            <div className="mt-0.5 text-sm text-vl-muted">{t(`velumUi.status.${phase}Sub`)}</div>
-          </div>
-
-          <div
-            aria-hidden={!showConnectedTimer}
-            className={`flex flex-col items-center gap-1.5 tabular-nums transition-all duration-300 ${
-              showConnectedTimer ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-1 opacity-0'
-            }`}
+            className="flex h-5 items-center justify-center transition-colors duration-300"
+            style={{ color: isSelected ? TEAL : 'oklch(0.58 0.04 230)' }}
           >
-            <div className="inline-flex items-center gap-0.5 text-base font-bold text-vl-accent">
-              <NumberFlow value={elapsedHours} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
-              <span>:</span>
-              <NumberFlow value={elapsedMinutes} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
-              <span>:</span>
-              <NumberFlow value={elapsedSeconds} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
+            <CharacterMorph
+              texts={[status]}
+              reserveTexts={statusWidthTexts}
+              interval={3000}
+              className="h-5 leading-none text-xs font-semibold uppercase tracking-widest"
+            />
+          </div>
+
+          {/* Power button (original look) */}
+          <button
+            disabled={isDisabled}
+            onClick={() => onValueChange(!isSelected)}
+            data-guide="home-power-toggle"
+            className="relative group my-1 cursor-pointer transition-transform active:scale-95 disabled:cursor-default"
+          >
+            <div
+              className="w-28 h-28 rounded-full flex items-center justify-center transition-all duration-400"
+              style={{
+                background: isSelected
+                  ? `radial-gradient(circle at 35% 40%, oklch(0.28 0.08 196), oklch(0.16 0.04 220))`
+                  : `radial-gradient(circle at 35% 40%, oklch(0.22 0.04 240), oklch(0.14 0.025 240))`,
+                border: isSelected
+                  ? `2px solid oklch(0.75 0.19 196 / 70%)`
+                  : `2px solid oklch(0.28 0.045 240)`,
+                boxShadow: isSelected ? TEAL_GLOW : 'none'
+              }}
+            >
+              <div className="relative size-14">
+                <Spinner
+                  className={`absolute inset-0 m-auto size-14 transition-all duration-300 ease-out ${
+                    loading ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
+                  }`}
+                  style={{ color: TEAL }}
+                />
+                <img
+                  src={Pause}
+                  alt=""
+                  className={`absolute inset-0 size-14 transition-all duration-300 ease-out ${
+                    !loading && isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
+                  }`}
+                />
+                <img
+                  src={Power}
+                  alt=""
+                  className={`absolute inset-0 size-14 transition-all duration-300 ease-out ${
+                    !loading && !isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
+                  }`}
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-4 text-xs text-vl-muted">
-              <span className="flex items-center gap-1.5">
-                <ArrowUp className="size-3 text-vl-accent" />
-                {calcTraffic(trafficInfo.upTotal)}
-              </span>
-              <span className="h-3 w-px bg-vl-line-strong" />
-              <span className="flex items-center gap-1.5">
-                <ArrowDown className="size-3 text-vl-accent" />
-                {calcTraffic(trafficInfo.downTotal)}
-              </span>
-            </div>
+          </button>
+
+          {/* Timer + traffic while connected, a short hint otherwise */}
+          <div className="flex min-h-14 flex-col items-center justify-start gap-1.5 tabular-nums">
+            {showConnectedTimer ? (
+              <>
+                <div
+                  className="inline-flex items-center gap-0.5 text-lg font-bold"
+                  style={{ color: TEAL }}
+                >
+                  <NumberFlow value={elapsedHours} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
+                  <span>:</span>
+                  <NumberFlow value={elapsedMinutes} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
+                  <span>:</span>
+                  <NumberFlow value={elapsedSeconds} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
+                </div>
+                <div className="flex items-center gap-4 text-xs text-vl-muted">
+                  <span className="flex items-center gap-1.5">
+                    <ArrowUp className="size-3" style={{ color: TEAL }} />
+                    {calcTraffic(trafficInfo.upTotal)}
+                  </span>
+                  <span className="h-3 w-px bg-vl-line-strong" />
+                  <span className="flex items-center gap-1.5">
+                    <ArrowDown className="size-3" style={{ color: TEAL }} />
+                    {calcTraffic(trafficInfo.downTotal)}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-vl-muted">{t(`velumUi.status.${phase}Sub`)}</div>
+            )}
           </div>
         </div>
 
