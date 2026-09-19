@@ -614,63 +614,70 @@ const Home: React.FC = () => {
             <div className="truncate text-xs text-vl-muted">Telegram</div>
           </div>
         </button>
-        {/* Updates: geo files + application (right of the routing modes) */}
-        <div className={`${panel} col-start-2 row-start-4 flex flex-col gap-3 self-start p-4`}>
-          {geodataProgress !== null ? (
-            <div className="flex flex-col gap-1">
-              <div className="flex justify-between text-[11px] text-vl-muted">
-                <span className="truncate">
-                  {geodataAuto
-                    ? `Загрузка геоданных: ${geodataFile || '...'}`
-                    : geodataFile || 'Загрузка...'}
+        {/* Updates, right of the routing modes: separate tiles in the same style/height as the
+            routing cards, top-aligned with the first one (mt-6 = the "routing mode" caption). */}
+        <div className="col-start-2 row-start-4 mt-6 flex flex-col gap-1.5 self-start">
+          <button
+            type="button"
+            disabled={geodataProgress !== null}
+            onClick={handleUpdateGeodata}
+            className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-vl-line bg-vl-panel px-3.5 py-2.5 text-left transition-colors hover:border-vl-line-strong disabled:cursor-default"
+          >
+            <RefreshCcw className={`size-4 shrink-0 text-vl-muted ${geodataProgress !== null ? 'animate-spin' : ''}`} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-vl-text">
+                {t('velumUi.update.geodata')}
+              </span>
+              {geodataProgress !== null ? (
+                <span className="mt-1 block">
+                  <span className="flex justify-between text-[11px] text-vl-muted">
+                    <span className="truncate">{geodataFile || '...'}</span>
+                    <span>{geodataProgress}%</span>
+                  </span>
+                  <span className="mt-1 block h-1 overflow-hidden rounded-full bg-white/8">
+                    <span
+                      className="block h-full rounded-full bg-vl-accent transition-all duration-300"
+                      style={{ width: `${geodataProgress}%` }}
+                    />
+                  </span>
+                  {geodataAuto && (
+                    <span className="mt-1 block text-[11px] text-vl-faint">
+                      VPN будет доступен после завершения загрузки
+                    </span>
+                  )}
                 </span>
-                <span>{geodataProgress}%</span>
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/8">
-                <div
-                  className="h-full rounded-full bg-vl-accent transition-all duration-300"
-                  style={{ width: `${geodataProgress}%` }}
-                />
-              </div>
-              {geodataAuto && (
-                <p className="text-[11px] text-vl-faint">VPN будет доступен после завершения загрузки</p>
+              ) : (
+                <span className="block truncate text-xs text-vl-muted">
+                  {t('velumUi.update.geodataDesc')}
+                </span>
               )}
-            </div>
+            </span>
+          </button>
+
+          {latest ? (
+            <UpdaterButton
+              latest={latest}
+              variant="card"
+              label={t('velumUi.update.install')}
+              sublabel={t('velumUi.update.available', { version: latest.version })}
+            />
           ) : (
             <button
               type="button"
-              onClick={handleUpdateGeodata}
-              className="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-0.5 text-left text-sm text-vl-muted transition-colors hover:text-vl-text"
+              disabled={checking}
+              onClick={handleCheckUpdate}
+              className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-vl-line bg-vl-panel px-3.5 py-2.5 text-left transition-colors hover:border-vl-line-strong disabled:cursor-default"
             >
-              <RefreshCcw className="size-3.5 shrink-0" />
-              {t('velumUi.update.geodata')}
+              <RefreshCcw className={`size-4 shrink-0 text-vl-muted ${checking ? 'animate-spin' : ''}`} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-vl-text">
+                  {checking ? t('velumUi.update.checking') : t('velumUi.update.check')}
+                </span>
+                <span className="block truncate text-xs text-vl-muted">
+                  {upToDate ? t('velumUi.update.upToDate') : t('velumUi.update.checkDesc')}
+                </span>
+              </span>
             </button>
-          )}
-
-          <div className="h-px bg-vl-line" />
-
-          {latest ? (
-            <div className="flex flex-col gap-2">
-              <div className="text-xs text-vl-muted">
-                {t('velumUi.update.available', { version: latest.version })}
-              </div>
-              <UpdaterButton latest={latest} label={t('velumUi.update.install')} />
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1">
-              <button
-                type="button"
-                disabled={checking}
-                onClick={handleCheckUpdate}
-                className="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-0.5 text-left text-sm text-vl-muted transition-colors hover:text-vl-text disabled:cursor-default disabled:opacity-60"
-              >
-                <RefreshCcw className={`size-3.5 shrink-0 ${checking ? 'animate-spin' : ''}`} />
-                {checking ? t('velumUi.update.checking') : t('velumUi.update.check')}
-              </button>
-              {upToDate && (
-                <div className="px-1 text-xs text-vl-faint">{t('velumUi.update.upToDate')}</div>
-              )}
-            </div>
           )}
         </div>
       </aside>

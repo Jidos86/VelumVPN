@@ -1088,6 +1088,8 @@ export default {
     subscription: { title: 'Subscription', refresh: 'Refresh', daysLeft: 'days left', expires: 'expires' },
     update: {
       geodata: 'Update geo files',
+      geodataDesc: 'Lists of blocked sites and IPs',
+      checkDesc: 'Look for a new app version',
       check: 'Check for updates',
       checking: 'Checking…',
       upToDate: 'You have the latest version',

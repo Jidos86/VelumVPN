@@ -1090,6 +1090,8 @@ export default {
     subscription: { title: 'Подписка', refresh: 'Обновить', daysLeft: 'дней осталось', expires: 'дата окончания' },
     update: {
       geodata: 'Обновить геофайлы',
+      geodataDesc: 'Списки заблокированных сайтов и IP',
+      checkDesc: 'Проверка новой версии приложения',
       check: 'Проверить обновления',
       checking: 'Проверка…',
       upToDate: 'Установлена последняя версия',
