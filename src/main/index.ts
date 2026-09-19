@@ -1,3 +1,4 @@
+import { FLAVOR } from './utils/flavor'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { registerIpcMainHandlers } from './utils/ipc'
 import windowStateKeeper from 'electron-window-state'
@@ -91,7 +92,7 @@ if (
       if (!existsSync(path.join(taskDir(), 'velumvpn-run.exe'))) {
         throw new Error('velumvpn-run.exe not found')
       } else {
-        execSync('%SystemRoot%\\System32\\schtasks.exe /run /tn velumvpn-run')
+        execSync(`%SystemRoot%\\System32\\schtasks.exe /run /tn ${FLAVOR.elevateTask}`)
       }
       app.exit()
     } catch {
@@ -102,7 +103,8 @@ if (
 }
 
 if (process.platform === 'win32' && is.dev) {
-  patchControledMihomoConfig({ tun: { enable: false } })
+  // mihomo.yaml doesn't exist yet on a fresh data dir (init() creates it later).
+  patchControledMihomoConfig({ tun: { enable: false } }).catch(() => {})
 }
 
 const gotTheLock = app.requestSingleInstanceLock()
@@ -281,7 +283,7 @@ powerMonitor.on('shutdown', async () => {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async () => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('velumvpn.app')
+  electronApp.setAppUserModelId(FLAVOR.appUserModelId)
   try {
     await initPromise
   } catch (e) {

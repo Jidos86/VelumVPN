@@ -1,3 +1,4 @@
+import { FLAVOR } from './flavor'
 export const defaultConfig: AppConfig = {
   core: 'mihomo',
   silentStart: false,
@@ -42,7 +43,7 @@ export const defaultControledMihomoConfig: Partial<MihomoConfig> = {
   },
   secret: '',
   mode: 'rule',
-  'mixed-port': 7897,
+  'mixed-port': FLAVOR.mixedPort,
   'socks-port': 0,
   port: 0,
   'redir-port': 0,
@@ -61,7 +62,7 @@ export const defaultControledMihomoConfig: Partial<MihomoConfig> = {
   'skip-auth-prefixes': ['127.0.0.1/32'],
   tun: {
     enable: false,
-    device: process.platform === 'darwin' ? undefined : 'velumvpn',
+    device: process.platform === 'darwin' ? undefined : FLAVOR.tunDevice,
     stack: process.platform === 'linux' ? 'gvisor' : 'mixed',
     'auto-route': true,
     'auto-redirect': false,

@@ -1,3 +1,4 @@
+import { FLAVOR } from '../utils/flavor'
 import { exec, execFile, execSync, spawn } from 'child_process'
 import { app, dialog, nativeTheme, shell } from 'electron'
 import { readFile } from 'fs/promises'
@@ -109,13 +110,13 @@ export function createElevateTaskSync(): void {
     path.join(taskDir(), 'velumvpn-run.exe')
   )
   execSync(
-    `%SystemRoot%\\System32\\schtasks.exe /create /tn "velumvpn-run" /xml "${taskFilePath}" /f`
+    `%SystemRoot%\\System32\\schtasks.exe /create /tn "${FLAVOR.elevateTask}" /xml "${taskFilePath}" /f`
   )
 }
 
 export async function deleteElevateTask(): Promise<void> {
   try {
-    execSync(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "velumvpn-run" /f`)
+    execSync(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "${FLAVOR.elevateTask}" /f`)
   } catch {
     // ignore
   }
@@ -123,7 +124,7 @@ export async function deleteElevateTask(): Promise<void> {
 
 export async function checkElevateTask(): Promise<boolean> {
   try {
-    execSync(`%SystemRoot%\\System32\\schtasks.exe /query /tn "velumvpn-run"`, { stdio: 'pipe' })
+    execSync(`%SystemRoot%\\System32\\schtasks.exe /query /tn "${FLAVOR.elevateTask}"`, { stdio: 'pipe' })
     return true
   } catch {
     return false

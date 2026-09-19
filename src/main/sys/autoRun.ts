@@ -1,3 +1,4 @@
+import { FLAVOR } from '../utils/flavor'
 import { exePath, homeDir, taskDir } from '../utils/dirs'
 import { execWithElevation } from '../utils/elevation'
 import { mkdir, readFile, rm, writeFile } from 'fs/promises'
@@ -6,7 +7,7 @@ import { existsSync } from 'fs'
 import { promisify } from 'util'
 import path from 'path'
 
-const appName = 'velumvpn'
+const appName = FLAVOR.autorunTask
 
 const taskXml = `<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">

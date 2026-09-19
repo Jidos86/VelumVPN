@@ -1,3 +1,4 @@
+import { FLAVOR } from '../utils/flavor'
 import { app } from 'electron'
 import {
   getControledMihomoConfig,
@@ -600,7 +601,7 @@ async function generateFromTemplate(
     template['socks-port'] = 0
     template['redir-port'] = 0
     template['tproxy-port'] = 0
-    template['mixed-port'] = controledMihomoConfig['mixed-port'] ?? 7897
+    template['mixed-port'] = controledMihomoConfig['mixed-port'] ?? FLAVOR.mixedPort
   }
 
   // Clean zero-value ports
@@ -766,6 +767,11 @@ function cleanTunConfig(profile: MihomoConfig, controlTun: boolean): void {
   tunBooleanConfigs.forEach((key) => {
     if (!tunConfig[key]) delete tunConfig[key]
   })
+
+  if (tunConfig.device === 'velumvpn') {
+    // shipped default from the templates; map it to this flavor's adapter name
+    tunConfig.device = FLAVOR.tunDevice
+  }
 
   if (tunConfig.device === '') {
     delete tunConfig.device

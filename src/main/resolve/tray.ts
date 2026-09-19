@@ -1,3 +1,4 @@
+import { FLAVOR } from '../utils/flavor'
 import {
   changeCurrentProfile,
   getAppConfig,
@@ -419,7 +420,7 @@ ipcMain.on('customTray:close', () => {
 })
 
 export async function copyEnv(type: 'bash' | 'cmd' | 'powershell' | 'nushell'): Promise<void> {
-  const { 'mixed-port': mixedPort = 7897 } = await getControledMihomoConfig()
+  const { 'mixed-port': mixedPort = FLAVOR.mixedPort } = await getControledMihomoConfig()
   const { sysProxy } = await getAppConfig()
   const { host, bypass = [] } = sysProxy
   switch (type) {

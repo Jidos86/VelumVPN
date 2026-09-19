@@ -1,3 +1,4 @@
+import { IS_BETA } from './flavor'
 import {
   appConfigPath,
   controledMihomoConfigPath,
@@ -247,6 +248,8 @@ async function migration(): Promise<void> {
 }
 
 function initDeeplink(): void {
+  // The beta build must not take over clash:// / mihomo:// / velumvpn:// from the released app.
+  if (IS_BETA) return
   if (process.defaultApp) {
     if (process.argv.length >= 2) {
       app.setAsDefaultProtocolClient('clash', process.execPath, [path.resolve(process.argv[1])])

@@ -1,5 +1,5 @@
-appId: com.velumvpn.app
-productName: VelumVPN
+appId: com.velumvpn.app.beta
+productName: VelumVPN Beta
 directories:
   buildResources: build
 files:
@@ -21,11 +21,9 @@ extraResources:
   - from: './build/icons/'
     to: 'icons'
 protocols:
-  name: 'VelumVPN URI Scheme'
+  name: 'VelumVPN Beta URI Scheme'
   schemes:
-    - 'clash'
-    - 'mihomo'
-    - 'velumvpn'
+    - 'velumvpn-beta'
 win:
   target:
     - nsis

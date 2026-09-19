@@ -1,3 +1,4 @@
+import { FLAVOR } from './flavor'
 import { is } from '@electron-toolkit/utils'
 import { existsSync, mkdirSync, readdirSync } from 'fs'
 import { app } from 'electron'
@@ -71,16 +72,16 @@ export function themesDir(): string {
 
 export function mihomoIpcPath(): string {
   if (process.platform === 'win32') {
-    return '\\\\.\\pipe\\VelumVPN\\mihomo'
+    return FLAVOR.winPipe
   }
   const { core = 'mihomo' } = getAppConfigSync()
   if (core === 'system') {
-    return '/tmp/velumvpn-mihomo-external.sock'
+    return `/tmp/velumvpn${FLAVOR.sockSuffix}-mihomo-external.sock`
   }
   if (!checkCorePermissionSync(core as 'mihomo' | 'mihomo-alpha')) {
-    return '/tmp/velumvpn-mihomo-api-noperm.sock'
+    return `/tmp/velumvpn${FLAVOR.sockSuffix}-mihomo-api-noperm.sock`
   }
-  return '/tmp/velumvpn-mihomo-api.sock'
+  return `/tmp/velumvpn${FLAVOR.sockSuffix}-mihomo-api.sock`
 }
 
 export function serviceIpcPath(): string {

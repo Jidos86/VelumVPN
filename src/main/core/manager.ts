@@ -1,3 +1,4 @@
+import { FLAVOR } from '../utils/flavor'
 import { ChildProcess, execFile, execFileSync, spawn } from 'child_process'
 import {
   dataDir,
@@ -734,7 +735,7 @@ export async function startNetworkDetection(): Promise<void> {
     proxyMode = false
   } = await getAppConfig()
   const writeSysProxy = proxyMode && sysProxy.enable
-  const { tun: { device = process.platform === 'darwin' ? undefined : 'velumvpn' } = {} } =
+  const { tun: { device = process.platform === 'darwin' ? undefined : FLAVOR.tunDevice } = {} } =
     await getControledMihomoConfig()
   if (networkDetectionTimer) {
     clearInterval(networkDetectionTimer)
