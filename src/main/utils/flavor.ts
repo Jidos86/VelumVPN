@@ -1,10 +1,11 @@
 import { app } from 'electron'
 import { join } from 'path'
 
-// Beta flavor: gives the new-design build its own identity so it can run next to the
-// released app (separate data dir, control pipe, TUN adapter, port, scheduled tasks).
-// Before merging into main: set IS_BETA to false and revert the identity in electron-builder.yml.
-export const IS_BETA = true
+// Beta flavor: gives a test build its own identity so it can run next to the released app
+// (separate data dir, control pipe, TUN adapter, port, scheduled tasks). Off in releases.
+// To build a side-by-side beta: set this to true (here and in the renderer's velum/flavor.ts) and
+// give electron-builder.yml a different appId/productName and URI scheme.
+export const IS_BETA = false
 
 const prod = {
   appName: 'VelumVPN',
