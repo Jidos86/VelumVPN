@@ -37,8 +37,8 @@ function formatBytes(bytes: number): string {
 // Module-level variable: persists across component mounts/unmounts
 let connectionStartTime: number | null = null
 
-const TEAL = 'oklch(0.82 0.16 196)'
-const TEAL_GLOW = '0 0 32px oklch(0.75 0.19 196 / 35%), 0 0 8px oklch(0.75 0.19 196 / 20%)'
+const TEAL = 'var(--color-vl-accent)'
+const TEAL_GLOW = '0 0 32px oklch(0.82 0.16 196 / 30%), 0 0 8px oklch(0.82 0.16 196 / 18%)'
 
 type Phase = 'off' | 'connecting' | 'disconnecting' | 'on'
 
@@ -356,7 +356,7 @@ const Home: React.FC = () => {
           {/* Status label */}
           <div
             className="flex h-5 items-center justify-center transition-colors duration-300"
-            style={{ color: isSelected ? TEAL : 'oklch(0.58 0.04 230)' }}
+            style={{ color: isSelected ? TEAL : 'var(--color-vl-muted)' }}
           >
             <CharacterMorph
               texts={[status]}
@@ -376,12 +376,14 @@ const Home: React.FC = () => {
             <div
               className="w-28 h-28 rounded-full flex items-center justify-center transition-all duration-400"
               style={{
+                // Same shape as the original button, recoloured to the new palette
+                // (panel/tile navy when off, the accent teal when connected).
                 background: isSelected
-                  ? `radial-gradient(circle at 35% 40%, oklch(0.28 0.08 196), oklch(0.16 0.04 220))`
-                  : `radial-gradient(circle at 35% 40%, oklch(0.22 0.04 240), oklch(0.14 0.025 240))`,
+                  ? `radial-gradient(circle at 35% 40%, oklch(0.3 0.06 196), #0c1820)`
+                  : `radial-gradient(circle at 35% 40%, #182131, #0d121b)`,
                 border: isSelected
-                  ? `2px solid oklch(0.75 0.19 196 / 70%)`
-                  : `2px solid oklch(0.28 0.045 240)`,
+                  ? `2px solid oklch(0.82 0.16 196 / 65%)`
+                  : `2px solid rgb(255 255 255 / 0.1)`,
                 boxShadow: isSelected ? TEAL_GLOW : 'none'
               }}
             >
@@ -403,7 +405,7 @@ const Home: React.FC = () => {
                   src={Power}
                   alt=""
                   className={`absolute inset-0 size-14 transition-all duration-300 ease-out ${
-                    !loading && !isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
+                    !loading && !isSelected ? 'opacity-70 scale-100' : 'opacity-0 scale-90'
                   }`}
                 />
               </div>
