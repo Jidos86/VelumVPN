@@ -25,6 +25,7 @@ import { useTrafficStore } from '@renderer/store/traffic-store'
 import { ServerCard } from '@renderer/velum/servers/server-picker'
 import UpdaterButton from '@renderer/components/updater/updater-button'
 import { Switch } from '@renderer/velum/ui/primitives'
+import { SIMULATED_UPDATE } from '@renderer/velum/dev/simulated-update'
 import Power from '@renderer/assets/on_icon.svg'
 import Pause from '@renderer/assets/pause_icon.svg'
 import { Spinner } from '@renderer/components/ui/spinner'
@@ -224,7 +225,8 @@ const Home: React.FC = () => {
     setChecking(true)
     setUpToDate(false)
     try {
-      const res = await checkUpdate()
+      // Dev aid: the manual check can be made to "find" a fake update (see velum/dev/simulated-update.ts).
+      const res = SIMULATED_UPDATE ?? (await checkUpdate())
       await mutate(['checkUpdate'], res, { revalidate: false })
       if (!res) setUpToDate(true)
     } catch (e) {
