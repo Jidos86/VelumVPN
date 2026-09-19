@@ -389,7 +389,7 @@ const RulesPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex shrink-0 gap-2 px-4 pt-3">
+        <div className="flex shrink-0 gap-2 px-4 pb-3 pt-3">
           <TextInput
             value={inputs[side]}
             disabled={isSelecting}
@@ -409,7 +409,7 @@ const RulesPage: React.FC = () => {
         </div>
 
         {isSelecting && (
-          <div className="flex shrink-0 items-center justify-between px-4 pt-3">
+          <div className="flex shrink-0 items-center justify-between px-4 pb-3">
             <button
               type="button"
               className="flex cursor-pointer items-center gap-1.5 text-xs text-vl-muted transition-colors hover:text-vl-text"
@@ -440,7 +440,7 @@ const RulesPage: React.FC = () => {
           </div>
         )}
 
-        <div className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto py-4 pl-4 pr-2 [scrollbar-gutter:stable]">
+        <div className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pb-4 pl-4 pr-2 [scrollbar-gutter:stable]">
           {items.length === 0 && (
             <div className="py-6 text-center text-sm text-vl-faint">{t('velumUi.rules.empty')}</div>
           )}
