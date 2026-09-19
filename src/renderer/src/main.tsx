@@ -50,7 +50,8 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
                   <GroupsProvider>
                     <RulesProvider>
                       <App />
-                      <Toaster richColors position="bottom-right" />
+                      {/* Top of the window, just below the 32px title bar */}
+                      <Toaster richColors position="top-center" offset={44} />
                     </RulesProvider>
                   </GroupsProvider>
                 </ProfileConfigProvider>
