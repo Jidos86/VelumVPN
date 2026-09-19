@@ -10,6 +10,8 @@ export interface ServerEntry {
   isAuto: boolean
   // for auto groups: the node the group currently resolves to
   resolvedName?: string
+  // for auto groups: the node the user pinned in it (the group keeps using it until unpinned)
+  fixed?: string
 }
 
 const FLAG_PAIR = /[\u{1F1E6}-\u{1F1FF}]{2}/gu

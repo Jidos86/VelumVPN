@@ -1082,6 +1082,8 @@ export default {
       now: 'Now',
       checkAll: 'Test pings',
       check: 'Test ping',
+      pin: 'Pin in "Random server"',
+      unpin: 'Unpin',
       empty: 'Nothing found',
       notTested: 'Not tested'
     },

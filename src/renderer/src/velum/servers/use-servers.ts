@@ -4,7 +4,8 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
-  mihomoProxyDelay
+  mihomoProxyDelay,
+  mihomoUnfixedProxy
 } from '@renderer/utils/ipc'
 import { lastDelay, parseServerName, ServerEntry } from './server-utils'
 
@@ -17,6 +18,10 @@ export function useServers(): {
   testing: Set<string>
   testingAll: boolean
   select: (name: string) => Promise<void>
+  // node pinned inside the auto group, and a toggle for it (undefined when there is no auto group)
+  pinned: string | undefined
+  canPin: boolean
+  togglePin: (name: string) => Promise<void>
   testOne: (name: string) => Promise<void>
   testAll: () => Promise<void>
 } {
@@ -42,7 +47,8 @@ export function useServers(): {
           flag,
           delay: lastDelay(item),
           isAuto: true,
-          resolvedName: item.now
+          resolvedName: item.now,
+          fixed: item.fixed || undefined
         })
       } else {
         if (item.type === 'Direct' || item.type === 'Reject') continue
@@ -71,6 +77,27 @@ export function useServers(): {
       mutate()
     },
     [group, autoCloseConnection, mutate]
+  )
+
+  // Same as the proxies page: choosing a node inside an auto group pins it there,
+  // and "unfixed" hands the choice back to the group.
+  const autoGroup = useMemo(() => entries.find((e) => e.isAuto), [entries])
+  const pinned = autoGroup?.fixed
+
+  const togglePin = useCallback(
+    async (name: string): Promise<void> => {
+      if (!autoGroup) return
+      if (pinned === name) {
+        await mihomoUnfixedProxy(autoGroup.name)
+      } else {
+        await mihomoChangeProxy(autoGroup.name, name)
+      }
+      if (autoCloseConnection && group?.now === autoGroup.name) {
+        await mihomoCloseAllConnections(group.name)
+      }
+      mutate()
+    },
+    [autoGroup, pinned, group, autoCloseConnection, mutate]
   )
 
   const testOne = useCallback(
@@ -125,6 +152,9 @@ export function useServers(): {
     testing,
     testingAll,
     select,
+    pinned,
+    canPin: autoGroup !== undefined,
+    togglePin,
     testOne,
     testAll
   }
