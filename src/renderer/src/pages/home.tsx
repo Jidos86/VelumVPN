@@ -38,7 +38,7 @@ function formatBytes(bytes: number): string {
 let connectionStartTime: number | null = null
 
 const TEAL = 'var(--color-vl-accent)'
-const TEAL_GLOW = '0 0 32px oklch(0.82 0.16 196 / 30%), 0 0 8px oklch(0.82 0.16 196 / 18%)'
+const TEAL_GLOW = '0 0 26px oklch(0.82 0.16 196 / 16%)'
 
 type Phase = 'off' | 'connecting' | 'disconnecting' | 'on'
 
@@ -379,10 +379,10 @@ const Home: React.FC = () => {
                 // Same shape as the original button, recoloured to the new palette
                 // (panel/tile navy when off, the accent teal when connected).
                 background: isSelected
-                  ? `radial-gradient(circle at 35% 40%, oklch(0.3 0.06 196), #0c1820)`
+                  ? `radial-gradient(circle at 35% 40%, #17232d, #0e151f)`
                   : `radial-gradient(circle at 35% 40%, #182131, #0d121b)`,
                 border: isSelected
-                  ? `2px solid oklch(0.82 0.16 196 / 65%)`
+                  ? `2px solid oklch(0.82 0.16 196 / 50%)`
                   : `2px solid rgb(255 255 255 / 0.1)`,
                 boxShadow: isSelected ? TEAL_GLOW : 'none'
               }}
@@ -417,7 +417,7 @@ const Home: React.FC = () => {
             {showConnectedTimer ? (
               <>
                 <div
-                  className="inline-flex items-center gap-0.5 text-lg font-bold"
+                  className="inline-flex items-center gap-0.5 text-lg font-semibold"
                   style={{ color: TEAL }}
                 >
                   <NumberFlow value={elapsedHours} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
