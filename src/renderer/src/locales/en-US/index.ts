@@ -1095,8 +1095,9 @@ export default {
       tabIPs: 'IP / subnets',
       colVpn: 'Through VPN',
       colDirect: 'Bypass VPN',
-      moveToDirect: 'Move to "Bypass VPN"',
-      moveToVpn: 'Move to "Through VPN"',
+      dragHint: 'Drag an entry to the other column to change its route',
+      edit: 'Edit',
+      alreadyThere: 'is already in the list',
       empty: 'Nothing here yet'
     },
     diag: {

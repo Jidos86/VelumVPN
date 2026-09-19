@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSWRConfig } from 'swr'
 import { toast } from 'sonner'
-import { ArrowLeft, ArrowRight, CheckSquare, ListTree, Plus, Square, Trash2, Upload, X } from 'lucide-react'
+import { CheckSquare, GripVertical, Pencil, ListTree, Plus, Square, Trash2, Upload, X } from 'lucide-react'
 import { CustomRules, getCustomRules, setCustomRules } from '@renderer/utils/ipc'
 import { applyRulesChange } from '@renderer/velum/rules/apply-rules'
 import { useConnectionsStore } from '@renderer/store/connections-store'
@@ -162,6 +162,12 @@ const RulesPage: React.FC = () => {
   const [importSide, setImportSide] = useState<Side | null>(null)
   const [selecting, setSelecting] = useState<Side | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  // Drag & drop between the two columns, and inline editing of a single entry.
+  const [dragging, setDragging] = useState<{ side: Side; item: string } | null>(null)
+  const [dropSide, setDropSide] = useState<Side | null>(null)
+  const [editing, setEditing] = useState<{ side: Side; item: string } | null>(null)
+  const [editValue, setEditValue] = useState('')
+  const editDone = useRef(false)
 
   useEffect(() => {
     getCustomRules().then((r) => setRules({ ...EMPTY, ...r }))
@@ -211,8 +217,37 @@ const RulesPage: React.FC = () => {
     persist({
       ...rules,
       [own]: rules[own].filter((x) => x !== item),
-      [opp]: [...rules[opp], item]
+      [opp]: [...new Set([...rules[opp], item])]
     })
+  }
+
+  const startEdit = (side: Side, item: string): void => {
+    editDone.current = false
+    setEditing({ side, item })
+    setEditValue(item)
+  }
+
+  // Replace an entry in place, keeping its position. Same validation as adding a new one.
+  const commitEdit = (): void => {
+    if (!editing || editDone.current) return
+    editDone.current = true
+    const { side, item } = editing
+    setEditing(null)
+    const next = clean(kind, editValue)
+    if (!next || next === item) return
+    const own = FIELD[kind][side]
+    const opp = FIELD[kind][otherSide(side)]
+    if (rules[opp].includes(next)) {
+      toast.warning(
+        t('customRules.conflictWarning', { item: next, section: t(SECTION_KEY[kind][otherSide(side)]) })
+      )
+      return
+    }
+    if (rules[own].includes(next)) {
+      toast.info(`${next}: ${t('velumUi.rules.alreadyThere')}`)
+      return
+    }
+    persist({ ...rules, [own]: rules[own].map((x) => (x === item ? next : x)) })
   }
 
   const exitSelect = (): void => {
@@ -237,7 +272,31 @@ const RulesPage: React.FC = () => {
     const isSelecting = selecting === side
     const allSelected = items.length > 0 && selected.size === items.length
     return (
-      <div className={`${panelClass} flex min-w-0 flex-1 flex-col`}>
+      <div
+        className={`${panelClass} flex min-w-0 flex-1 flex-col transition-shadow ${
+          dropSide === side
+            ? side === 'vpn'
+              ? 'ring-2 ring-vl-accent/60'
+              : 'ring-2 ring-vl-danger/60'
+            : ''
+        }`}
+        // A row can be dropped on the other column to move it there.
+        onDragOver={(e) => {
+          if (!dragging || dragging.side === side) return
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'move'
+          if (dropSide !== side) setDropSide(side)
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropSide(null)
+        }}
+        onDrop={(e) => {
+          e.preventDefault()
+          if (dragging && dragging.side !== side) moveItem(dragging.side, dragging.item)
+          setDragging(null)
+          setDropSide(null)
+        }}
+      >
         <div className="flex items-center justify-between gap-2 border-b border-vl-line px-4 py-3">
           <div className="flex min-w-0 items-center gap-2">
             <span
@@ -342,9 +401,21 @@ const RulesPage: React.FC = () => {
           )}
           {items.map((item) => {
             const checked = selected.has(item)
+            const isEditing = editing?.side === side && editing.item === item
+            const canDrag = !isSelecting && !isEditing && !saving
             return (
               <div
                 key={item}
+                draggable={canDrag}
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = 'move'
+                  e.dataTransfer.setData('text/plain', item)
+                  setDragging({ side, item })
+                }}
+                onDragEnd={() => {
+                  setDragging(null)
+                  setDropSide(null)
+                }}
                 onClick={
                   isSelecting
                     ? () =>
@@ -356,8 +427,12 @@ const RulesPage: React.FC = () => {
                         })
                     : undefined
                 }
-                className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2 transition-colors ${
-                  isSelecting ? 'cursor-pointer select-none' : ''
+                className={`group flex items-center gap-2.5 rounded-xl border px-2.5 py-2 transition-colors ${
+                  isSelecting ? 'cursor-pointer select-none' : canDrag ? 'cursor-grab active:cursor-grabbing' : ''
+                } ${
+                  dragging?.side === side && dragging.item === item
+                    ? 'opacity-40'
+                    : ''
                 } ${checked ? 'border-vl-danger/50 bg-vl-danger/8' : 'border-vl-line bg-vl-tile'}`}
               >
                 {isSelecting ? (
@@ -367,29 +442,46 @@ const RulesPage: React.FC = () => {
                     <Square className="size-4 shrink-0 text-vl-faint" />
                   )
                 ) : (
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/6 text-[11px] font-bold text-vl-muted">
-                    {badgeText(kind, item)}
+                  <>
+                    <GripVertical className="-ml-1.5 -mr-1 size-3.5 shrink-0 text-vl-faint opacity-40 transition-opacity group-hover:opacity-100" />
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/6 text-[11px] font-bold text-vl-muted">
+                      {badgeText(kind, item)}
+                    </span>
+                  </>
+                )}
+                {isEditing ? (
+                  <TextInput
+                    autoFocus
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commitEdit()
+                      if (e.key === 'Escape') {
+                        editDone.current = true
+                        setEditing(null)
+                      }
+                    }}
+                    onBlur={commitEdit}
+                    className="h-7 min-w-0 flex-1 px-2 py-0 font-mono"
+                  />
+                ) : (
+                  <span
+                    className="min-w-0 flex-1 truncate font-mono text-sm text-vl-text"
+                    onDoubleClick={() => !isSelecting && !saving && startEdit(side, item)}
+                  >
+                    {item}
                   </span>
                 )}
-                <span className="min-w-0 flex-1 truncate font-mono text-sm text-vl-text">{item}</span>
-                {!isSelecting && (
+                {!isSelecting && !isEditing && (
                   <>
-                    <button
-                      type="button"
+                    <IconButton
+                      title={t('velumUi.rules.edit')}
+                      aria-label={t('velumUi.rules.edit')}
                       disabled={saving}
-                      onClick={() => moveItem(side, item)}
-                      title={side === 'vpn' ? t('velumUi.rules.moveToDirect') : t('velumUi.rules.moveToVpn')}
-                      aria-label={side === 'vpn' ? t('velumUi.rules.moveToDirect') : t('velumUi.rules.moveToVpn')}
-                      className={`flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-vl-line text-vl-muted transition-colors disabled:opacity-50 ${
-                        side === 'vpn'
-                          ? 'hover:border-vl-danger/50 hover:text-vl-danger'
-                          : 'hover:border-vl-accent/50 hover:text-vl-accent'
-                      }`}
+                      onClick={() => startEdit(side, item)}
                     >
-                      {/* Icon only, like a transfer list: the arrow points at the column the item moves to
-                          (VPN is the left column, bypass is the right one). */}
-                      {side === 'vpn' ? <ArrowRight className="size-3.5" /> : <ArrowLeft className="size-3.5" />}
-                    </button>
+                      <Pencil className="size-3.5" />
+                    </IconButton>
                     <IconButton tone="danger" disabled={saving} onClick={() => removeItems(side, [item])}>
                       <X className="size-3.5" />
                     </IconButton>
@@ -405,7 +497,7 @@ const RulesPage: React.FC = () => {
 
   return (
     <PageShell title={t('customRules.pageTitle')} subtitle={t('velumUi.rules.subtitle')}>
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Segmented
           items={tabs}
           value={kind}
@@ -414,6 +506,7 @@ const RulesPage: React.FC = () => {
             exitSelect()
           }}
         />
+        <span className="text-xs text-vl-faint">{t('velumUi.rules.dragHint')}</span>
       </div>
       <div className="flex min-h-0 gap-4">
         {renderColumn('vpn')}
