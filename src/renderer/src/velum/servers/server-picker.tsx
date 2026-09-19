@@ -26,11 +26,30 @@ function useBandLabel(): (band: PingBand) => string {
   }
 }
 
-const CodeBadge: React.FC<{ entry: ServerEntry }> = ({ entry }) => (
-  <div className="flex h-8 w-9 shrink-0 items-center justify-center rounded-lg bg-white/5 text-[11px] font-bold tracking-wide text-vl-muted">
-    {entry.isAuto ? <Sparkles className="size-4 text-vl-accent" /> : entry.code || '··'}
-  </div>
-)
+// Flag emoji are drawn with the bundled twemoji font (Windows has no flag glyphs), scaled up and
+// clipped so the flag fills the whole badge instead of sitting small in the middle.
+const FLAG_FONT_SIZE = 44
+
+const CodeBadge: React.FC<{ entry: ServerEntry }> = ({ entry }) => {
+  if (!entry.isAuto && entry.flag) {
+    return (
+      <div className="relative h-7 w-10 shrink-0 overflow-hidden rounded-md bg-white/5 ring-1 ring-white/10">
+        <span
+          aria-hidden
+          className="flag-emoji absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 select-none leading-none"
+          style={{ fontSize: FLAG_FONT_SIZE }}
+        >
+          {entry.flag}
+        </span>
+      </div>
+    )
+  }
+  return (
+    <div className="flex h-7 w-10 shrink-0 items-center justify-center rounded-md bg-white/5 text-[11px] font-bold tracking-wide text-vl-muted">
+      {entry.isAuto ? <Sparkles className="size-4 text-vl-accent" /> : entry.code || '··'}
+    </div>
+  )
+}
 
 // Ping label follows the same rules as the previous list: a speed label by default,
 // or the number in ms when the "delay display" appearance setting is switched to numbers.

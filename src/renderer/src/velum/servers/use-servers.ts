@@ -34,19 +34,20 @@ export function useServers(): {
       if ('all' in item) {
         // Nested group: only auto-selecting ones (url-test / fallback / load-balance) are useful here.
         if (item.type === 'Selector') continue
-        const { label, code } = parseServerName(item.name)
+        const { label, code, flag } = parseServerName(item.name)
         result.push({
           name: item.name,
           label,
           code,
+          flag,
           delay: lastDelay(item),
           isAuto: true,
           resolvedName: item.now
         })
       } else {
         if (item.type === 'Direct' || item.type === 'Reject') continue
-        const { label, code } = parseServerName(item.name)
-        result.push({ name: item.name, label, code, delay: lastDelay(item), isAuto: false })
+        const { label, code, flag } = parseServerName(item.name)
+        result.push({ name: item.name, label, code, flag, delay: lastDelay(item), isAuto: false })
       }
     }
     // An auto group has no ping of its own: show the node it currently resolves to.

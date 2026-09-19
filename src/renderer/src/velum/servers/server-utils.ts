@@ -4,6 +4,8 @@ export interface ServerEntry {
   name: string
   label: string
   code: string
+  // The flag emoji from the node name ("" when it has none); drawn with the twemoji font.
+  flag: string
   delay: number // -1 = not tested, 0 = timeout
   isAuto: boolean
   // for auto groups: the node the group currently resolves to
@@ -14,7 +16,7 @@ const FLAG_PAIR = /[\u{1F1E6}-\u{1F1FF}]{2}/gu
 
 // Node names come from the subscription, e.g. "Финляндия | FL 🇫🇮".
 // Pull a country code out of the flag emoji (Windows has no flag glyphs) and strip it from the label.
-export function parseServerName(name: string): { label: string; code: string } {
+export function parseServerName(name: string): { label: string; code: string; flag: string } {
   const flag = name.match(/[\u{1F1E6}-\u{1F1FF}]{2}/u)
   let code = ''
   if (flag) {
@@ -29,7 +31,7 @@ export function parseServerName(name: string): { label: string; code: string } {
     const tail = label.match(/\|\s*([A-Za-z]{2})\b/)
     if (tail) code = tail[1].toUpperCase()
   }
-  return { label: label || name, code }
+  return { label: label || name, code, flag: flag ? flag[0] : '' }
 }
 
 export function lastDelay(item: { history?: { delay: number }[] }): number {
