@@ -1097,8 +1097,8 @@ export default {
       tabIPs: 'IP / подсети',
       colVpn: 'Через VPN',
       colDirect: 'В обход VPN',
-      toDirect: 'В обход',
-      toVpn: 'Через VPN',
+      moveToDirect: 'Перенести в «В обход VPN»',
+      moveToVpn: 'Перенести в «Через VPN»',
       empty: 'Пока пусто'
     },
     diag: {

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSWRConfig } from 'swr'
 import { toast } from 'sonner'
-import { ArrowRightLeft, CheckSquare, ListTree, Plus, Square, Trash2, Upload, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckSquare, ListTree, Plus, Square, Trash2, Upload, X } from 'lucide-react'
 import { CustomRules, getCustomRules, setCustomRules } from '@renderer/utils/ipc'
 import { applyRulesChange } from '@renderer/velum/rules/apply-rules'
 import { useConnectionsStore } from '@renderer/store/connections-store'
@@ -378,11 +378,17 @@ const RulesPage: React.FC = () => {
                       type="button"
                       disabled={saving}
                       onClick={() => moveItem(side, item)}
-                      title={side === 'vpn' ? t('velumUi.rules.toDirect') : t('velumUi.rules.toVpn')}
-                      className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-semibold text-vl-muted transition-colors hover:bg-white/6 hover:text-vl-accent disabled:opacity-50"
+                      title={side === 'vpn' ? t('velumUi.rules.moveToDirect') : t('velumUi.rules.moveToVpn')}
+                      aria-label={side === 'vpn' ? t('velumUi.rules.moveToDirect') : t('velumUi.rules.moveToVpn')}
+                      className={`flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-vl-line text-vl-muted transition-colors disabled:opacity-50 ${
+                        side === 'vpn'
+                          ? 'hover:border-vl-danger/50 hover:text-vl-danger'
+                          : 'hover:border-vl-accent/50 hover:text-vl-accent'
+                      }`}
                     >
-                      <ArrowRightLeft className="size-3" />
-                      {side === 'vpn' ? t('velumUi.rules.toDirect') : t('velumUi.rules.toVpn')}
+                      {/* Icon only, like a transfer list: the arrow points at the column the item moves to
+                          (VPN is the left column, bypass is the right one). */}
+                      {side === 'vpn' ? <ArrowRight className="size-3.5" /> : <ArrowLeft className="size-3.5" />}
                     </button>
                     <IconButton tone="danger" disabled={saving} onClick={() => removeItems(side, [item])}>
                       <X className="size-3.5" />
