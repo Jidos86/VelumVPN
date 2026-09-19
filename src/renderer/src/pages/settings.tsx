@@ -15,7 +15,7 @@ type Tab = 'connection' | 'app' | 'advanced'
 
 const Settings: React.FC = () => {
   const { t } = useTranslation()
-  const [tab, setTab] = useState<Tab>('connection')
+  const [tab, setTab] = useState<Tab>('app')
   const [showHiddenSettings, setShowHiddenSettings] = useState(false)
 
   return (
@@ -37,8 +37,8 @@ const Settings: React.FC = () => {
           value={tab}
           onChange={setTab}
           items={[
-            { key: 'connection', label: t('velumUi.settings.tabConnection') },
             { key: 'app', label: t('velumUi.settings.tabApp') },
+            { key: 'connection', label: t('velumUi.settings.tabConnection') },
             { key: 'advanced', label: t('velumUi.settings.tabAdvanced') }
           ]}
         />
