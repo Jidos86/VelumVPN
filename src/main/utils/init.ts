@@ -98,12 +98,21 @@ async function copyGeoFile(file: string): Promise<void> {
       return true
     }
   }
-  if (await shouldCopy(targetPath)) {
-    await cp(sourcePath, targetPath, { recursive: true })
+  // The core keeps its geodata files open while it runs (e.g. an old core that is still shutting
+  // down after a restart or update). A locked copy must not abort app startup: keep the file that
+  // is already there and let the next start refresh it.
+  const copyIfNeeded = async (dst: string): Promise<void> => {
+    if (!(await shouldCopy(dst))) return
+    try {
+      await cp(sourcePath, dst, { recursive: true })
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if ((code === 'EBUSY' || code === 'EPERM' || code === 'EACCES') && existsSync(dst)) return
+      throw error
+    }
   }
-  if (await shouldCopy(testTargetPath)) {
-    await cp(sourcePath, testTargetPath, { recursive: true })
-  }
+  await copyIfNeeded(targetPath)
+  await copyIfNeeded(testTargetPath)
 }
 
 async function activeGeodataFiles(): Promise<string[]> {
