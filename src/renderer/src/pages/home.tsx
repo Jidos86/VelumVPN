@@ -351,12 +351,14 @@ const Home: React.FC = () => {
   const busy = phase === 'connecting' || phase === 'disconnecting'
 
   return (
-    <div className="flex h-full min-h-0 gap-5 overflow-y-auto p-5">
+    // One shared grid so left and right blocks line up row by row (title / connect + subscription /
+    // server + support / routing); the section/aside wrappers only group the code.
+    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_18rem] grid-rows-[auto_1fr_auto_auto] gap-x-5 gap-y-4 overflow-y-auto p-5">
       {/* ── Main column ── */}
-      <section className="flex min-w-0 flex-1 flex-col gap-4">
-        <h1 className="text-xl font-extrabold text-vl-text">{t('sider.home')}</h1>
+      <section className="contents">
+        <h1 className="col-span-2 row-start-1 text-xl font-extrabold text-vl-text">{t('sider.home')}</h1>
 
-        <div className={`${panel} relative flex flex-1 flex-col items-center justify-center gap-3 overflow-hidden px-6 py-8`}>
+        <div className={`${panel} relative col-start-1 row-start-2 flex flex-col items-center justify-center gap-3 overflow-hidden px-6 py-8`}>
           <div
             className="pointer-events-none absolute inset-0 transition-opacity duration-500"
             style={{
@@ -433,9 +435,11 @@ const Home: React.FC = () => {
           </div>
         </div>
 
-        <ServerCard />
+        <div className="col-start-1 row-start-3 flex [&>button]:flex-1">
+          <ServerCard />
+        </div>
 
-        <div>
+        <div className="col-start-1 row-start-4">
           <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-vl-faint">
             {t('velumUi.routing.title')}
           </div>
@@ -505,7 +509,8 @@ const Home: React.FC = () => {
       </section>
 
       {/* ── Side column ── */}
-      <aside className="flex w-72 shrink-0 flex-col gap-4 pt-10">
+      <aside className="contents">
+        <div className="col-start-2 row-start-2 flex min-h-0 flex-col gap-4">
         {currentProfile && (
           <div className={`${panel} p-4`}>
             <div data-guide="home-profile-header" className="mb-3 flex items-center gap-2">
@@ -574,7 +579,7 @@ const Home: React.FC = () => {
         <button
           type="button"
           onClick={() => navigate('/custom-rules')}
-          className={`${panel} flex cursor-pointer flex-col gap-3 p-4 text-left transition-colors hover:border-vl-line-strong`}
+          className={`${panel} flex flex-1 cursor-pointer flex-col gap-3 p-4 text-left transition-colors hover:border-vl-line-strong`}
         >
           <div className="flex w-full items-center justify-between">
             <div className="text-sm font-bold text-vl-text">{t('sider.myRules')}</div>
@@ -597,12 +602,13 @@ const Home: React.FC = () => {
             ))}
           </div>
         </button>
+        </div>
 
         <button
           type="button"
           data-guide="home-support-link"
           onClick={() => open('https://t.me/Veluum_support_bot')}
-          className={`${panel} flex cursor-pointer items-center gap-3 p-4 text-left transition-colors hover:border-vl-line-strong`}
+          className={`${panel} col-start-2 row-start-3 flex cursor-pointer items-center gap-3 p-4 text-left transition-colors hover:border-vl-line-strong`}
         >
           <SiTelegram className="size-4 shrink-0 text-vl-accent" />
           <div className="min-w-0">
