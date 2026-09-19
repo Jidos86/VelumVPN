@@ -1086,6 +1086,17 @@ export default {
       notTested: 'Not tested'
     },
     subscription: { title: 'Subscription', refresh: 'Refresh', daysLeft: 'days left', expires: 'expires' },
-    myRules: { configured: 'Configured: {{count}}' }
+    myRules: { configured: 'Configured: {{count}}' },
+    rules: {
+      subtitle: 'Rules work regardless of the routing mode.',
+      tabApps: 'Apps',
+      tabDomains: 'Domains',
+      tabIPs: 'IP / subnets',
+      colVpn: 'Through VPN',
+      colDirect: 'Bypass VPN',
+      toDirect: 'Bypass',
+      toVpn: 'Via VPN',
+      empty: 'Nothing here yet'
+    }
   }
 }

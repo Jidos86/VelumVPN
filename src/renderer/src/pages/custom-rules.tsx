@@ -1,262 +1,189 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import BasePage from '@renderer/components/base/base-page'
-import { Button } from '@renderer/components/ui/button'
-import { Input } from '@renderer/components/ui/input'
-import { getCustomRules, setCustomRules, restartCore } from '@renderer/utils/ipc'
-import { useConnectionsStore } from '@renderer/store/connections-store'
-import { Globe, Monitor, Plus, ShieldOff, Trash2, ListTree, Upload, CheckSquare, Square, X, Network } from 'lucide-react'
+import { useSWRConfig } from 'swr'
 import { toast } from 'sonner'
+import { ArrowRightLeft, CheckSquare, ListTree, Plus, Square, Trash2, Upload, X } from 'lucide-react'
+import {
+  CustomRules,
+  getCustomRules,
+  mihomoHotReloadConfig,
+  restartCore,
+  setCustomRules
+} from '@renderer/utils/ipc'
+import { useConnectionsStore } from '@renderer/store/connections-store'
+import {
+  GhostButton,
+  IconButton,
+  Modal,
+  PageShell,
+  PrimaryButton,
+  Segmented,
+  TextInput,
+  panelClass
+} from '@renderer/velum/ui/primitives'
 
-const TEAL = 'oklch(0.82 0.16 196)'
-const RED = 'oklch(0.65 0.2 25)'
+type Kind = 'app' | 'domain' | 'ip'
+type Side = 'vpn' | 'direct'
 
-interface ProcessPickerProps {
-  onSelect: (name: string) => void
-  onClose: () => void
+const otherSide = (s: Side): Side => (s === 'vpn' ? 'direct' : 'vpn')
+
+// Which CustomRules list backs each tab/column.
+const FIELD: Record<Kind, Record<Side, keyof CustomRules>> = {
+  app: { vpn: 'processes', direct: 'excludedProcesses' },
+  domain: { vpn: 'domains', direct: 'excluded' },
+  ip: { vpn: 'ips', direct: 'excludedIPs' }
 }
 
-const ProcessPicker: React.FC<ProcessPickerProps> = ({ onSelect, onClose }) => {
-  const { t } = useTranslation()
-  const active = useConnectionsStore((s) => s.active)
-  const names = [...new Set(
-    active
-      .map((c) => c.metadata?.process || c.metadata?.processPath?.split(/[\\/]/).pop() || '')
-      .filter(Boolean)
-  )].sort()
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-card border border-border rounded-lg w-72 max-h-80 flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="px-3 py-2 border-b border-border text-sm font-medium">{t('customRules.activeProcesses')}</div>
-        <div className="overflow-y-auto flex-1">
-          {names.length === 0 && (
-            <p className="text-xs text-muted-foreground italic p-3">{t('customRules.noActiveConnections')}</p>
-          )}
-          {names.map((n) => (
-            <button
-              key={n}
-              className="w-full text-left px-3 py-2 text-sm font-mono hover:bg-accent transition-colors"
-              onClick={() => { onSelect(n); onClose() }}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-        <div className="px-3 py-2 border-t border-border">
-          <Button size="sm" variant="ghost" className="w-full h-7 text-xs" onClick={onClose}>{t('common.close')}</Button>
-        </div>
-      </div>
-    </div>
-  )
+// Section names used in the conflict warnings (existing translations).
+const SECTION_KEY: Record<Kind, Record<Side, string>> = {
+  app: { vpn: 'customRules.vpnProcesses', direct: 'customRules.directProcesses' },
+  domain: { vpn: 'customRules.vpnDomains', direct: 'customRules.directDomains' },
+  ip: { vpn: 'customRules.vpnIPs', direct: 'customRules.directIPs' }
 }
 
-interface ImportModalProps {
-  isDomain: boolean
-  onConfirm: (items: string[]) => void
-  onClose: () => void
+const PLACEHOLDER: Record<Kind, Record<Side, string>> = {
+  app: { vpn: 'App.exe', direct: 'Launcher.exe' },
+  domain: { vpn: 'example.com', direct: 'work.example.com' },
+  ip: { vpn: '149.154.167.41 / 10.0.0.0/8', direct: '192.168.1.1 / 192.168.0.0/24' }
 }
 
-const ImportModal: React.FC<ImportModalProps> = ({ isDomain, onConfirm, onClose }) => {
-  const { t } = useTranslation()
-  const [text, setText] = useState('')
-  const taRef = useRef<HTMLTextAreaElement>(null)
-
-  useEffect(() => { taRef.current?.focus() }, [])
-
-  const handleConfirm = () => {
-    const raw = text.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean)
-    const parsed = isDomain
-      ? raw.map((s) => s.replace(/^https?:\/\//, '').replace(/\/.*$/, ''))
-      : raw
-    const unique = [...new Set(parsed.filter(Boolean))]
-    if (unique.length === 0) { onClose(); return }
-    onConfirm(unique)
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-card border border-border rounded-lg w-96 flex flex-col gap-3 p-4" onClick={(e) => e.stopPropagation()}>
-        <div className="text-sm font-medium">{t('customRules.importList')}</div>
-        <p className="text-xs text-muted-foreground">{isDomain ? t('customRules.importHintDomains') : t('customRules.importHintProcesses')}</p>
-        <textarea
-          ref={taRef}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={isDomain ? 'example.com\nother.com' : 'App.exe\nLauncher.exe'}
-          className="w-full h-40 rounded-md border border-border bg-background px-3 py-2 text-sm font-mono resize-none focus:outline-none focus:ring-1 focus:ring-ring"
-        />
-        <div className="flex gap-2 justify-end">
-          <Button size="sm" variant="ghost" onClick={onClose}>{t('customRules.cancel')}</Button>
-          <Button size="sm" onClick={handleConfirm}>{t('customRules.add')}</Button>
-        </div>
-      </div>
-    </div>
-  )
+const EMPTY: CustomRules = {
+  domains: [],
+  processes: [],
+  excluded: [],
+  excludedProcesses: [],
+  ips: [],
+  excludedIPs: []
 }
 
-interface SectionProps {
-  icon: React.ReactNode
-  title: string
-  description: React.ReactNode
-  items: string[]
-  input: string
-  placeholder: string
-  saving: boolean
-  color?: string
-  showPicker?: boolean
-  isDomain?: boolean
-  onInputChange: (v: string) => void
-  onAdd: () => void
-  onRemove: (item: string) => void
-  onPickerOpen?: () => void
-  onBulkImport: (newItems: string[]) => void
-  onBulkRemove: (items: string[]) => void
-  emptyText: string
-}
+const clean = (kind: Kind, val: string): string =>
+  kind === 'domain' ? val.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '') : val.trim()
 
-const RuleSection: React.FC<SectionProps> = ({
-  icon, title, description, items, input, placeholder, saving, color, showPicker, isDomain,
-  onInputChange, onAdd, onRemove, onPickerOpen, onBulkImport, onBulkRemove, emptyText
+const badgeText = (kind: Kind, name: string): string =>
+  kind === 'ip' ? 'IP' : (name.trim()[0] ?? '?').toUpperCase()
+
+const ProcessPicker: React.FC<{ onSelect: (name: string) => void; onClose: () => void }> = ({
+  onSelect,
+  onClose
 }) => {
   const { t } = useTranslation()
-  const [showImport, setShowImport] = useState(false)
-  const [selecting, setSelecting] = useState(false)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-
-  const toggleSelect = (item: string) =>
-    setSelected((prev) => { const s = new Set(prev); s.has(item) ? s.delete(item) : s.add(item); return s })
-
-  const allSelected = items.length > 0 && selected.size === items.length
-  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(items))
-
-  const exitSelect = () => { setSelecting(false); setSelected(new Set()) }
-
-  const deleteSelected = () => {
-    onBulkRemove([...selected])
-    exitSelect()
-  }
-
+  const active = useConnectionsStore((s) => s.active)
+  const names = useMemo(
+    () =>
+      [
+        ...new Set(
+          active
+            .map((c) => c.metadata?.process || c.metadata?.processPath?.split(/[\\/]/).pop() || '')
+            .filter(Boolean)
+        )
+      ].sort(),
+    [active]
+  )
   return (
-  <section>
-    {showImport && (
-      <ImportModal
-        isDomain={!!isDomain}
-        onConfirm={(newItems) => { onBulkImport(newItems); setShowImport(false) }}
-        onClose={() => setShowImport(false)}
-      />
-    )}
-    <div className="flex items-center gap-2 mb-3">
-      <span style={{ color }}>{icon}</span>
-      <h2 className="text-sm font-semibold">{title}</h2>
-    </div>
-    <p className="text-xs text-muted-foreground mb-3">{description}</p>
-    <div className="flex gap-2 mb-3">
-      <Input
-        placeholder={placeholder}
-        value={input}
-        onChange={(e) => onInputChange(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && onAdd()}
-        className="h-8 text-sm font-mono"
-        disabled={selecting}
-      />
-      {showPicker && onPickerOpen && (
-        <Button size="sm" variant="outline" onClick={onPickerOpen} disabled={saving || selecting} className="h-8 px-2 shrink-0" title={t('customRules.selectFromActive')}>
-          <ListTree className="size-3.5" />
-        </Button>
+    <Modal title={t('customRules.activeProcesses')} onClose={onClose} widthClass="max-w-sm">
+      {names.length === 0 && (
+        <p className="py-6 text-center text-sm text-vl-muted">{t('customRules.noActiveConnections')}</p>
       )}
-      <Button size="sm" variant="outline" onClick={() => setShowImport(true)} disabled={saving || selecting} className="h-8 px-2 shrink-0" title={t('customRules.importBulk')}>
-        <Upload className="size-3.5" />
-      </Button>
-      {items.length > 0 && !selecting && (
-        <Button size="sm" variant="outline" onClick={() => setSelecting(true)} disabled={saving} className="h-8 px-2 shrink-0" title={t('customRules.selectToDelete')}>
-          <CheckSquare className="size-3.5" />
-        </Button>
-      )}
-      <Button size="sm" onClick={onAdd} disabled={saving || selecting} className="h-8 px-3 shrink-0">
-        <Plus className="size-3.5" />
-      </Button>
-    </div>
-
-    {selecting && (
-      <div className="flex items-center justify-between mb-2 px-1">
-        <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors" onClick={toggleAll}>
-          {allSelected ? <CheckSquare className="size-3.5" /> : <Square className="size-3.5" />}
-          {allSelected ? t('customRules.deselectAll') : t('customRules.selectAll')}
-        </button>
-        <div className="flex items-center gap-2">
-          {selected.size > 0 && (
-            <Button size="sm" variant="destructive" onClick={deleteSelected} disabled={saving} className="h-6 px-2 text-xs">
-              <Trash2 className="size-3 mr-1" />
-              {t('customRules.deleteCount', { count: selected.size })}
-            </Button>
-          )}
-          <button onClick={exitSelect} className="text-muted-foreground hover:text-foreground transition-colors">
-            <X className="size-3.5" />
+      <div className="flex flex-col gap-1">
+        {names.map((n) => (
+          <button
+            key={n}
+            type="button"
+            className="cursor-pointer rounded-lg px-3 py-2 text-left font-mono text-sm text-vl-text transition-colors hover:bg-white/6"
+            onClick={() => {
+              onSelect(n)
+              onClose()
+            }}
+          >
+            {n}
           </button>
-        </div>
+        ))}
       </div>
-    )}
-
-    <div className="flex flex-col gap-1.5">
-      {items.length === 0 && <p className="text-xs text-muted-foreground italic">{emptyText}</p>}
-      {items.map((item) => (
-        <div
-          key={item}
-          className={`flex items-center justify-between bg-card rounded-md px-3 py-2 border transition-colors ${selecting ? 'cursor-pointer select-none' : ''} ${selected.has(item) ? 'border-destructive/60 bg-destructive/5' : 'border-border'}`}
-          onClick={selecting ? () => toggleSelect(item) : undefined}
-        >
-          {selecting && (
-            <span className="mr-2 text-muted-foreground shrink-0">
-              {selected.has(item) ? <CheckSquare className="size-3.5 text-destructive" /> : <Square className="size-3.5" />}
-            </span>
-          )}
-          <span className="text-sm font-mono flex-1">{item}</span>
-          {!selecting && (
-            <button onClick={() => onRemove(item)} disabled={saving} className="text-muted-foreground hover:text-destructive transition-colors">
-              <Trash2 className="size-3.5" />
-            </button>
-          )}
-        </div>
-      ))}
-    </div>
-  </section>
+    </Modal>
   )
 }
 
-const CustomRules: React.FC = () => {
+const ImportModal: React.FC<{
+  kind: Kind
+  onConfirm: (items: string[]) => void
+  onClose: () => void
+}> = ({ kind, onConfirm, onClose }) => {
   const { t } = useTranslation()
-  const [domains, setDomains] = useState<string[]>([])
-  const [processes, setProcesses] = useState<string[]>([])
-  const [excluded, setExcluded] = useState<string[]>([])
-  const [excludedProcesses, setExcludedProcesses] = useState<string[]>([])
-  const [ips, setIPs] = useState<string[]>([])
-  const [excludedIPs, setExcludedIPs] = useState<string[]>([])
-  const [domainInput, setDomainInput] = useState('')
-  const [processInput, setProcessInput] = useState('')
-  const [excludedInput, setExcludedInput] = useState('')
-  const [excludedProcInput, setExcludedProcInput] = useState('')
-  const [ipInput, setIPInput] = useState('')
-  const [excludedIPInput, setExcludedIPInput] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [picker, setPicker] = useState<'vpn' | 'direct' | null>(null)
-
+  const [text, setText] = useState('')
+  const ref = useRef<HTMLTextAreaElement>(null)
   useEffect(() => {
-    getCustomRules().then((rules) => {
-      setDomains(rules.domains ?? [])
-      setProcesses(rules.processes ?? [])
-      setExcluded(rules.excluded ?? [])
-      setExcludedProcesses(rules.excludedProcesses ?? [])
-      setIPs(rules.ips ?? [])
-      setExcludedIPs(rules.excludedIPs ?? [])
-    })
+    ref.current?.focus()
   }, [])
 
-  const save = async (d: string[], p: string[], e: string[], ep: string[], i: string[] = ips, ei: string[] = excludedIPs) => {
+  const confirm = (): void => {
+    const items = [
+      ...new Set(
+        text
+          .split(/[\n,]+/)
+          .map((s) => clean(kind, s))
+          .filter(Boolean)
+      )
+    ]
+    if (items.length === 0) {
+      onClose()
+      return
+    }
+    onConfirm(items)
+  }
+
+  return (
+    <Modal
+      title={t('customRules.importList')}
+      onClose={onClose}
+      footer={
+        <>
+          <GhostButton onClick={onClose}>{t('customRules.cancel')}</GhostButton>
+          <PrimaryButton onClick={confirm}>{t('customRules.add')}</PrimaryButton>
+        </>
+      }
+    >
+      <p className="mb-3 text-xs text-vl-muted">
+        {kind === 'domain' ? t('customRules.importHintDomains') : t('customRules.importHintProcesses')}
+      </p>
+      <textarea
+        ref={ref}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder={kind === 'domain' ? 'example.com\nother.com' : kind === 'ip' ? '10.0.0.0/8\n1.2.3.4' : 'App.exe\nLauncher.exe'}
+        className="h-40 w-full resize-none rounded-xl border border-vl-line bg-vl-tile px-3 py-2 font-mono text-sm text-vl-text outline-none focus:border-vl-accent/50"
+      />
+    </Modal>
+  )
+}
+
+const RulesPage: React.FC = () => {
+  const { t } = useTranslation()
+  const { mutate } = useSWRConfig()
+  const [rules, setRules] = useState<CustomRules>(EMPTY)
+  const [kind, setKind] = useState<Kind>('app')
+  const [saving, setSaving] = useState(false)
+  const [inputs, setInputs] = useState<Record<Side, string>>({ vpn: '', direct: '' })
+  const [picker, setPicker] = useState<Side | null>(null)
+  const [importSide, setImportSide] = useState<Side | null>(null)
+  const [selecting, setSelecting] = useState<Side | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    getCustomRules().then((r) => setRules({ ...EMPTY, ...r }))
+  }, [])
+
+  const persist = async (next: CustomRules): Promise<void> => {
+    setRules(next)
     setSaving(true)
     try {
-      await setCustomRules({ domains: d, processes: p, excluded: e, excludedProcesses: ep, ips: i, excludedIPs: ei })
-      await restartCore()
+      await setCustomRules(next)
+      // Prefer a hot reload so open connections (games, calls) survive; fall back to a restart.
+      try {
+        await mihomoHotReloadConfig()
+      } catch {
+        await restartCore()
+      }
+      mutate('customRulesCount')
       toast.success(t('customRules.rulesApplied'))
     } catch (err) {
       toast.error(String(err))
@@ -265,270 +192,256 @@ const CustomRules: React.FC = () => {
     }
   }
 
-  const clean = (val: string, isDomain: boolean) =>
-    isDomain ? val.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '') : val.trim()
-
-  const warnConflict = (val: string, opposingSection: string): boolean => {
-    toast.warning(t('customRules.conflictWarning', { item: val, section: opposingSection }))
-    return true
+  const addItems = (side: Side, raw: string[]): void => {
+    const own = FIELD[kind][side]
+    const opp = FIELD[kind][otherSide(side)]
+    const cleaned = [...new Set(raw.map((v) => clean(kind, v)).filter(Boolean))]
+    const conflicts = cleaned.filter((x) => rules[opp].includes(x))
+    if (conflicts.length > 0) {
+      const section = t(SECTION_KEY[kind][otherSide(side)])
+      toast.warning(
+        cleaned.length === 1
+          ? t('customRules.conflictWarning', { item: cleaned[0], section })
+          : t('customRules.conflictBulkWarning', { count: conflicts.length, section })
+      )
+    }
+    const fresh = cleaned.filter((x) => !rules[opp].includes(x) && !rules[own].includes(x))
+    if (fresh.length === 0) return
+    persist({ ...rules, [own]: [...rules[own], ...fresh] })
   }
 
-  const bulkWithoutConflicts = (items: string[], conflictList: string[], opposingSection: string): string[] => {
-    const conflicts = items.filter((x) => conflictList.includes(x))
-    if (conflicts.length > 0) {
-      toast.warning(t('customRules.conflictBulkWarning', { count: conflicts.length, section: opposingSection }))
-    }
-    return items.filter((x) => !conflictList.includes(x))
+  const removeItems = (side: Side, items: string[]): void => {
+    const own = FIELD[kind][side]
+    persist({ ...rules, [own]: rules[own].filter((x) => !items.includes(x)) })
+  }
+
+  const moveItem = (side: Side, item: string): void => {
+    const own = FIELD[kind][side]
+    const opp = FIELD[kind][otherSide(side)]
+    persist({
+      ...rules,
+      [own]: rules[own].filter((x) => x !== item),
+      [opp]: [...rules[opp], item]
+    })
+  }
+
+  const exitSelect = (): void => {
+    setSelecting(null)
+    setSelected(new Set())
+  }
+
+  const submitInput = (side: Side): void => {
+    const value = inputs[side]
+    setInputs((prev) => ({ ...prev, [side]: '' }))
+    if (value.trim()) addItems(side, [value])
+  }
+
+  const tabs = [
+    { key: 'app' as const, label: t('velumUi.rules.tabApps') },
+    { key: 'domain' as const, label: t('velumUi.rules.tabDomains') },
+    { key: 'ip' as const, label: t('velumUi.rules.tabIPs') }
+  ]
+
+  const renderColumn = (side: Side): React.ReactNode => {
+    const items = rules[FIELD[kind][side]]
+    const isSelecting = selecting === side
+    const allSelected = items.length > 0 && selected.size === items.length
+    return (
+      <div className={`${panelClass} flex min-w-0 flex-1 flex-col`}>
+        <div className="flex items-center justify-between gap-2 border-b border-vl-line px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <span
+              className={`size-2 shrink-0 rounded-full ${side === 'vpn' ? 'bg-vl-accent' : 'bg-vl-muted'}`}
+            />
+            <span className="truncate text-sm font-bold text-vl-text">
+              {side === 'vpn' ? t('velumUi.rules.colVpn') : t('velumUi.rules.colDirect')}
+            </span>
+            <span className="rounded-md bg-white/6 px-1.5 py-px text-[11px] font-semibold text-vl-muted">
+              {items.length}
+            </span>
+          </div>
+          <div className="flex items-center">
+            {kind === 'app' && (
+              <IconButton
+                tone="accent"
+                title={t('customRules.selectFromActive')}
+                disabled={saving || isSelecting}
+                onClick={() => setPicker(side)}
+              >
+                <ListTree className="size-3.5" />
+              </IconButton>
+            )}
+            <IconButton
+              tone="accent"
+              title={t('customRules.importBulk')}
+              disabled={saving || isSelecting}
+              onClick={() => setImportSide(side)}
+            >
+              <Upload className="size-3.5" />
+            </IconButton>
+            {items.length > 0 && !isSelecting && (
+              <IconButton
+                tone="accent"
+                title={t('customRules.selectToDelete')}
+                disabled={saving}
+                onClick={() => {
+                  setSelecting(side)
+                  setSelected(new Set())
+                }}
+              >
+                <CheckSquare className="size-3.5" />
+              </IconButton>
+            )}
+          </div>
+        </div>
+
+        <div className="flex gap-2 px-4 pt-3">
+          <TextInput
+            value={inputs[side]}
+            disabled={isSelecting}
+            placeholder={PLACEHOLDER[kind][side]}
+            onChange={(e) => setInputs((prev) => ({ ...prev, [side]: e.target.value }))}
+            onKeyDown={(e) => e.key === 'Enter' && submitInput(side)}
+            className="font-mono"
+          />
+          <PrimaryButton
+            aria-label={t('customRules.add')}
+            disabled={saving || isSelecting}
+            onClick={() => submitInput(side)}
+            className="shrink-0 px-3"
+          >
+            <Plus className="size-4" />
+          </PrimaryButton>
+        </div>
+
+        {isSelecting && (
+          <div className="flex items-center justify-between px-4 pt-3">
+            <button
+              type="button"
+              className="flex cursor-pointer items-center gap-1.5 text-xs text-vl-muted transition-colors hover:text-vl-text"
+              onClick={() => setSelected(allSelected ? new Set() : new Set(items))}
+            >
+              {allSelected ? <CheckSquare className="size-3.5" /> : <Square className="size-3.5" />}
+              {allSelected ? t('customRules.deselectAll') : t('customRules.selectAll')}
+            </button>
+            <div className="flex items-center gap-2">
+              {selected.size > 0 && (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => {
+                    removeItems(side, [...selected])
+                    exitSelect()
+                  }}
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg bg-vl-danger/15 px-2 py-1 text-xs font-semibold text-vl-danger transition-colors hover:bg-vl-danger/25"
+                >
+                  <Trash2 className="size-3" />
+                  {t('customRules.deleteCount', { count: selected.size })}
+                </button>
+              )}
+              <IconButton onClick={exitSelect}>
+                <X className="size-3.5" />
+              </IconButton>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-1.5 p-4">
+          {items.length === 0 && (
+            <div className="py-6 text-center text-sm text-vl-faint">{t('velumUi.rules.empty')}</div>
+          )}
+          {items.map((item) => {
+            const checked = selected.has(item)
+            return (
+              <div
+                key={item}
+                onClick={
+                  isSelecting
+                    ? () =>
+                        setSelected((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(item)) next.delete(item)
+                          else next.add(item)
+                          return next
+                        })
+                    : undefined
+                }
+                className={`flex items-center gap-2.5 rounded-xl border px-2.5 py-2 transition-colors ${
+                  isSelecting ? 'cursor-pointer select-none' : ''
+                } ${checked ? 'border-vl-danger/50 bg-vl-danger/8' : 'border-vl-line bg-vl-tile'}`}
+              >
+                {isSelecting ? (
+                  checked ? (
+                    <CheckSquare className="size-4 shrink-0 text-vl-danger" />
+                  ) : (
+                    <Square className="size-4 shrink-0 text-vl-faint" />
+                  )
+                ) : (
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/6 text-[11px] font-bold text-vl-muted">
+                    {badgeText(kind, item)}
+                  </span>
+                )}
+                <span className="min-w-0 flex-1 truncate font-mono text-sm text-vl-text">{item}</span>
+                {!isSelecting && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => moveItem(side, item)}
+                      title={side === 'vpn' ? t('velumUi.rules.toDirect') : t('velumUi.rules.toVpn')}
+                      className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-[11px] font-semibold text-vl-muted transition-colors hover:bg-white/6 hover:text-vl-accent disabled:opacity-50"
+                    >
+                      <ArrowRightLeft className="size-3" />
+                      {side === 'vpn' ? t('velumUi.rules.toDirect') : t('velumUi.rules.toVpn')}
+                    </button>
+                    <IconButton tone="danger" disabled={saving} onClick={() => removeItems(side, [item])}>
+                      <X className="size-3.5" />
+                    </IconButton>
+                  </>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
   }
 
   return (
-    <BasePage title={t('customRules.pageTitle')} contentClassName="overflow-y-auto">
+    <PageShell title={t('customRules.pageTitle')} subtitle={t('velumUi.rules.subtitle')}>
+      <div>
+        <Segmented
+          items={tabs}
+          value={kind}
+          onChange={(k) => {
+            setKind(k)
+            exitSelect()
+          }}
+        />
+      </div>
+      <div className="flex min-h-0 gap-4">
+        {renderColumn('vpn')}
+        {renderColumn('direct')}
+      </div>
+
       {picker && (
         <ProcessPicker
-          onSelect={(name) => {
-            if (picker === 'vpn') {
-              if (processes.includes(name)) return
-              if (excludedProcesses.includes(name)) { warnConflict(name, t('customRules.directProcesses')); return }
-              const next = [...processes, name]
-              setProcesses(next)
-              save(domains, next, excluded, excludedProcesses)
-            } else {
-              if (excludedProcesses.includes(name)) return
-              if (processes.includes(name)) { warnConflict(name, t('customRules.vpnProcesses')); return }
-              const next = [...excludedProcesses, name]
-              setExcludedProcesses(next)
-              save(domains, processes, excluded, next)
-            }
-          }}
+          onSelect={(name) => addItems(picker, [name])}
           onClose={() => setPicker(null)}
         />
       )}
-
-      <div className="p-4 flex flex-col gap-6 max-w-xl">
-
-        {/* Sites via VPN */}
-        <RuleSection
-          icon={<Globe className="size-4" />}
-          title={t('customRules.vpnDomains')}
-          color={TEAL}
-          description={t('customRules.vpnDomainDesc', { example: 'thangs.com' })}
-          items={domains}
-          input={domainInput}
-          placeholder="example.com"
-          saving={saving}
-          isDomain
-          emptyText={t('customRules.emptyDomains')}
-          onInputChange={setDomainInput}
-          onAdd={() => {
-            const val = clean(domainInput, true)
-            if (!val || domains.includes(val)) { setDomainInput(''); return }
-            if (excluded.includes(val)) { warnConflict(val, t('customRules.directDomains')); setDomainInput(''); return }
-            const next = [...domains, val]; setDomains(next); setDomainInput('')
-            save(next, processes, excluded, excludedProcesses)
+      {importSide && (
+        <ImportModal
+          kind={kind}
+          onConfirm={(items) => {
+            addItems(importSide, items)
+            setImportSide(null)
           }}
-          onRemove={(d) => {
-            const next = domains.filter((x) => x !== d); setDomains(next)
-            save(next, processes, excluded, excludedProcesses)
-          }}
-          onBulkImport={(newItems) => {
-            const safe = bulkWithoutConflicts([...new Set(newItems)], excluded, t('customRules.directDomains'))
-            const next = [...new Set([...domains, ...safe])]
-            setDomains(next)
-            save(next, processes, excluded, excludedProcesses)
-          }}
-          onBulkRemove={(toRemove) => {
-            const next = domains.filter((x) => !toRemove.includes(x))
-            setDomains(next)
-            save(next, processes, excluded, excludedProcesses)
-          }}
+          onClose={() => setImportSide(null)}
         />
-
-        {/* Apps via VPN */}
-        <RuleSection
-          icon={<Monitor className="size-4" />}
-          title={t('customRules.vpnProcesses')}
-          color={TEAL}
-          description={t('customRules.vpnProcessDesc', { example: 'Discord.exe' })}
-          items={processes}
-          input={processInput}
-          placeholder="App.exe"
-          saving={saving}
-          showPicker
-          emptyText={t('customRules.emptyProcesses')}
-          onInputChange={setProcessInput}
-          onAdd={() => {
-            const val = clean(processInput, false)
-            if (!val || processes.includes(val)) { setProcessInput(''); return }
-            if (excludedProcesses.includes(val)) { warnConflict(val, t('customRules.directProcesses')); setProcessInput(''); return }
-            const next = [...processes, val]; setProcesses(next); setProcessInput('')
-            save(domains, next, excluded, excludedProcesses)
-          }}
-          onRemove={(p) => {
-            const next = processes.filter((x) => x !== p); setProcesses(next)
-            save(domains, next, excluded, excludedProcesses)
-          }}
-          onPickerOpen={() => setPicker('vpn')}
-          onBulkImport={(newItems) => {
-            const safe = bulkWithoutConflicts([...new Set(newItems)], excludedProcesses, t('customRules.directProcesses'))
-            const next = [...new Set([...processes, ...safe])]
-            setProcesses(next)
-            save(domains, next, excluded, excludedProcesses)
-          }}
-          onBulkRemove={(toRemove) => {
-            const next = processes.filter((x) => !toRemove.includes(x))
-            setProcesses(next)
-            save(domains, next, excluded, excludedProcesses)
-          }}
-        />
-
-        {/* IPs via VPN */}
-        <RuleSection
-          icon={<Network className="size-4" />}
-          title={t('customRules.vpnIPs')}
-          color={TEAL}
-          description={t('customRules.vpnIPDesc', { example: '149.154.167.41 или 149.154.0.0/16' })}
-          items={ips}
-          input={ipInput}
-          placeholder="149.154.167.41 или 10.0.0.0/8"
-          saving={saving}
-          emptyText={t('customRules.emptyIPs')}
-          onInputChange={setIPInput}
-          onAdd={() => {
-            const val = ipInput.trim()
-            if (!val || ips.includes(val)) { setIPInput(''); return }
-            if (excludedIPs.includes(val)) { warnConflict(val, t('customRules.directIPs')); setIPInput(''); return }
-            const next = [...ips, val]; setIPs(next); setIPInput('')
-            save(domains, processes, excluded, excludedProcesses, next, excludedIPs)
-          }}
-          onRemove={(ip) => {
-            const next = ips.filter((x) => x !== ip); setIPs(next)
-            save(domains, processes, excluded, excludedProcesses, next, excludedIPs)
-          }}
-          onBulkImport={(newItems) => {
-            const safe = bulkWithoutConflicts([...new Set(newItems)], excludedIPs, t('customRules.directIPs'))
-            const next = [...new Set([...ips, ...safe])]; setIPs(next)
-            save(domains, processes, excluded, excludedProcesses, next, excludedIPs)
-          }}
-          onBulkRemove={(toRemove) => {
-            const next = ips.filter((x) => !toRemove.includes(x)); setIPs(next)
-            save(domains, processes, excluded, excludedProcesses, next, excludedIPs)
-          }}
-        />
-
-        <div className="border-t border-border" />
-
-        {/* Sites bypassing VPN */}
-        <RuleSection
-          icon={<ShieldOff className="size-4" />}
-          title={t('customRules.directDomains')}
-          color={RED}
-          description={t('customRules.directDomainDesc', { example: 'work.example.com' })}
-          items={excluded}
-          input={excludedInput}
-          placeholder="work.example.com"
-          saving={saving}
-          isDomain
-          emptyText={t('customRules.emptyExcludedDomains')}
-          onInputChange={setExcludedInput}
-          onAdd={() => {
-            const val = clean(excludedInput, true)
-            if (!val || excluded.includes(val)) { setExcludedInput(''); return }
-            if (domains.includes(val)) { warnConflict(val, t('customRules.vpnDomains')); setExcludedInput(''); return }
-            const next = [...excluded, val]; setExcluded(next); setExcludedInput('')
-            save(domains, processes, next, excludedProcesses)
-          }}
-          onRemove={(d) => {
-            const next = excluded.filter((x) => x !== d); setExcluded(next)
-            save(domains, processes, next, excludedProcesses)
-          }}
-          onBulkImport={(newItems) => {
-            const safe = bulkWithoutConflicts([...new Set(newItems)], domains, t('customRules.vpnDomains'))
-            const next = [...new Set([...excluded, ...safe])]
-            setExcluded(next)
-            save(domains, processes, next, excludedProcesses)
-          }}
-          onBulkRemove={(toRemove) => {
-            const next = excluded.filter((x) => !toRemove.includes(x))
-            setExcluded(next)
-            save(domains, processes, next, excludedProcesses)
-          }}
-        />
-
-        {/* Apps bypassing VPN */}
-        <RuleSection
-          icon={<Monitor className="size-4" />}
-          title={t('customRules.directProcesses')}
-          color={RED}
-          description={t('customRules.directProcessDesc', { example: 'EpicGamesLauncher.exe' })}
-          items={excludedProcesses}
-          input={excludedProcInput}
-          placeholder="Launcher.exe"
-          saving={saving}
-          showPicker
-          emptyText={t('customRules.emptyExcludedProcesses')}
-          onInputChange={setExcludedProcInput}
-          onAdd={() => {
-            const val = clean(excludedProcInput, false)
-            if (!val || excludedProcesses.includes(val)) { setExcludedProcInput(''); return }
-            if (processes.includes(val)) { warnConflict(val, t('customRules.vpnProcesses')); setExcludedProcInput(''); return }
-            const next = [...excludedProcesses, val]; setExcludedProcesses(next); setExcludedProcInput('')
-            save(domains, processes, excluded, next)
-          }}
-          onRemove={(p) => {
-            const next = excludedProcesses.filter((x) => x !== p); setExcludedProcesses(next)
-            save(domains, processes, excluded, next)
-          }}
-          onPickerOpen={() => setPicker('direct')}
-          onBulkImport={(newItems) => {
-            const safe = bulkWithoutConflicts([...new Set(newItems)], processes, t('customRules.vpnProcesses'))
-            const next = [...new Set([...excludedProcesses, ...safe])]
-            setExcludedProcesses(next)
-            save(domains, processes, excluded, next)
-          }}
-          onBulkRemove={(toRemove) => {
-            const next = excludedProcesses.filter((x) => !toRemove.includes(x))
-            setExcludedProcesses(next)
-            save(domains, processes, excluded, next)
-          }}
-        />
-
-        {/* IPs bypassing VPN */}
-        <RuleSection
-          icon={<Network className="size-4" />}
-          title={t('customRules.directIPs')}
-          color={RED}
-          description={t('customRules.directIPDesc', { example: '192.168.1.1 или 192.168.0.0/24' })}
-          items={excludedIPs}
-          input={excludedIPInput}
-          placeholder="192.168.1.1 или 192.168.0.0/24"
-          saving={saving}
-          emptyText={t('customRules.emptyExcludedIPs')}
-          onInputChange={setExcludedIPInput}
-          onAdd={() => {
-            const val = excludedIPInput.trim()
-            if (!val || excludedIPs.includes(val)) { setExcludedIPInput(''); return }
-            if (ips.includes(val)) { warnConflict(val, t('customRules.vpnIPs')); setExcludedIPInput(''); return }
-            const next = [...excludedIPs, val]; setExcludedIPs(next); setExcludedIPInput('')
-            save(domains, processes, excluded, excludedProcesses, ips, next)
-          }}
-          onRemove={(ip) => {
-            const next = excludedIPs.filter((x) => x !== ip); setExcludedIPs(next)
-            save(domains, processes, excluded, excludedProcesses, ips, next)
-          }}
-          onBulkImport={(newItems) => {
-            const safe = bulkWithoutConflicts([...new Set(newItems)], ips, t('customRules.vpnIPs'))
-            const next = [...new Set([...excludedIPs, ...safe])]; setExcludedIPs(next)
-            save(domains, processes, excluded, excludedProcesses, ips, next)
-          }}
-          onBulkRemove={(toRemove) => {
-            const next = excludedIPs.filter((x) => !toRemove.includes(x)); setExcludedIPs(next)
-            save(domains, processes, excluded, excludedProcesses, ips, next)
-          }}
-        />
-
-      </div>
-    </BasePage>
+      )}
+    </PageShell>
   )
 }
 
-export default CustomRules
+export default RulesPage
