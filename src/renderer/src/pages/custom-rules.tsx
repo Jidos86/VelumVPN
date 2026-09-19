@@ -83,7 +83,44 @@ const normalize = (kind: Kind, raw: string): string | null => {
   return /^\d{1,3}$/.test(mask) && Number(mask) <= max ? `${host}/${mask}` : null
 }
 
-const badgeText = (kind: Kind, name: string): string =>
+// Mouse wheel scrolls the list by exactly one row per notch, eased, so rows always land aligned
+// and a notch never jumps over two of them. Touchpads (small deltas) keep native scrolling.
+// A ref callback with cleanup (React 19) so it can be attached to a plain div.
+const rowWheelRef = (el: HTMLDivElement | null): (() => void) | void => {
+  if (!el) return
+  let raf = 0
+  let target = 0
+  const rowStep = (): number => {
+    const [a, b] = [el.children[0], el.children[1]] as (HTMLElement | undefined)[]
+    return a && b ? b.offsetTop - a.offsetTop : 0
+  }
+  const animate = (): void => {
+    const diff = target - el.scrollTop
+    if (Math.abs(diff) < 1) {
+      el.scrollTop = target
+      raf = 0
+      return
+    }
+    el.scrollTop += Math.sign(diff) * Math.min(Math.abs(diff), Math.max(1, Math.abs(diff) * 0.25))
+    raf = requestAnimationFrame(animate)
+  }
+  const onWheel = (e: WheelEvent): void => {
+    const step = rowStep()
+    if (!step || e.ctrlKey || Math.abs(e.deltaY) < 40) return
+    e.preventDefault()
+    const max = el.scrollHeight - el.clientHeight
+    const from = raf ? target : el.scrollTop
+    target = Math.max(0, Math.min(max, (Math.round(from / step) + Math.sign(e.deltaY)) * step))
+    if (!raf) raf = requestAnimationFrame(animate)
+  }
+  el.addEventListener('wheel', onWheel, { passive: false })
+  return () => {
+    el.removeEventListener('wheel', onWheel)
+    cancelAnimationFrame(raf)
+  }
+}
+
+const badgeText =(kind: Kind, name: string): string =>
   kind === 'ip' ? 'IP' : (name.trim()[0] ?? '?').toUpperCase()
 
 const ProcessPicker: React.FC<{ onSelect: (name: string) => void; onClose: () => void }> = ({
@@ -440,7 +477,7 @@ const RulesPage: React.FC = () => {
           </div>
         )}
 
-        <div className="custom-scrollbar flex min-h-0 flex-1 snap-y snap-mandatory flex-col gap-1.5 overflow-y-auto pb-4 pl-4 pr-2 [scrollbar-gutter:stable]">
+        <div ref={rowWheelRef} className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pb-4 pl-4 pr-2 [scrollbar-gutter:stable]">
           {items.length === 0 && (
             <div className="py-6 text-center text-sm text-vl-faint">{t('velumUi.rules.empty')}</div>
           )}
@@ -472,7 +509,7 @@ const RulesPage: React.FC = () => {
                         })
                     : undefined
                 }
-                className={`group flex snap-start items-center gap-2.5 rounded-xl border px-2.5 py-2 transition-colors ${
+                className={`group flex items-center gap-2.5 rounded-xl border px-2.5 py-2 transition-colors ${
                   isSelecting ? 'cursor-pointer select-none' : canDrag ? 'cursor-grab active:cursor-grabbing' : ''
                 } ${
                   dragging?.side === side && dragging.item === item
