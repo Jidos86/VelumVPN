@@ -1,7 +1,6 @@
 /* New-design tokens. Imported from main.css so Tailwind picks up @theme. */
 
 @theme {
-  --font-sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   --color-vl-bg: #0a0e14;
   --color-vl-chrome: #080b10;

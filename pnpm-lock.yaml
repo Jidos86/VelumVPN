@@ -134,9 +134,6 @@ importers:
       '@eslint/js':
         specifier: ^9.39.3
         version: 9.39.3
-      '@fontsource-variable/manrope':
-        specifier: ^5.3.0
-        version: 5.3.0
       '@types/adm-zip':
         specifier: ^0.5.8
         version: 0.5.8
@@ -832,9 +829,6 @@ packages:
 
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
-
-  '@fontsource-variable/manrope@5.3.0':
-    resolution: {integrity: sha512-6D5dgokHsWDDMtmXHznKa0hK229NN+1a4BLPmUCLqcO1Pw5EEhWY5RFt0AcXnVRAljFFPfRtLkJePQj6LSsV6g==}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -5404,8 +5398,6 @@ snapshots:
       react-dom: 19.2.5(react@19.2.5)
 
   '@floating-ui/utils@0.2.10': {}
-
-  '@fontsource-variable/manrope@5.3.0': {}
 
   '@humanfs/core@0.19.1': {}
 
