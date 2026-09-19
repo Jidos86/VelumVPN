@@ -36,7 +36,8 @@ const App: React.FC = () => {
   const { setTheme } = useTheme()
   navigate = useNavigate()
   const page = useRoutes(routes)
-  const { data: latest } = useSWR(
+  // The background check fills the shared 'checkUpdate' cache; Home shows the update tile from it.
+  useSWR(
     autoCheckUpdate ? ['checkUpdate'] : undefined,
     autoCheckUpdate ? checkUpdate : (): undefined => {},
     {
@@ -230,7 +231,7 @@ const App: React.FC = () => {
       <div className="flex h-full w-full flex-col">
         <TitleBar />
         <div className="flex min-h-0 flex-1">
-          <NavRail latest={latest} />
+          <NavRail />
           <div className="relative main min-w-0 grow h-full overflow-y-auto">{page}</div>
         </div>
       </div>

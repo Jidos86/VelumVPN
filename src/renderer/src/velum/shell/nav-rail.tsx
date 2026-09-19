@@ -19,12 +19,7 @@ import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { quitApp } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
-import UpdaterButton from '@renderer/components/updater/updater-button'
 import ConfigViewer from '@renderer/components/sider/config-viewer'
-
-interface NavRailProps {
-  latest?: { version: string; changelog: string }
-}
 
 const navItems = [
   { key: 'main', path: '/home', icon: House, i18nKey: 'sider.home' },
@@ -44,7 +39,7 @@ const expertOnlyItems = new Set(['proxy', 'connection', 'diagnostics', 'rule', '
 const railButton =
   'flex size-9 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-white/6'
 
-const NavRail: React.FC<NavRailProps> = ({ latest }) => {
+const NavRail: React.FC = () => {
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
@@ -84,7 +79,6 @@ const NavRail: React.FC<NavRailProps> = ({ latest }) => {
 
       <div className="flex-1" />
 
-      {latest && latest.version && <UpdaterButton iconOnly latest={latest} />}
       {platform !== 'darwin' && (
         <button
           type="button"
