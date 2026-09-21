@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useSWRConfig } from 'swr'
 import { AnimatePresence, motion } from 'motion/react'
 import { toast } from 'sonner'
-import { CheckSquare, GripVertical, Pencil, ListTree, Plus, Square, Trash2, Upload, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, CheckSquare, GripVertical, Pencil, ListTree, Plus, Square, Trash2, Upload, X } from 'lucide-react'
 import { CustomRules, getCustomRules, setCustomRules } from '@renderer/utils/ipc'
 import { applyRulesChange } from '@renderer/velum/rules/apply-rules'
 import { useConnectionsStore } from '@renderer/store/connections-store'
@@ -122,12 +122,21 @@ const rowWheelRef = (el: HTMLDivElement | null): (() => void) | void => {
 }
 
 type SortMode = 'added' | 'name'
+type SortDir = 'asc' | 'desc'
 const SORT_KEY = 'rulesSort'
+const SORT_DIR_KEY = 'rulesSortDir'
 const readSort = (): SortMode => {
   try {
     return window.localStorage.getItem(SORT_KEY) === 'name' ? 'name' : 'added'
   } catch {
     return 'added'
+  }
+}
+const readSortDir = (): SortDir => {
+  try {
+    return window.localStorage.getItem(SORT_DIR_KEY) === 'desc' ? 'desc' : 'asc'
+  } catch {
+    return 'asc'
   }
 }
 
@@ -236,13 +245,22 @@ const RulesPage: React.FC = () => {
   const [kind, setKind] = useState<Kind>('app')
   // Display order only: the stored lists keep the order entries were added in.
   const [sort, setSort] = useState<SortMode>(readSort)
-  const changeSort = (mode: SortMode): void => {
-    setSort(mode)
+  const [sortDir, setSortDir] = useState<SortDir>(readSortDir)
+  const remember = (key: string, value: string): void => {
     try {
-      window.localStorage.setItem(SORT_KEY, mode)
+      window.localStorage.setItem(key, value)
     } catch {
       // storage unavailable: the choice just is not remembered
     }
+  }
+  const changeSort = (mode: SortMode): void => {
+    setSort(mode)
+    remember(SORT_KEY, mode)
+  }
+  const toggleSortDir = (): void => {
+    const next: SortDir = sortDir === 'asc' ? 'desc' : 'asc'
+    setSortDir(next)
+    remember(SORT_DIR_KEY, next)
   }
   const [saving, setSaving] = useState(false)
   const [inputs, setInputs] = useState<Record<Side, string>>({ vpn: '', direct: '' })
@@ -376,10 +394,12 @@ const RulesPage: React.FC = () => {
 
   const renderColumn = (side: Side): React.ReactNode => {
     const items = rules[FIELD[kind][side]]
-    const shown =
+    // "added" keeps the stored order (oldest first); "name" is A-Z; "desc" flips either one.
+    const ordered =
       sort === 'name'
         ? [...items].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }))
         : items
+    const shown = sortDir === 'desc' ? [...ordered].reverse() : ordered
     const isSelecting = selecting === side
     const allSelected = items.length > 0 && selected.size === items.length
     return (
@@ -631,6 +651,20 @@ const RulesPage: React.FC = () => {
             }}
           />
           <Segmented items={sortTabs} value={sort} onChange={changeSort} />
+          <button
+            type="button"
+            onClick={toggleSortDir}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-vl-line bg-vl-panel px-3 py-2.5 text-xs font-semibold text-vl-muted transition-colors hover:border-vl-line-strong hover:text-vl-text"
+          >
+            {sortDir === 'asc' ? <ArrowDown className="size-3.5" /> : <ArrowUp className="size-3.5" />}
+            {sort === 'name'
+              ? sortDir === 'asc'
+                ? t('velumUi.rules.sortAZ')
+                : t('velumUi.rules.sortZA')
+              : sortDir === 'asc'
+                ? t('velumUi.rules.sortOldFirst')
+                : t('velumUi.rules.sortNewFirst')}
+          </button>
         </div>
         <span className="text-xs text-vl-faint">{t('velumUi.rules.dragHint')}</span>
       </div>
