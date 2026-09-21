@@ -28,14 +28,12 @@ const ROUTE_MODES: { key: RouteMode; label: string; title: string }[] = [
   { key: 'all', label: 'velumUi.tray.modeAll', title: 'pages.home.routeMode.all' }
 ]
 
-// Sizes must match the native window: the card is 260 wide including its 10px margin, the server
-// list next to it is 250 wide including its own margin.
+// Sizes must match the native window (src/main/resolve/tray.ts): the card is 260 wide including its
+// 10px margin, the server list next to it is 250 wide including its own margin.
 const CARD_W = 260
 const FLYOUT_W = 250
 const FLYOUT_LIST_MAX = 300
 const FLYOUT_ROW_H = 30
-// header row + separator + paddings of the list panel and the window margin
-const FLYOUT_CHROME = 100
 // how long the pointer may be outside both the row and the list before the list closes
 const FLYOUT_CLOSE_MS = 180
 
@@ -59,8 +57,8 @@ const TrayMenuApp: React.FC = () => {
   const servers = useServers()
   const [flyoutOpen, setFlyoutOpen] = useState(false)
   const [side, setSide] = useState<Side>('left')
-  const [cardHeight, setCardHeight] = useState(0)
-  const cardRef = useRef<HTMLDivElement>(null)
+  // Mirrors the native "ignore mouse" state; the main process starts every show in "ignoring".
+  const ignoringMouse = useRef(true)
   const closeTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const on = optimisticOn ?? enabled
@@ -91,6 +89,7 @@ const TrayMenuApp: React.FC = () => {
     const onFocus = (): void => {
       clearTimeout(closeTimer.current)
       setFlyoutOpen(false)
+      ignoringMouse.current = true
       refresh()
     }
     window.addEventListener('focus', onFocus)
@@ -105,30 +104,30 @@ const TrayMenuApp: React.FC = () => {
     }
   }, [])
 
-  // Measure the card (the update row comes and goes).
-  useEffect(() => {
-    const el = cardRef.current
-    if (!el) return undefined
-    const observer = new ResizeObserver(() => setCardHeight(Math.ceil(el.getBoundingClientRect().height)))
-    observer.observe(el)
-    setCardHeight(Math.ceil(el.getBoundingClientRect().height))
-    return () => observer.disconnect()
-  }, [])
-
-  // Tell the native window how big it has to be. setBounds on its side moves the window so the card
-  // stays where it is, and the answer says which side of the card has room for the list.
-  const listHeight = Math.min(FLYOUT_LIST_MAX, servers.entries.length * FLYOUT_ROW_H)
-  const flyoutHeight = flyoutOpen ? listHeight + FLYOUT_CHROME : 0
-  useEffect(() => {
-    if (!cardHeight) return
+  // The native window has one fixed size (card + room for the list, tall enough for the longest list)
+  // and is never resized while the card is open, which is what made it flicker. The main process only
+  // says which side of the card has room for the list.
+  const updateSide = useCallback((): void => {
     ipc
-      .invoke('customTray:layout', {
-        width: flyoutOpen ? CARD_W + FLYOUT_W : CARD_W,
-        height: Math.max(cardHeight, flyoutHeight)
-      })
+      .invoke('customTray:side')
       .then((next: Side) => setSide(next))
       .catch(() => {})
-  }, [cardHeight, flyoutOpen, flyoutHeight])
+  }, [])
+  useEffect(() => {
+    updateSide()
+    window.addEventListener('focus', updateSide)
+    return () => window.removeEventListener('focus', updateSide)
+  }, [updateSide])
+
+  // The window is bigger than what is drawn in it. Its empty part must not eat clicks meant for the
+  // windows below, so the mouse is passed through while the pointer is not over the card or the list
+  // (mouse moves are still forwarded, which is how we notice the pointer coming back).
+  const onRootMouseMove = (e: React.MouseEvent<HTMLDivElement>): void => {
+    const overEmpty = e.target === e.currentTarget
+    if (overEmpty === ignoringMouse.current) return
+    ignoringMouse.current = overEmpty
+    ipc.send('customTray:ignoreMouse', overEmpty)
+  }
 
   const toggle = async (): Promise<void> => {
     if (optimisticOn !== null) return
@@ -158,12 +157,12 @@ const TrayMenuApp: React.FC = () => {
 
   const flyout = flyoutOpen && (
     <div
-      className={`shrink-0 p-2.5 ${side === 'left' ? 'pr-0' : 'pl-0'}`}
+      className={`pointer-events-none shrink-0 p-2.5 ${side === 'left' ? 'pr-0' : 'pl-0'}`}
       style={{ width: FLYOUT_W }}
       onMouseEnter={openFlyout}
       onMouseLeave={scheduleCloseFlyout}
     >
-      <div className="rounded-xl border border-vl-line-strong bg-vl-panel p-1.5 text-vl-text">
+      <div className="pointer-events-auto rounded-xl border border-vl-line-strong bg-vl-panel p-1.5 text-vl-text">
         <button
           type="button"
           disabled={servers.testingAll}
@@ -216,14 +215,15 @@ const TrayMenuApp: React.FC = () => {
   )
 
   return (
-    // The window is transparent and is resized by the main process, independently of this layout.
-    // So the card is pinned to the bottom edge and to its own side of the window (the right edge when
-    // the list opens on the left): however the window changes size, the card stays exactly where it is
-    // and nothing jumps while the window catches up.
-    <div className={`flex h-screen w-screen items-end ${side === 'left' ? 'justify-end' : 'justify-start'}`}>
+    // The card sits on the bottom edge, on the side of the window away from where the list opens
+    // (the right edge when the list opens on the left).
+    <div
+      className={`flex h-screen w-screen items-end ${side === 'left' ? 'justify-end' : 'justify-start'}`}
+      onMouseMove={onRootMouseMove}
+    >
       {side === 'left' && flyout}
-      <div ref={cardRef} className="shrink-0 p-2.5" style={{ width: CARD_W }}>
-        <div className="rounded-xl border border-vl-line-strong bg-vl-panel p-3.5 text-vl-text">
+      <div className="pointer-events-none shrink-0 p-2.5" style={{ width: CARD_W }}>
+        <div className="pointer-events-auto rounded-xl border border-vl-line-strong bg-vl-panel p-3.5 text-vl-text">
           <div className="mb-3 flex items-center gap-2">
             <span
               className="size-[7px] rounded-full transition-colors"

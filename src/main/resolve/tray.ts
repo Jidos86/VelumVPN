@@ -117,8 +117,12 @@ function hideCustomTray(): void {
 // It has its own setting: the old useCustomTrayMenu was written as false into every config by the
 // template, so it says nothing about what the user wants.
 const CUSTOM_TRAY_DEFAULT = process.platform !== 'linux'
+// The window never changes size while it is open (resizing a transparent window made it flicker):
+// it is the card plus room for the server list next to it, and tall enough for the longest list.
+// The empty part is click-through, see customTray:ignoreMouse. Keep in sync with TrayMenuApp.tsx.
 const TRAY_WIDTH = 260
-const TRAY_MIN_HEIGHT = 200
+const TRAY_FLYOUT_WIDTH = 250
+const TRAY_WINDOW_HEIGHT = 420
 
 async function showCustomTray(): Promise<void> {
   const { useTrayCard = CUSTOM_TRAY_DEFAULT, customTheme = 'default.css' } = await getAppConfig()
@@ -129,8 +133,8 @@ async function showCustomTray(): Promise<void> {
 
   if (!customTrayWindow || customTrayWindow.isDestroyed()) {
     customTrayWindow = new BrowserWindow({
-      width: TRAY_WIDTH,
-      height: 330,
+      width: TRAY_WIDTH + TRAY_FLYOUT_WIDTH,
+      height: TRAY_WINDOW_HEIGHT,
       show: false,
       frame: false,
       transparent: true,
@@ -168,8 +172,13 @@ async function showCustomTray(): Promise<void> {
   }
 
   trayAnchor = screen.getCursorScreenPoint()
-  // always start as the bare card; the server list widens the window again when it is opened
-  positionCustomTrayWindow(customTrayWindow, customTrayWindow.getBounds().height, TRAY_WIDTH)
+  positionCustomTrayWindow(
+    customTrayWindow,
+    TRAY_WINDOW_HEIGHT,
+    TRAY_WIDTH + TRAY_FLYOUT_WIDTH
+  )
+  // start click-through; the card turns it off as soon as the pointer is over it
+  customTrayWindow.setIgnoreMouseEvents(true, { forward: true })
   customTrayWindow.show()
   customTrayWindow.focus()
 }
@@ -524,26 +533,13 @@ ipcMain.on('customTray:configChanged', () => {
   notifyWindows('appConfigUpdated')
 })
 ipcMain.handle('customTray:availableUpdate', () => getAvailableUpdate() ?? null)
-// The card reports the size it needs (its content height, plus the width of the server list while it
-// is flown out) so the window always fits it. The answer says on which side the list should be drawn.
-ipcMain.handle(
-  'customTray:layout',
-  (_e, size: { width: number; height: number }): 'left' | 'right' => {
-    if (
-      !customTrayWindow ||
-      customTrayWindow.isDestroyed() ||
-      !Number.isFinite(size?.width) ||
-      !Number.isFinite(size?.height)
-    ) {
-      return traySide
-    }
-    const width = Math.max(TRAY_WIDTH, Math.ceil(size.width))
-    const height = Math.max(TRAY_MIN_HEIGHT, Math.ceil(size.height))
-    const bounds = customTrayWindow.getBounds()
-    if (bounds.width === width && bounds.height === height) return traySide
-    return positionCustomTrayWindow(customTrayWindow, height, width)
-  }
-)
+// The window has one fixed size (see showCustomTray); the card only asks on which side of it the
+// server list has room, and switches the mouse pass-through of the empty part of the window.
+ipcMain.handle('customTray:side', (): 'left' | 'right' => traySide)
+ipcMain.on('customTray:ignoreMouse', (_e, ignore: boolean) => {
+  if (!customTrayWindow || customTrayWindow.isDestroyed()) return
+  customTrayWindow.setIgnoreMouseEvents(ignore, { forward: true })
+})
 
 export async function copyEnv(type: 'bash' | 'cmd' | 'powershell' | 'nushell'): Promise<void> {
   const { 'mixed-port': mixedPort = FLAVOR.mixedPort } = await getControledMihomoConfig()
