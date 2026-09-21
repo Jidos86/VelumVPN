@@ -387,6 +387,15 @@ const RulesPage: React.FC = () => {
     { key: 'domain' as const, label: t('velumUi.rules.tabDomains') },
     { key: 'ip' as const, label: t('velumUi.rules.tabIPs') }
   ]
+  // Tooltip for the selected sort: what the arrow means right now.
+  const sortHint =
+    sort === 'name'
+      ? sortDir === 'asc'
+        ? t('velumUi.rules.sortAZ')
+        : t('velumUi.rules.sortZA')
+      : sortDir === 'asc'
+        ? t('velumUi.rules.sortOldFirst')
+        : t('velumUi.rules.sortNewFirst')
   const sortTabs = [
     { key: 'added' as const, label: t('velumUi.rules.sortAdded') },
     { key: 'name' as const, label: t('velumUi.rules.sortName') }
@@ -650,21 +659,31 @@ const RulesPage: React.FC = () => {
               exitSelect()
             }}
           />
-          <Segmented items={sortTabs} value={sort} onChange={changeSort} />
-          <button
-            type="button"
-            onClick={toggleSortDir}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-vl-line bg-vl-panel px-3 py-2.5 text-xs font-semibold text-vl-muted transition-colors hover:border-vl-line-strong hover:text-vl-text"
-          >
-            {sortDir === 'asc' ? <ArrowDown className="size-3.5" /> : <ArrowUp className="size-3.5" />}
-            {sort === 'name'
-              ? sortDir === 'asc'
-                ? t('velumUi.rules.sortAZ')
-                : t('velumUi.rules.sortZA')
-              : sortDir === 'asc'
-                ? t('velumUi.rules.sortOldFirst')
-                : t('velumUi.rules.sortNewFirst')}
-          </button>
+          {/* Click a sort to select it; click the selected one again to flip its direction. */}
+          <div className="inline-flex gap-1 rounded-xl border border-vl-line bg-vl-panel p-1">
+            {sortTabs.map((item) => {
+              const active = sort === item.key
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  title={active ? sortHint : undefined}
+                  onClick={() => (active ? toggleSortDir() : changeSort(item.key))}
+                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                    active ? 'bg-vl-accent/16 text-vl-text' : 'text-vl-muted hover:text-vl-text'
+                  }`}
+                >
+                  {item.label}
+                  {active &&
+                    (sortDir === 'asc' ? (
+                      <ArrowDown className="size-3" />
+                    ) : (
+                      <ArrowUp className="size-3" />
+                    ))}
+                </button>
+              )
+            })}
+          </div>
         </div>
         <span className="text-xs text-vl-faint">{t('velumUi.rules.dragHint')}</span>
       </div>
