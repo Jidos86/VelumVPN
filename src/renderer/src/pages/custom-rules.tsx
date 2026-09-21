@@ -121,7 +121,17 @@ const rowWheelRef = (el: HTMLDivElement | null): (() => void) | void => {
   }
 }
 
-const badgeText =(kind: Kind, name: string): string =>
+type SortMode = 'added' | 'name'
+const SORT_KEY = 'rulesSort'
+const readSort = (): SortMode => {
+  try {
+    return window.localStorage.getItem(SORT_KEY) === 'name' ? 'name' : 'added'
+  } catch {
+    return 'added'
+  }
+}
+
+const badgeText = (kind: Kind, name: string): string =>
   kind === 'ip' ? 'IP' : (name.trim()[0] ?? '?').toUpperCase()
 
 const ProcessPicker: React.FC<{ onSelect: (name: string) => void; onClose: () => void }> = ({
@@ -224,6 +234,16 @@ const RulesPage: React.FC = () => {
   const { mutate } = useSWRConfig()
   const [rules, setRules] = useState<CustomRules>(EMPTY)
   const [kind, setKind] = useState<Kind>('app')
+  // Display order only: the stored lists keep the order entries were added in.
+  const [sort, setSort] = useState<SortMode>(readSort)
+  const changeSort = (mode: SortMode): void => {
+    setSort(mode)
+    try {
+      window.localStorage.setItem(SORT_KEY, mode)
+    } catch {
+      // storage unavailable: the choice just is not remembered
+    }
+  }
   const [saving, setSaving] = useState(false)
   const [inputs, setInputs] = useState<Record<Side, string>>({ vpn: '', direct: '' })
   const [picker, setPicker] = useState<Side | null>(null)
@@ -349,9 +369,17 @@ const RulesPage: React.FC = () => {
     { key: 'domain' as const, label: t('velumUi.rules.tabDomains') },
     { key: 'ip' as const, label: t('velumUi.rules.tabIPs') }
   ]
+  const sortTabs = [
+    { key: 'added' as const, label: t('velumUi.rules.sortAdded') },
+    { key: 'name' as const, label: t('velumUi.rules.sortName') }
+  ]
 
   const renderColumn = (side: Side): React.ReactNode => {
     const items = rules[FIELD[kind][side]]
+    const shown =
+      sort === 'name'
+        ? [...items].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }))
+        : items
     const isSelecting = selecting === side
     const allSelected = items.length > 0 && selected.size === items.length
     return (
@@ -485,7 +513,7 @@ const RulesPage: React.FC = () => {
           {/* The motion wrapper animates entering, leaving and neighbours sliding into place;
               the HTML5 drag & drop stays on the inner row so the two do not fight over drag events. */}
           <AnimatePresence initial={false} mode="popLayout">
-          {items.map((item) => {
+          {shown.map((item) => {
             const checked = selected.has(item)
             const isEditing = editing?.side === side && editing.item === item
             const canDrag = !isSelecting && !isEditing && !saving
@@ -593,14 +621,17 @@ const RulesPage: React.FC = () => {
   return (
     <PageShell title={t('customRules.pageTitle')} subtitle={t('velumUi.rules.subtitle')}>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <Segmented
-          items={tabs}
-          value={kind}
-          onChange={(k) => {
-            setKind(k)
-            exitSelect()
-          }}
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <Segmented
+            items={tabs}
+            value={kind}
+            onChange={(k) => {
+              setKind(k)
+              exitSelect()
+            }}
+          />
+          <Segmented items={sortTabs} value={sort} onChange={changeSort} />
+        </div>
         <span className="text-xs text-vl-faint">{t('velumUi.rules.dragHint')}</span>
       </div>
       <div className="flex min-h-0 flex-1 gap-4">
