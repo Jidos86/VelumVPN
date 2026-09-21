@@ -9,6 +9,17 @@ import {
 } from '@renderer/utils/ipc'
 import { lastDelay, parseServerName, ServerEntry } from './server-utils'
 
+// The core forgets every ping when the config is reloaded (routing mode, rules, profile update),
+// which would flip all servers back to "not tested". Keep the last known value until a new test replaces it.
+const knownDelays = new Map<string, number>()
+const rememberedDelay = (name: string, delay: number): number => {
+  if (delay !== -1) {
+    knownDelays.set(name, delay)
+    return delay
+  }
+  return knownDelays.get(name) ?? -1
+}
+
 // Server selection for the home screen. Same wiring as the proxies page:
 // the first group is the user-facing selector, its members are nodes and auto groups.
 export function useServers(): {
@@ -45,7 +56,7 @@ export function useServers(): {
           label,
           code,
           flag,
-          delay: lastDelay(item),
+          delay: rememberedDelay(item.name, lastDelay(item)),
           isAuto: true,
           resolvedName: item.now,
           fixed: item.fixed || undefined
@@ -53,7 +64,14 @@ export function useServers(): {
       } else {
         if (item.type === 'Direct' || item.type === 'Reject') continue
         const { label, code, flag } = parseServerName(item.name)
-        result.push({ name: item.name, label, code, flag, delay: lastDelay(item), isAuto: false })
+        result.push({
+          name: item.name,
+          label,
+          code,
+          flag,
+          delay: rememberedDelay(item.name, lastDelay(item)),
+          isAuto: false
+        })
       }
     }
     // An auto group has no ping of its own: show the node it currently resolves to.
