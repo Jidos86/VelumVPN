@@ -57,7 +57,12 @@ import {
   checkCorePermission
 } from '../core/manager'
 import { triggerSysProxy } from '../sys/sysproxy'
-import { checkUpdate, downloadAndInstallUpdate, cancelUpdate } from '../resolve/autoUpdater'
+import {
+  autoInstallSupported,
+  checkUpdate,
+  downloadAndInstallUpdate,
+  cancelUpdate
+} from '../resolve/autoUpdater'
 import {
   checkElevateTask,
   deleteElevateTask,
@@ -241,6 +246,7 @@ ipcMain.handle('patchMihomoConfig', (_e, patch) => ipcErrorWrapper(patchMihomoCo
     ipcErrorWrapper(downloadAndInstallUpdate)(version)
   )
   ipcMain.handle('checkUpdate', ipcErrorWrapper(checkUpdate))
+  ipcMain.handle('autoUpdateSupported', () => autoInstallSupported())
   ipcMain.handle('cancelUpdate', ipcErrorWrapper(cancelUpdate))
   ipcMain.handle('getVersion', () => app.getVersion())
   ipcMain.handle('platform', () => process.platform)

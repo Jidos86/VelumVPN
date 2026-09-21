@@ -93,7 +93,13 @@ const zhCN: LocaleTranslations = {
     switchedToDirectMode: '已切换至直连模式',
     profileImportSuccess: '订阅导入成功',
     geodataUpdateFailed: '地理数据未更新',
-    geodataUpdateFailedHint: '主源和备用源均不可用，将继续使用本地副本'
+    geodataUpdateFailedHint: '主源和备用源均不可用，将继续使用本地副本',
+    updateReadyTitle: '更新已下载',
+    updateReadyHint: '将在退出或下次启动时安装',
+    updateInstallingTitle: '正在更新 VelumVPN',
+    updateInstallingText: '正在安装版本',
+    updateInstallingRestart: '应用将自动重新启动',
+    updateInstallingQuit: '这只需要几秒钟'
   },
   dialog: {
     firstRunAdmin: '首次启动请以管理员权限运行',
@@ -240,7 +246,13 @@ const enUS: LocaleTranslations = {
     switchedToDirectMode: 'Switched to Direct Mode',
     profileImportSuccess: 'Profile imported successfully',
     geodataUpdateFailed: 'Geodata was not updated',
-    geodataUpdateFailedHint: 'Primary and fallback sources are unavailable; using the local copy'
+    geodataUpdateFailedHint: 'Primary and fallback sources are unavailable; using the local copy',
+    updateReadyTitle: 'Update downloaded',
+    updateReadyHint: 'it will be installed when you quit or on the next launch',
+    updateInstallingTitle: 'Updating VelumVPN',
+    updateInstallingText: 'Installing version',
+    updateInstallingRestart: 'The app will start again by itself',
+    updateInstallingQuit: 'It takes a few seconds'
   },
   dialog: {
     firstRunAdmin: 'Please run as administrator for the first time',
@@ -388,7 +400,13 @@ const ruRU: LocaleTranslations = {
     profileImportSuccess: 'Подписка успешно импортирована',
     geodataUpdateFailed: 'Геоданные не обновлены',
     geodataUpdateFailedHint:
-      'Основной и резервный источники недоступны, используется локальная копия'
+      'Основной и резервный источники недоступны, используется локальная копия',
+    updateReadyTitle: 'Обновление скачано',
+    updateReadyHint: 'установится при выходе или при следующем запуске',
+    updateInstallingTitle: 'Обновление VelumVPN',
+    updateInstallingText: 'Устанавливаем версию',
+    updateInstallingRestart: 'Приложение запустится само',
+    updateInstallingQuit: 'Это займёт несколько секунд'
   },
   dialog: {
     firstRunAdmin: 'При первом запуске откройте приложение от имени администратора',

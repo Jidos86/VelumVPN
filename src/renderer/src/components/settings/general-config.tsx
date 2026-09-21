@@ -6,7 +6,13 @@ import { Button } from '@renderer/components/ui/button'
 import { Switch } from '@renderer/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import useSWR from 'swr'
-import { checkAutoRun, disableAutoRun, enableAutoRun, relaunchApp } from '@renderer/utils/ipc'
+import {
+  autoUpdateSupported,
+  checkAutoRun,
+  disableAutoRun,
+  enableAutoRun,
+  relaunchApp
+} from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
 import ConfirmModal from '../base/base-confirm'
@@ -28,9 +34,12 @@ const GeneralConfig: React.FC<GeneralConfigProps> = (props) => {
     autoCheckUpdate,
     // the tray card is on unless the user turned it off; Linux only has the native tray menu
     useTrayCard = true,
+    autoUpdate = true,
     disableGPU = false
   } = appConfig || {}
   const showTrayCard = platform !== 'linux'
+  // Automatic installing exists only in the packaged Windows installer build; the main process knows.
+  const { data: autoUpdateAvailable = false } = useSWR('autoUpdateSupported', autoUpdateSupported)
 
   const [showRestartConfirm, setShowRestartConfirm] = useState(false)
   const [pendingDisableGPU, setPendingDisableGPU] = useState(disableGPU)
@@ -104,7 +113,7 @@ const GeneralConfig: React.FC<GeneralConfigProps> = (props) => {
         </SettingItem>
         <SettingItem
           title={t('settings.general.autoCheckUpdate')}
-          divider={showTrayCard || showHiddenSettings}
+          divider={autoUpdateAvailable || showTrayCard || showHiddenSettings}
         >
           <Switch
             checked={autoCheckUpdate}
@@ -113,6 +122,19 @@ const GeneralConfig: React.FC<GeneralConfigProps> = (props) => {
             }}
           />
         </SettingItem>
+        {autoUpdateAvailable && (
+          <SettingItem
+            title={t('settings.general.autoUpdate')}
+            divider={showTrayCard || showHiddenSettings}
+          >
+            <Switch
+              checked={autoUpdate}
+              onCheckedChange={(value) => {
+                patchAppConfig({ autoUpdate: value })
+              }}
+            />
+          </SettingItem>
+        )}
         {showTrayCard && (
           <SettingItem title={t('settings.general.useTrayCard')} divider={showHiddenSettings}>
             <Switch

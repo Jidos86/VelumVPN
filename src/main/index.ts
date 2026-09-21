@@ -16,6 +16,7 @@ import { execSync, spawn } from 'child_process'
 import { createElevateTaskSync } from './sys/misc'
 import { initProfileUpdater } from './core/profileUpdater'
 import { initUpdateWatcher } from './resolve/updateWatcher'
+import { installPendingUpdateAtStartup, installPendingUpdateOnExit } from './resolve/autoUpdater'
 import { existsSync, writeFileSync } from 'fs'
 import { exePath, taskDir } from './utils/dirs'
 import { showFloatingWindow } from './resolve/floatingWindow'
@@ -240,6 +241,7 @@ app.on('before-quit', async (e) => {
       }
       triggerSysProxy(false, false)
       await stopCore()
+      await installPendingUpdateOnExit()
       app.exit()
       return
     }
@@ -255,6 +257,7 @@ app.on('before-quit', async (e) => {
       }
       triggerSysProxy(false, false)
       await stopCore()
+      await installPendingUpdateOnExit()
       app.exit()
     }
   } else if (notQuitDialog) {
@@ -265,6 +268,7 @@ app.on('before-quit', async (e) => {
     }
     triggerSysProxy(false, false)
     await stopCore()
+    await installPendingUpdateOnExit()
     app.exit()
   }
 })
@@ -298,6 +302,9 @@ app.whenReady().then(async () => {
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
+  // A downloaded update that was never installed (the computer was switched off, ...) goes first:
+  // the installer takes over and the app exits before starting anything.
+  if (gotTheLock && (await installPendingUpdateAtStartup())) return
   const appConfig = await getAppConfig()
   const { showFloatingWindow: showFloating = false, disableTray = false } = appConfig
   registerIpcMainHandlers()

@@ -451,6 +451,7 @@ export default {
       expertModeDesc: 'Shows advanced menus for debugging the application',
       autoCheckUpdate: 'Auto Check Updates',
       useTrayCard: 'Compact tray menu',
+      autoUpdate: 'Install updates automatically',
       disableGPU: 'Disable GPU Acceleration',
       disableGPUHelp:
         'When enabled, the application will disable GPU acceleration, which may improve stability but reduce performance'

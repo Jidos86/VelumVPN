@@ -310,6 +310,10 @@ export async function getRuntimeConfig(): Promise<MihomoConfig> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getRuntimeConfig'))
 }
 
+export async function autoUpdateSupported(): Promise<boolean> {
+  return await window.electron.ipcRenderer.invoke('autoUpdateSupported')
+}
+
 export async function checkUpdate(): Promise<AppVersion | undefined> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('checkUpdate'))
 }
