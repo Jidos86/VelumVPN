@@ -19,7 +19,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import { ArrowDown, ArrowUp, ChevronRight, InfinityIcon, PlusCircle, RefreshCcw, WifiOff } from 'lucide-react'
-import { SiTelegram } from 'react-icons/si'
+import { SiGithub, SiTelegram } from 'react-icons/si'
 import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import { calcTraffic } from '@renderer/utils/calc'
 import { useTrafficStore } from '@renderer/store/traffic-store'
@@ -392,7 +392,17 @@ const Home: React.FC = () => {
     <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_18rem] grid-rows-[auto_1fr_auto_auto] gap-x-5 gap-y-4 overflow-y-auto p-5">
       {/* ── Main column ── */}
       <section className="contents">
-        <h1 className="col-span-2 row-start-1 text-xl font-extrabold text-vl-text">{t('sider.home')}</h1>
+        <div className="col-span-2 row-start-1 flex items-center justify-between gap-4">
+          <h1 className="text-xl font-extrabold text-vl-text">{t('sider.home')}</h1>
+          <button
+            type="button"
+            onClick={() => open('https://github.com/Jidos86/VelumVPN')}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-vl-muted transition-colors hover:bg-white/6 hover:text-vl-text"
+          >
+            <SiGithub className="size-3.5" />
+            {t('velumUi.nav.github')}
+          </button>
+        </div>
 
         <div className={`${panel} col-start-1 row-start-2 flex flex-col items-center justify-center gap-2 overflow-hidden px-6 py-8`}>
           {/* Status label */}
