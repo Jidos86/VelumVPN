@@ -20,6 +20,7 @@ import {
   patchMihomoConfig
 } from '../core/mihomoApi'
 import { mainWindow, setNotQuitDialog, showMainWindow, triggerMainWindow } from '..'
+import { getAvailableUpdate } from './autoUpdater'
 import {
   app,
   BrowserWindow,
@@ -211,7 +212,22 @@ export const buildContextMenu = async (): Promise<Menu> => {
   }
   const { current, items = [] } = await getProfileConfig()
 
+  const update = getAvailableUpdate()
+
   const contextMenu = [
+    ...(update
+      ? [
+          {
+            id: 'update',
+            label: `${t('tray.updateAvailable')} ${update.version}`,
+            type: 'normal',
+            click: (): void => {
+              showMainWindow()
+            }
+          },
+          { type: 'separator' }
+        ]
+      : []),
     {
       id: 'show',
       accelerator: showWindowShortcut,

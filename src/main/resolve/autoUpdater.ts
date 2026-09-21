@@ -40,6 +40,14 @@ function isNewerVersion(remote: string, current: string): boolean {
   return false
 }
 
+// The newest release found by the last successful check (undefined when up to date).
+// Read by the tray menu, so it is the same answer the window and the watcher got.
+let availableUpdate: AppVersion | undefined
+
+export function getAvailableUpdate(): AppVersion | undefined {
+  return availableUpdate
+}
+
 export async function checkUpdate(): Promise<AppVersion | undefined> {
   const url = 'https://github.com/Jidos86/VelumVPN/releases/latest/download/latest.yml'
   const res = await axiosWithFallback({
@@ -49,11 +57,8 @@ export async function checkUpdate(): Promise<AppVersion | undefined> {
   })
   const latest = parseYaml<AppVersion>(res.data)
   const currentVersion = app.getVersion()
-  if (isNewerVersion(latest.version, currentVersion)) {
-    return latest
-  } else {
-    return undefined
-  }
+  availableUpdate = isNewerVersion(latest.version, currentVersion) ? latest : undefined
+  return availableUpdate
 }
 
 export async function downloadAndInstallUpdate(version: string): Promise<void> {

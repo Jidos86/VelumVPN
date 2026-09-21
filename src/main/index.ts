@@ -15,6 +15,7 @@ import { initShortcut } from './resolve/shortcut'
 import { execSync, spawn } from 'child_process'
 import { createElevateTaskSync } from './sys/misc'
 import { initProfileUpdater } from './core/profileUpdater'
+import { initUpdateWatcher } from './resolve/updateWatcher'
 import { existsSync, writeFileSync } from 'fs'
 import { exePath, taskDir } from './utils/dirs'
 import { showFloatingWindow } from './resolve/floatingWindow'
@@ -322,6 +323,7 @@ app.whenReady().then(async () => {
   let coreStarted = false
 
   initProfileUpdater()
+  initUpdateWatcher()
 
   const coreStartPromise = (async (): Promise<void> => {
     try {
