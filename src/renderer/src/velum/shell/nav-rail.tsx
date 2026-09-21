@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { motion } from 'motion/react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Activity,
@@ -70,9 +71,18 @@ const NavRail: React.FC = () => {
             data-guide={item.key === 'main' ? 'sidebar-home-button' : undefined}
             onClick={() => navigate(item.path)}
             onDoubleClick={item.key === 'profile' ? () => setShowRuntimeConfig(true) : undefined}
-            className={`${railButton} ${active ? 'bg-vl-accent/14 text-vl-accent' : 'text-vl-muted'}`}
+            className={`${railButton} relative ${active ? 'text-vl-accent' : 'text-vl-muted'}`}
           >
-            <Icon className="size-[18px]" strokeWidth={1.6} />
+            {/* One highlight that glides to the selected item instead of jumping. */}
+            {active && (
+              <motion.span
+                layoutId="nav-rail-active"
+                aria-hidden
+                className="absolute inset-0 rounded-lg bg-vl-accent/14"
+                transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+              />
+            )}
+            <Icon className="relative size-[18px]" strokeWidth={1.6} />
           </button>
         )
       })}

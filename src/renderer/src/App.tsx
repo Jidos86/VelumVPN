@@ -1,8 +1,8 @@
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
 import React, { useEffect, useRef, useState } from 'react'
-import { NavigateFunction, useLocation, useNavigate, useRoutes } from 'react-router-dom'
-import { motion } from 'motion/react'
+import { Location, NavigateFunction, useLocation, useNavigate, useRoutes } from 'react-router-dom'
+import { AnimatePresence, motion } from 'motion/react'
 import './i18n'
 import { useTranslation } from 'react-i18next'
 import routes from '@renderer/routes'
@@ -30,6 +30,8 @@ import { attachCoreLifecycleStore } from '@renderer/store/core-lifecycle-store'
 
 let navigate: NavigateFunction
 
+const RouteView: React.FC<{ location: Location }> = ({ location }) => useRoutes(routes, location)
+
 const App: React.FC = () => {
   const { t } = useTranslation()
   const { appConfig } = useAppConfig()
@@ -37,7 +39,6 @@ const App: React.FC = () => {
   const { setTheme } = useTheme()
   navigate = useNavigate()
   const location = useLocation()
-  const page = useRoutes(routes)
   // The background check fills the shared 'checkUpdate' cache; Home shows the update tile from it.
   useSWR(
     autoCheckUpdate ? ['checkUpdate'] : undefined,
@@ -235,16 +236,20 @@ const App: React.FC = () => {
         <div className="flex min-h-0 flex-1">
           <NavRail />
           <div className="relative main min-w-0 grow h-full overflow-y-auto">
-            {/* Enter-only fade so navigation never waits for an exit animation. */}
-            <motion.div
-              key={location.pathname}
-              className="h-full"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            >
-              {page}
-            </motion.div>
+            {/* The old page fades out quickly, then the new one fades in. The routes are rendered
+                for a location passed in, so the leaving page keeps showing itself while it fades. */}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={location.pathname}
+                className="h-full"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, transition: { duration: 0.1, ease: 'easeIn' } }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <RouteView location={location} />
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </div>
