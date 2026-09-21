@@ -163,7 +163,7 @@ const TrayMenuApp: React.FC = () => {
       onMouseEnter={openFlyout}
       onMouseLeave={scheduleCloseFlyout}
     >
-      <div className="rounded-xl border border-vl-line-strong bg-vl-panel p-1.5 text-vl-text shadow-2xl shadow-black/50">
+      <div className="rounded-xl border border-vl-line-strong bg-vl-panel p-1.5 text-vl-text">
         <button
           type="button"
           disabled={servers.testingAll}
@@ -223,7 +223,7 @@ const TrayMenuApp: React.FC = () => {
     <div className={`flex h-screen w-screen items-end ${side === 'left' ? 'justify-end' : 'justify-start'}`}>
       {side === 'left' && flyout}
       <div ref={cardRef} className="shrink-0 p-2.5" style={{ width: CARD_W }}>
-        <div className="rounded-xl border border-vl-line-strong bg-vl-panel p-3.5 text-vl-text shadow-2xl shadow-black/50">
+        <div className="rounded-xl border border-vl-line-strong bg-vl-panel p-3.5 text-vl-text">
           <div className="mb-3 flex items-center gap-2">
             <span
               className="size-[7px] rounded-full transition-colors"
