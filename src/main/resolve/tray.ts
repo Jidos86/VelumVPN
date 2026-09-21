@@ -52,17 +52,32 @@ function formatDelayText(delay: number): string {
   return ''
 }
 
+// Where the card was opened from. On Windows the icon can sit in the hidden-icons flyout, and
+// Tray.getBounds() then points somewhere unrelated to where the user actually clicked, so the
+// cursor position at click time is the reliable anchor there.
+let trayAnchor: { x: number; y: number } | null = null
+
 function positionCustomTrayWindow(win: BrowserWindow): void {
   if (!tray) return
-  const trayBounds = tray.getBounds()
   const { width: winW, height: winH } = win.getBounds()
-  const display = screen.getDisplayNearestPoint({ x: trayBounds.x, y: trayBounds.y })
+  const trayBounds = tray.getBounds()
+  const anchor =
+    process.platform === 'win32' && trayAnchor
+      ? { x: trayAnchor.x, y: trayAnchor.y, h: 0 }
+      : {
+          x: trayBounds.x + trayBounds.width / 2,
+          y: trayBounds.y,
+          h: trayBounds.height
+        }
+  const display = screen.getDisplayNearestPoint({ x: Math.round(anchor.x), y: Math.round(anchor.y) })
   const { x: dx, y: dy, width: dw, height: dh } = display.workArea
-  let x = Math.round(trayBounds.x + trayBounds.width / 2 - winW / 2)
+  let x = Math.round(anchor.x - winW / 2)
+  // Above the anchor (the taskbar is usually at the bottom); below it on macOS or when there is no room above.
   let y =
     process.platform === 'darwin'
-      ? Math.round(trayBounds.y + trayBounds.height + 6)
-      : Math.round(trayBounds.y - winH - 6)
+      ? Math.round(anchor.y + anchor.h + 6)
+      : Math.round(anchor.y - winH - 6)
+  if (y < dy) y = Math.round(anchor.y + anchor.h + 6)
   x = Math.min(Math.max(x, dx), dx + dw - winW)
   y = Math.min(Math.max(y, dy), dy + dh - winH)
   win.setPosition(x, y, false)
@@ -128,6 +143,7 @@ async function showCustomTray(): Promise<void> {
     }
   }
 
+  trayAnchor = screen.getCursorScreenPoint()
   positionCustomTrayWindow(customTrayWindow)
   customTrayWindow.show()
   customTrayWindow.focus()
