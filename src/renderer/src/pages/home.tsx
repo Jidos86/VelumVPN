@@ -531,18 +531,18 @@ const Home: React.FC = () => {
                     <motion.span
                       layoutId="route-mode-highlight"
                       aria-hidden
-                      className="absolute -inset-px rounded-xl border border-vl-accent/35 bg-vl-accent/10"
+                      className="absolute -inset-px z-10 rounded-xl border border-vl-accent/35 bg-vl-accent/10"
                       transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                     />
                   )}
                   <span
-                    className={`relative flex size-4 shrink-0 items-center justify-center rounded-full border-[1.5px] ${
+                    className={`relative z-20 flex size-4 shrink-0 items-center justify-center rounded-full border-[1.5px] ${
                       active ? 'border-vl-accent' : 'border-white/25'
                     }`}
                   >
                     {active && <span className="size-2 rounded-full bg-vl-accent" />}
                   </span>
-                  <span className="relative min-w-0">
+                  <span className="relative z-20 min-w-0">
                     <span className="block truncate text-sm font-semibold text-vl-text">{m.label}</span>
                     <span className="block truncate text-xs text-vl-muted">{m.desc}</span>
                   </span>
