@@ -57,9 +57,13 @@ function formatDelayText(delay: number): string {
 // cursor position at click time is the reliable anchor there.
 let trayAnchor: { x: number; y: number } | null = null
 
-function positionCustomTrayWindow(win: BrowserWindow): void {
+// Sizes and places the window in one setBounds call. setSize alone is not enough: on Windows a
+// non-resizable window grows with it but never shrinks back, which left a tall invisible window
+// (and the card floating far above the tray) after the server list was closed.
+function positionCustomTrayWindow(win: BrowserWindow, height = win.getBounds().height): void {
   if (!tray) return
-  const { width: winW, height: winH } = win.getBounds()
+  const winW = TRAY_WIDTH
+  const winH = height
   const trayBounds = tray.getBounds()
   const anchor =
     process.platform === 'win32' && trayAnchor
@@ -80,7 +84,7 @@ function positionCustomTrayWindow(win: BrowserWindow): void {
   if (y < dy) y = Math.round(anchor.y + anchor.h + 6)
   x = Math.min(Math.max(x, dx), dx + dw - winW)
   y = Math.min(Math.max(y, dy), dy + dh - winH)
-  win.setPosition(x, y, false)
+  win.setBounds({ x, y, width: winW, height: winH }, false)
 }
 
 function hideCustomTray(): void {
@@ -504,8 +508,7 @@ ipcMain.on('customTray:resize', (_e, height: number) => {
   if (!customTrayWindow || customTrayWindow.isDestroyed() || !Number.isFinite(height)) return
   const next = Math.max(TRAY_MIN_HEIGHT, Math.ceil(height))
   if (customTrayWindow.getBounds().height === next) return
-  customTrayWindow.setSize(TRAY_WIDTH, next, false)
-  if (customTrayWindow.isVisible()) positionCustomTrayWindow(customTrayWindow)
+  positionCustomTrayWindow(customTrayWindow, next)
 })
 
 export async function copyEnv(type: 'bash' | 'cmd' | 'powershell' | 'nushell'): Promise<void> {

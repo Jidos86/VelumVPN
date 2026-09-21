@@ -144,3 +144,8 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(128, 128, 128, 0.5);
 }
+
+/* The card is clicked with the mouse only; the browser focus ring made the server row look like a text field. */
+button:focus {
+  outline: none;
+}
