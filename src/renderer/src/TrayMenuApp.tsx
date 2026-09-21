@@ -5,7 +5,9 @@ import { useControledMihomoConfig } from './hooks/use-controled-mihomo-config'
 import { useGroups } from './hooks/use-groups'
 import { mihomoCloseAllConnections, mihomoHotReloadConfig } from './utils/ipc'
 import { calcTraffic } from './utils/calc'
-import { parseServerName } from './velum/servers/server-utils'
+import { useServers } from './velum/servers/use-servers'
+import { bandColor, pingBand } from './velum/servers/server-utils'
+import { ChevronDown } from 'lucide-react'
 
 type RouteMode = 'blocked' | 'all-except-ru' | 'all'
 
@@ -14,10 +16,15 @@ interface TrafficData {
   down: number
 }
 
-const ROUTE_MODES: { key: RouteMode; label: string }[] = [
-  { key: 'blocked', label: 'velumUi.tray.modeBlocked' },
-  { key: 'all-except-ru', label: 'velumUi.tray.modeForeign' },
-  { key: 'all', label: 'velumUi.tray.modeAll' }
+// The chips are short; the full name (same as on the home screen) is in the tooltip.
+const ROUTE_MODES: { key: RouteMode; label: string; title: string }[] = [
+  { key: 'blocked', label: 'velumUi.tray.modeBlocked', title: 'pages.home.routeMode.blocked' },
+  {
+    key: 'all-except-ru',
+    label: 'velumUi.tray.modeForeign',
+    title: 'pages.home.routeMode.allExceptRu'
+  },
+  { key: 'all', label: 'velumUi.tray.modeAll', title: 'pages.home.routeMode.all' }
 ]
 
 const ipc = window.electron.ipcRenderer
@@ -27,7 +34,7 @@ const TrayMenuApp: React.FC = () => {
   const { t } = useTranslation()
   const { appConfig, mutateAppConfig, patchAppConfig } = useAppConfig()
   const { controledMihomoConfig, mutateControledMihomoConfig } = useControledMihomoConfig()
-  const { groups, mutate: mutateGroups } = useGroups()
+  const { mutate: mutateGroups } = useGroups()
   const { mainSwitchMode = 'tun', proxyMode = false, routeMode = 'blocked' } = appConfig || {}
 
   const enabled = mainSwitchMode === 'tun' ? (controledMihomoConfig?.tun?.enable ?? false) : proxyMode
@@ -40,8 +47,8 @@ const TrayMenuApp: React.FC = () => {
 
   const on = optimisticOn ?? enabled
   const shownMode = pendingMode ?? routeMode
-  const group = groups?.[0]
-  const server = group?.now ? parseServerName(group.now) : undefined
+  const servers = useServers()
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const refresh = useCallback((): void => {
     mutateAppConfig()
@@ -56,8 +63,12 @@ const TrayMenuApp: React.FC = () => {
   // The window lives on while hidden, so re-read everything each time it is shown.
   useEffect(() => {
     refresh()
-    window.addEventListener('focus', refresh)
-    return () => window.removeEventListener('focus', refresh)
+    const onFocus = (): void => {
+      setPickerOpen(false)
+      refresh()
+    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
   }, [refresh])
 
   useEffect(() => {
@@ -138,15 +149,56 @@ const TrayMenuApp: React.FC = () => {
         </button>
 
         <div className="mb-1 text-[11px] text-vl-faint">{t('velumUi.tray.server')}</div>
-        <div className="mb-2.5 truncate text-[12.5px] font-semibold">
-          {server?.label ?? t('velumUi.server.choose')}
-        </div>
+        <button
+          type="button"
+          onClick={() => setPickerOpen((open) => !open)}
+          className="mb-2.5 flex w-full cursor-pointer items-center justify-between gap-2 text-left"
+        >
+          <span className="truncate text-[12.5px] font-semibold">
+            {servers.current?.label ?? t('velumUi.server.choose')}
+          </span>
+          <ChevronDown
+            className={`size-3.5 shrink-0 text-vl-faint transition-transform ${pickerOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+        {pickerOpen && (
+          <div className="custom-scrollbar -mt-1 mb-2.5 max-h-44 space-y-0.5 overflow-y-auto rounded-lg bg-vl-bg p-1">
+            {servers.entries.map((entry) => {
+              const selected = entry.name === servers.current?.name
+              return (
+                <button
+                  key={entry.name}
+                  type="button"
+                  onClick={async () => {
+                    setPickerOpen(false)
+                    try {
+                      await servers.select(entry.name)
+                    } catch {
+                      // the card keeps showing the server that is really selected
+                    }
+                  }}
+                  className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] transition-colors ${
+                    selected ? 'bg-vl-accent/14 text-vl-text' : 'text-vl-muted hover:bg-white/5 hover:text-vl-text'
+                  }`}
+                >
+                  <span className="truncate">{entry.label}</span>
+                  {entry.delay > 0 && (
+                    <span className={`shrink-0 tabular-nums ${bandColor[pingBand(entry.delay)]}`}>
+                      {entry.delay} ms
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         <div className="mb-3 flex gap-[5px]">
           {ROUTE_MODES.map((m) => (
             <button
               key={m.key}
               type="button"
+              title={t(m.title)}
               onClick={() => changeMode(m.key)}
               className={`flex-1 cursor-pointer rounded-md px-1 py-1.5 text-center text-[9.5px] font-bold transition-colors ${
                 shownMode === m.key
