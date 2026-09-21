@@ -65,18 +65,35 @@ const Ping: React.FC<{ delay: number; testing?: boolean }> = ({ delay, testing =
   const band = pingBand(delay)
   const numberMode = (appConfig?.delayDisplayMode ?? 'text') === 'number'
   const [spinValue, setSpinValue] = useState(() => 120 + Math.floor(Math.random() * 400))
+  // In the "labels" display mode the number is shown only during a test and for a moment after it,
+  // so the result visibly lands before it turns into the word.
+  const [settling, setSettling] = useState(false)
+  const wasTesting = useRef(false)
 
   useEffect(() => {
-    if (!testing || !numberMode) return undefined
+    if (!testing) return undefined
     const id = setInterval(() => setSpinValue(30 + Math.floor(Math.random() * 570)), SPIN_MS)
     return () => clearInterval(id)
-  }, [testing, numberMode])
+  }, [testing])
 
-  const spinning = testing && numberMode
+  useEffect(() => {
+    if (testing) {
+      wasTesting.current = true
+      setSettling(false)
+      return undefined
+    }
+    if (!wasTesting.current) return undefined
+    wasTesting.current = false
+    setSettling(true)
+    const id = setTimeout(() => setSettling(false), 900)
+    return () => clearTimeout(id)
+  }, [testing])
+
+  const spinning = testing
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${bandColor[band]}`}>
       <span className="size-1.5 rounded-full bg-current" />
-      {spinning || (numberMode && delay > 0) ? (
+      {spinning || ((numberMode || settling) && delay > 0) ? (
         <NumberFlow
           value={spinning ? spinValue : delay}
           suffix=" ms"
@@ -84,9 +101,6 @@ const Ping: React.FC<{ delay: number; testing?: boolean }> = ({ delay, testing =
           // Fast rolls while spinning, a normal slower settle onto the final value.
           {...(spinning ? { transformTiming: SPIN_TIMING, spinTiming: SPIN_TIMING } : {})}
         />
-      ) : testing ? (
-        // Text mode has no digits to spin, so show that a test is running.
-        <RefreshCw className="size-3 animate-spin" />
       ) : (
         bandLabel(band)
       )}
