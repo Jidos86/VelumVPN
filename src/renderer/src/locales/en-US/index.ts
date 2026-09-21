@@ -1097,6 +1097,7 @@ export default {
       auto: 'Automatically pick the best server',
       now: 'Now',
       checkAll: 'Test pings',
+      showMs: 'Show ping in ms',
       check: 'Test ping',
       pin: 'Pin in "Random server"',
       unpin: 'Unpin',

@@ -4,6 +4,7 @@ import { ChevronRight, MapPin, RefreshCw, Search, Sparkles, X } from 'lucide-rea
 import { toast } from 'sonner'
 import NumberFlow from '@number-flow/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { Switch } from '@renderer/velum/ui/primitives'
 import { useServers } from './use-servers'
 import { bandColor, pingBand, PingBand, ServerEntry } from './server-utils'
 
@@ -191,6 +192,9 @@ const ServerPickerModal: React.FC<{
 }> = ({ servers, onClose }) => {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
+  // The same setting as "ping display" in the appearance settings: words or milliseconds.
+  const { appConfig, patchAppConfig } = useAppConfig()
+  const showMs = (appConfig?.delayDisplayMode ?? 'text') === 'number'
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -264,6 +268,14 @@ const ServerPickerModal: React.FC<{
               className="w-full bg-transparent text-sm text-vl-text outline-none placeholder:text-vl-faint"
             />
           </label>
+        </div>
+
+        <div className="flex items-center justify-between px-4 pb-3">
+          <span className="text-xs text-vl-muted">{t('velumUi.server.showMs')}</span>
+          <Switch
+            checked={showMs}
+            onChange={(value) => patchAppConfig({ delayDisplayMode: value ? 'number' : 'text' })}
+          />
         </div>
 
         <div className="custom-scrollbar flex-1 space-y-1.5 overflow-y-auto px-4 pb-4">
