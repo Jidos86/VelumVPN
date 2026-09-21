@@ -1,5 +1,6 @@
 import { addProfileItem, getProfileConfig } from '../config'
 import { waitForCoreReady } from './manager'
+import { mainWindow } from '..'
 
 const TICK_INTERVAL_MS = 60_000
 const STARTUP_REFRESH_DELAY_MS = 60_000
@@ -8,6 +9,12 @@ const CORE_READY_TIMEOUT_MS = 30_000
 
 const inFlight = new Set<string>()
 let started = false
+
+// The window keeps its own copy of the profile list; without this it keeps showing
+// the old "updated N hours ago" until something else makes it reload.
+function notifyProfilesChanged(): void {
+  mainWindow?.webContents.send('profileConfigUpdated')
+}
 
 function isDue(item: ProfileItem): boolean {
   if (item.type !== 'remote') return false
@@ -33,6 +40,7 @@ async function runStartupRefresh(): Promise<void> {
       inFlight.add(item.id)
       try {
         await addProfileItem(item)
+        notifyProfilesChanged()
       } catch {
         // silent — startup refresh is best-effort
       } finally {
@@ -53,6 +61,7 @@ async function runTick(): Promise<void> {
       inFlight.add(item.id)
       try {
         await addProfileItem(item)
+        notifyProfilesChanged()
       } catch {
         // next tick will retry
       } finally {
