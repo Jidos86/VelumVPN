@@ -199,9 +199,13 @@ const Home: React.FC = () => {
   }
 
   const [routeLoading, setRouteLoading] = useState(false)
+  const [pendingMode, setPendingMode] = useState<'blocked' | 'all-except-ru' | 'all' | null>(null)
+  const shownMode = pendingMode ?? routeMode
   const handleRouteModeChange = async (m: 'blocked' | 'all-except-ru' | 'all'): Promise<void> => {
     if (m === routeMode || routeLoading) return
     setRouteLoading(true)
+    // Highlight the new mode right away; the config round trip and the core reload take a while.
+    setPendingMode(m)
     try {
       await patchAppConfig({ routeMode: m })
       await mihomoHotReloadConfig()
@@ -209,6 +213,7 @@ const Home: React.FC = () => {
     } catch (e) {
       toast.error(`${e}`)
     } finally {
+      setPendingMode(null)
       setRouteLoading(false)
     }
   }
@@ -510,18 +515,16 @@ const Home: React.FC = () => {
           </div>
           <div className="flex flex-col gap-1.5">
             {routeModes.map((m) => {
-              const active = routeMode === m.key
+              const active = shownMode === m.key
               return (
                 <button
                   key={m.key}
                   type="button"
                   disabled={routeLoading}
                   onClick={() => handleRouteModeChange(m.key)}
-                  className={`relative flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors ${
-                    active
-                      ? 'border-transparent'
-                      : 'border-vl-line bg-vl-panel hover:border-vl-line-strong'
-                  } ${routeLoading ? 'opacity-60' : ''}`}
+                  className={`relative flex cursor-pointer items-center gap-3 rounded-xl border border-vl-line bg-vl-panel px-3.5 py-2.5 text-left disabled:cursor-default ${
+                    active ? '' : 'transition-colors hover:border-vl-line-strong'
+                  }`}
                 >
                   {/* One highlight that glides between the modes instead of switching on and off. */}
                   {active && (
