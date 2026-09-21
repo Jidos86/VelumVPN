@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@renderer/components/ui
 import useSWR from 'swr'
 import { checkAutoRun, disableAutoRun, enableAutoRun, relaunchApp } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { platform } from '@renderer/utils/init'
 import ConfirmModal from '../base/base-confirm'
 import { useTranslation } from 'react-i18next'
 import { MessageCircleQuestionMark } from 'lucide-react'
@@ -25,9 +26,11 @@ const GeneralConfig: React.FC<GeneralConfigProps> = (props) => {
     silentStart = false,
     expertMode = false,
     autoCheckUpdate,
-
+    // the tray card is on unless the user turned it off; Linux only has the native tray menu
+    useTrayCard = true,
     disableGPU = false
   } = appConfig || {}
+  const showTrayCard = platform !== 'linux'
 
   const [showRestartConfirm, setShowRestartConfirm] = useState(false)
   const [pendingDisableGPU, setPendingDisableGPU] = useState(disableGPU)
@@ -99,7 +102,10 @@ const GeneralConfig: React.FC<GeneralConfigProps> = (props) => {
             }}
           />
         </SettingItem>
-        <SettingItem title={t('settings.general.autoCheckUpdate')} divider={showHiddenSettings}>
+        <SettingItem
+          title={t('settings.general.autoCheckUpdate')}
+          divider={showTrayCard || showHiddenSettings}
+        >
           <Switch
             checked={autoCheckUpdate}
             onCheckedChange={(value) => {
@@ -107,6 +113,16 @@ const GeneralConfig: React.FC<GeneralConfigProps> = (props) => {
             }}
           />
         </SettingItem>
+        {showTrayCard && (
+          <SettingItem title={t('settings.general.useTrayCard')} divider={showHiddenSettings}>
+            <Switch
+              checked={useTrayCard}
+              onCheckedChange={(value) => {
+                patchAppConfig({ useTrayCard: value })
+              }}
+            />
+          </SettingItem>
+        )}
         {showHiddenSettings && (
           <SettingItem
             title={t('settings.general.disableGPU')}

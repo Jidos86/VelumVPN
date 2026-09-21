@@ -74,16 +74,16 @@ function hideCustomTray(): void {
   }
 }
 
-// The compact tray card is the default everywhere but Linux (its tray only supports a native menu);
-// a stored useCustomTrayMenu value still wins.
+// The compact tray card is the default everywhere but Linux (its tray only supports a native menu).
+// It has its own setting: the old useCustomTrayMenu was written as false into every config by the
+// template, so it says nothing about what the user wants.
 const CUSTOM_TRAY_DEFAULT = process.platform !== 'linux'
 const TRAY_WIDTH = 260
 const TRAY_MIN_HEIGHT = 200
 
 async function showCustomTray(): Promise<void> {
-  const { useCustomTrayMenu = CUSTOM_TRAY_DEFAULT, customTheme = 'default.css' } =
-    await getAppConfig()
-  if (!useCustomTrayMenu) {
+  const { useTrayCard = CUSTOM_TRAY_DEFAULT, customTheme = 'default.css' } = await getAppConfig()
+  if (!useTrayCard) {
     await updateTrayMenu()
     return
   }
@@ -134,8 +134,8 @@ async function showCustomTray(): Promise<void> {
 }
 
 async function handleTrayClick(): Promise<void> {
-  const { useCustomTrayMenu = CUSTOM_TRAY_DEFAULT } = await getAppConfig()
-  if (useCustomTrayMenu) {
+  const { useTrayCard = CUSTOM_TRAY_DEFAULT } = await getAppConfig()
+  if (useTrayCard) {
     await showCustomTray()
   } else {
     await updateTrayMenu()

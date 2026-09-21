@@ -88,6 +88,8 @@ interface AppConfig {
   controlTun?: boolean
   useDockIcon?: boolean
   useCustomTrayMenu?: boolean
+  // The compact tray card instead of the native tray menu (default: on, except on Linux)
+  useTrayCard?: boolean
   hosts: IHost[]
   showWindowShortcut?: string
   showFloatingWindowShortcut?: string
