@@ -216,9 +216,11 @@ const TrayMenuApp: React.FC = () => {
   )
 
   return (
-    // The window is transparent: the card and the list are drawn on the bottom edge, and the window
-    // grows sideways/upwards around them, so nothing moves when the list opens.
-    <div className="flex items-end" style={{ width: flyoutOpen ? CARD_W + FLYOUT_W : CARD_W }}>
+    // The window is transparent and is resized by the main process, independently of this layout.
+    // So the card is pinned to the bottom edge and to its own side of the window (the right edge when
+    // the list opens on the left): however the window changes size, the card stays exactly where it is
+    // and nothing jumps while the window catches up.
+    <div className={`flex h-screen w-screen items-end ${side === 'left' ? 'justify-end' : 'justify-start'}`}>
       {side === 'left' && flyout}
       <div ref={cardRef} className="shrink-0 p-2.5" style={{ width: CARD_W }}>
         <div className="rounded-xl border border-vl-line-strong bg-vl-panel p-3.5 text-vl-text shadow-2xl shadow-black/50">
