@@ -1058,6 +1058,19 @@ export default {
   },
   velumUi: {
     nav: { quit: 'Quit', github: 'GitHub' },
+    tray: {
+      protected: 'You are protected',
+      unprotected: 'Protection is off',
+      turnOn: 'Turn on',
+      turnOff: 'Turn off',
+      server: 'Server',
+      modeBlocked: 'Blocked',
+      modeForeign: 'Foreign',
+      modeAll: 'All',
+      update: 'Update available',
+      open: 'Open VelumVPN',
+      quit: 'Quit'
+    },
     status: {
       offTitle: 'Disconnected',
       offSub: 'Tap to turn on connection protection',

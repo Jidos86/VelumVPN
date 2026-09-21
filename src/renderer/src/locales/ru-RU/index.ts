@@ -1060,6 +1060,19 @@ export default {
   },
   velumUi: {
     nav: { quit: 'Выход', github: 'GitHub' },
+    tray: {
+      protected: 'Вы под защитой',
+      unprotected: 'Защита отключена',
+      turnOn: 'Включить',
+      turnOff: 'Выключить',
+      server: 'Сервер',
+      modeBlocked: 'Блок.',
+      modeForeign: 'Загр.',
+      modeAll: 'Всё',
+      update: 'Доступно обновление',
+      open: 'Открыть VelumVPN',
+      quit: 'Выход'
+    },
     status: {
       offTitle: 'Отключено',
       offSub: 'Нажмите, чтобы включить защиту соединения',

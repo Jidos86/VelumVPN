@@ -1,226 +1,196 @@
-import { useEffect, useState, useMemo } from 'react'
-import { IoRefresh, IoClose, IoCheckmarkCircle } from 'react-icons/io5'
-import { useGroups } from './hooks/use-groups'
-import { mihomoChangeProxy, mihomoGroupDelay, mihomoCloseAllConnections } from './utils/ipc'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAppConfig } from './hooks/use-app-config'
+import { useControledMihomoConfig } from './hooks/use-controled-mihomo-config'
+import { useGroups } from './hooks/use-groups'
+import { mihomoCloseAllConnections, mihomoHotReloadConfig } from './utils/ipc'
 import { calcTraffic } from './utils/calc'
-import { t } from 'i18next'
-import { Button } from '@renderer/components/ui/button'
-import { Badge } from '@renderer/components/ui/badge'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger
-} from '@renderer/components/ui/accordion'
-import { cn } from '@renderer/lib/utils'
+import { parseServerName } from './velum/servers/server-utils'
+
+type RouteMode = 'blocked' | 'all-except-ru' | 'all'
 
 interface TrafficData {
   up: number
   down: number
 }
 
-const TrayMenuApp: React.FC = () => {
-  const { groups, mutate } = useGroups()
-  const { appConfig } = useAppConfig()
-  const { autoCloseConnection } = appConfig || {}
+const ROUTE_MODES: { key: RouteMode; label: string }[] = [
+  { key: 'blocked', label: 'velumUi.tray.modeBlocked' },
+  { key: 'all-except-ru', label: 'velumUi.tray.modeForeign' },
+  { key: 'all', label: 'velumUi.tray.modeAll' }
+]
 
+const ipc = window.electron.ipcRenderer
+
+// Compact tray card: state, main switch, current server, routing mode, speed and a way back to the window.
+const TrayMenuApp: React.FC = () => {
+  const { t } = useTranslation()
+  const { appConfig, mutateAppConfig, patchAppConfig } = useAppConfig()
+  const { controledMihomoConfig, mutateControledMihomoConfig } = useControledMihomoConfig()
+  const { groups, mutate: mutateGroups } = useGroups()
+  const { mainSwitchMode = 'tun', proxyMode = false, routeMode = 'blocked' } = appConfig || {}
+
+  const enabled = mainSwitchMode === 'tun' ? (controledMihomoConfig?.tun?.enable ?? false) : proxyMode
+  // Show the result of a click right away; the real value replaces it once the core has answered.
+  const [optimisticOn, setOptimisticOn] = useState<boolean | null>(null)
+  const [pendingMode, setPendingMode] = useState<RouteMode | null>(null)
   const [traffic, setTraffic] = useState<TrafficData>({ up: 0, down: 0 })
-  const [testingGroup, setTestingGroup] = useState<string | null>(null)
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  const on = optimisticOn ?? enabled
+  const shownMode = pendingMode ?? routeMode
+  const group = groups?.[0]
+  const server = group?.now ? parseServerName(group.now) : undefined
+
+  const refresh = useCallback((): void => {
+    mutateAppConfig()
+    mutateControledMihomoConfig()
+    mutateGroups()
+    ipc
+      .invoke('customTray:availableUpdate')
+      .then((update: { version: string } | null) => setUpdateVersion(update?.version ?? null))
+      .catch(() => setUpdateVersion(null))
+  }, [mutateAppConfig, mutateControledMihomoConfig, mutateGroups])
+
+  // The window lives on while hidden, so re-read everything each time it is shown.
+  useEffect(() => {
+    refresh()
+    window.addEventListener('focus', refresh)
+    return () => window.removeEventListener('focus', refresh)
+  }, [refresh])
 
   useEffect(() => {
-    window.electron.ipcRenderer.on('mihomoTraffic', (_e, info: TrafficData) => {
-      setTraffic(info)
-    })
+    const onTraffic = (_e: unknown, info: TrafficData): void => setTraffic(info)
+    ipc.on('mihomoTraffic', onTraffic)
     return () => {
-      window.electron.ipcRenderer.removeAllListeners('mihomoTraffic')
+      ipc.removeListener('mihomoTraffic', onTraffic)
     }
   }, [])
 
-  const handleClose = (): void => {
-    window.electron.ipcRenderer.send('customTray:close')
-  }
+  // Keep the native window exactly as tall as the card (the update row comes and goes).
+  useEffect(() => {
+    const el = rootRef.current
+    if (!el) return undefined
+    const report = (): void => ipc.send('customTray:resize', el.getBoundingClientRect().height)
+    const observer = new ResizeObserver(report)
+    observer.observe(el)
+    report()
+    return () => observer.disconnect()
+  }, [])
 
-  const handleRefresh = (): void => {
-    mutate()
-  }
-
-  const handleTestDelay = async (groupName: string, testUrl?: string): Promise<void> => {
-    setTestingGroup(groupName)
+  const toggle = async (): Promise<void> => {
+    if (optimisticOn !== null) return
+    setOptimisticOn(!on)
     try {
-      await mihomoGroupDelay(groupName, testUrl)
-      mutate()
-    } catch (e) {
-      // ignore
+      await ipc.invoke('customTray:toggle')
     } finally {
-      setTestingGroup(null)
+      refresh()
+      setOptimisticOn(null)
     }
   }
 
-  const handleSelectProxy = async (groupName: string, proxyName: string): Promise<void> => {
+  const changeMode = async (mode: RouteMode): Promise<void> => {
+    if (mode === routeMode || pendingMode) return
+    setPendingMode(mode)
     try {
-      await mihomoChangeProxy(groupName, proxyName)
-      if (autoCloseConnection) {
-        await mihomoCloseAllConnections()
-      }
-      mutate()
-    } catch (e) {
-      // ignore
+      await patchAppConfig({ routeMode: mode })
+      await mihomoHotReloadConfig()
+      await mihomoCloseAllConnections()
+      ipc.send('customTray:configChanged')
+    } catch {
+      // the chips fall back to the stored mode
+    } finally {
+      setPendingMode(null)
     }
   }
-
-  const getDelayClassName = (delay: number | undefined): string => {
-    if (delay === undefined || delay < 0) return 'bg-muted text-muted-foreground'
-    if (delay === 0) return 'bg-destructive/15 text-destructive'
-    if (delay <= 150) return 'bg-success/15 text-success'
-    if (delay <= 300) return 'bg-warning/15 text-warning'
-    return 'bg-destructive/15 text-destructive'
-  }
-
-  const formatDelay = (delay: number | undefined): string => {
-    if (delay === undefined || delay < 0) return '--'
-    if (delay === 0) return 'Timeout'
-    return `${delay} ms`
-  }
-
-  const getCurrentDelay = (group: ControllerMixedGroup): number | undefined => {
-    const current = group.all?.find((p) => p.name === group.now)
-    if (!current?.history?.length) return undefined
-    return current.history[current.history.length - 1].delay
-  }
-
-  const getProxyDelay = (
-    proxy: ControllerProxiesDetail | ControllerGroupDetail
-  ): number | undefined => {
-    if (!proxy.history?.length) return undefined
-    return proxy.history[proxy.history.length - 1].delay
-  }
-
-  const defaultExpandedKeys = useMemo(() => {
-    if (!groups) return []
-    return groups.slice(0, 3).map((g) => g.name)
-  }, [groups])
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden rounded-xl border border-stroke bg-card/50 backdrop-blur-xl">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-stroke">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-gradient-end-power-on animate-pulse shadow-lg shadow-gradient-end-power-on/50" />
-          <span className="text-sm font-semibold">VelumVPN</span>
+    // The window is transparent and a little wider than the card, so its shadow is not clipped.
+    <div ref={rootRef} className="w-[260px] p-2.5">
+      <div className="rounded-xl border border-vl-line-strong bg-vl-panel p-3.5 text-vl-text shadow-2xl shadow-black/50">
+        <div className="mb-3 flex items-center gap-2">
+          <span
+            className="size-[7px] rounded-full transition-colors"
+            style={{ background: on ? 'var(--color-vl-accent)' : 'rgb(242 245 248 / 0.3)' }}
+          />
+          <span className="text-[12.5px] font-bold">
+            {on ? t('velumUi.tray.protected') : t('velumUi.tray.unprotected')}
+          </span>
         </div>
-        <div className="flex items-center gap-1">
-          <Button size="icon-xs" variant="ghost" onClick={handleRefresh}>
-            <IoRefresh className="text-base" />
-          </Button>
-          <Button size="icon-xs" variant="ghost" onClick={handleClose}>
-            <IoClose className="text-base" />
-          </Button>
-        </div>
-      </div>
 
-      <div className="flex items-center justify-center gap-4 px-3 py-2 border-b border-stroke">
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-muted-foreground">↑</span>
-          <span className="text-xs font-mono font-medium">{calcTraffic(traffic.up)}/s</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-muted-foreground">↓</span>
-          <span className="text-xs font-mono font-medium">{calcTraffic(traffic.down)}/s</span>
-        </div>
-      </div>
+        <button
+          type="button"
+          onClick={toggle}
+          className="mb-2.5 flex w-full cursor-pointer items-center justify-between rounded-[9px] bg-vl-bg px-3 py-2.5 text-left"
+        >
+          <span className="text-xs font-semibold">
+            {on ? t('velumUi.tray.turnOff') : t('velumUi.tray.turnOn')}
+          </span>
+          <span
+            className={`relative h-[18px] w-8 rounded-full transition-colors ${on ? 'bg-vl-accent' : 'bg-white/15'}`}
+          >
+            <span
+              className="absolute top-[2.5px] size-[13px] rounded-full bg-white transition-all duration-200"
+              style={{ left: on ? 16.5 : 2.5 }}
+            />
+          </span>
+        </button>
 
-      <div className="flex-1 overflow-y-auto">
-        {!groups || groups.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-            {t('common.noData')}
-          </div>
-        ) : (
-          <Accordion type="multiple" defaultValue={defaultExpandedKeys} className="px-1">
-            {groups.map((group) => (
-              <AccordionItem key={group.name} value={group.name} className="border-b-0">
-                <AccordionTrigger className="py-2 px-2 rounded-lg hover:bg-accent/50 hover:no-underline">
-                  <div className="flex items-center justify-between w-full pr-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{group.name}</span>
-                      <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
-                        {group.type}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="icon-xs"
-                        variant="ghost"
-                        className="size-5"
-                        disabled={testingGroup === group.name}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleTestDelay(group.name, group.testUrl)
-                        }}
-                      >
-                        <IoRefresh
-                          className={cn(
-                            'text-xs',
-                            testingGroup === group.name && 'animate-spin'
-                          )}
-                        />
-                      </Button>
-                      <span
-                        className={cn(
-                          'inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-medium h-5 min-w-13',
-                          getDelayClassName(getCurrentDelay(group))
-                        )}
-                      >
-                        {formatDelay(getCurrentDelay(group))}
-                      </span>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pb-2">
-                  <div className="flex flex-col gap-1 pl-2">
-                    {group.all?.map((proxy) => {
-                      const isActive = proxy.name === group.now
-                      const delay = getProxyDelay(proxy)
-                      return (
-                        <div
-                          key={proxy.name}
-                          onClick={() => handleSelectProxy(group.name, proxy.name)}
-                          className={cn(
-                            'flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer transition-colors duration-150',
-                            isActive
-                              ? 'bg-linear-to-r from-gradient-start-power-on/15 to-gradient-end-power-on/15 border border-stroke-power-on/30'
-                              : 'hover:bg-accent/50'
-                          )}
-                        >
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            {isActive && (
-                              <IoCheckmarkCircle className="text-gradient-end-power-on text-sm flex-shrink-0" />
-                            )}
-                            <span
-                              className={cn(
-                                'text-xs truncate',
-                                isActive && 'text-foreground font-medium'
-                              )}
-                            >
-                              {proxy.name}
-                            </span>
-                          </div>
-                          <span
-                            className={cn(
-                              'inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-medium h-4 min-w-12 shrink-0',
-                              getDelayClassName(delay)
-                            )}
-                          >
-                            {formatDelay(delay)}
-                          </span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+        <div className="mb-1 text-[11px] text-vl-faint">{t('velumUi.tray.server')}</div>
+        <div className="mb-2.5 truncate text-[12.5px] font-semibold">
+          {server?.label ?? t('velumUi.server.choose')}
+        </div>
+
+        <div className="mb-3 flex gap-[5px]">
+          {ROUTE_MODES.map((m) => (
+            <button
+              key={m.key}
+              type="button"
+              onClick={() => changeMode(m.key)}
+              className={`flex-1 cursor-pointer rounded-md px-1 py-1.5 text-center text-[9.5px] font-bold transition-colors ${
+                shownMode === m.key
+                  ? 'bg-vl-accent/16 text-vl-accent'
+                  : 'bg-white/5 text-vl-muted hover:text-vl-text'
+              }`}
+            >
+              {t(m.label)}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex justify-between border-t border-vl-line pt-2.5 text-[11px] tabular-nums text-vl-muted">
+          <span>↓ {calcTraffic(traffic.down)}/s</span>
+          <span>↑ {calcTraffic(traffic.up)}/s</span>
+        </div>
+
+        {updateVersion && (
+          <button
+            type="button"
+            onClick={() => ipc.send('customTray:openMain')}
+            className="mt-2.5 flex w-full cursor-pointer items-center gap-2 rounded-lg bg-vl-accent/12 px-2.5 py-2 text-left text-[11.5px] font-semibold text-vl-accent transition-colors hover:bg-vl-accent/18"
+          >
+            <span className="size-1.5 shrink-0 rounded-full bg-vl-accent" />
+            <span className="min-w-0 truncate">
+              {t('velumUi.tray.update')} {updateVersion}
+            </span>
+          </button>
         )}
+
+        <button
+          type="button"
+          onClick={() => ipc.send('customTray:openMain')}
+          className="mt-2 block w-full cursor-pointer border-t border-vl-line py-1.5 text-left text-[11.5px] font-semibold text-vl-accent"
+        >
+          {t('velumUi.tray.open')}
+        </button>
+        <button
+          type="button"
+          onClick={() => ipc.send('customTray:quit')}
+          className="block w-full cursor-pointer py-0.5 text-left text-[11.5px] font-semibold text-vl-muted transition-colors hover:text-vl-text"
+        >
+          {t('velumUi.tray.quit')}
+        </button>
       </div>
     </div>
   )

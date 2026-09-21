@@ -5,7 +5,7 @@ export const defaultConfig: AppConfig = {
   appTheme: 'system',
   useWindowFrame: false,
   proxyInTray: true,
-  useCustomTrayMenu: false,
+  useCustomTrayMenu: process.platform !== 'linux',
   maxLogDays: 7,
   proxyCols: 'auto',
   connectionDirection: 'asc',

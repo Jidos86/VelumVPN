@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import './velum.css';
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -106,7 +107,8 @@
   }
 }
 
-html {
+html,
+body {
   background: none !important;
   background-color: transparent !important;
 }

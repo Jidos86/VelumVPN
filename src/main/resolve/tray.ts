@@ -74,8 +74,15 @@ function hideCustomTray(): void {
   }
 }
 
+// The compact tray card is the default everywhere but Linux (its tray only supports a native menu);
+// a stored useCustomTrayMenu value still wins.
+const CUSTOM_TRAY_DEFAULT = process.platform !== 'linux'
+const TRAY_WIDTH = 260
+const TRAY_MIN_HEIGHT = 200
+
 async function showCustomTray(): Promise<void> {
-  const { useCustomTrayMenu = false, customTheme = 'default.css' } = await getAppConfig()
+  const { useCustomTrayMenu = CUSTOM_TRAY_DEFAULT, customTheme = 'default.css' } =
+    await getAppConfig()
   if (!useCustomTrayMenu) {
     await updateTrayMenu()
     return
@@ -83,18 +90,20 @@ async function showCustomTray(): Promise<void> {
 
   if (!customTrayWindow || customTrayWindow.isDestroyed()) {
     customTrayWindow = new BrowserWindow({
-      width: 380,
-      height: 520,
+      width: TRAY_WIDTH,
+      height: 330,
       show: false,
       frame: false,
       transparent: true,
+      backgroundColor: '#00000000',
       resizable: false,
       movable: false,
       alwaysOnTop: true,
       skipTaskbar: true,
       fullscreenable: false,
       focusable: true,
-      hasShadow: true,
+      // the card draws its own border and shadow
+      hasShadow: false,
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         spellcheck: false,
@@ -125,7 +134,7 @@ async function showCustomTray(): Promise<void> {
 }
 
 async function handleTrayClick(): Promise<void> {
-  const { useCustomTrayMenu = false } = await getAppConfig()
+  const { useCustomTrayMenu = CUSTOM_TRAY_DEFAULT } = await getAppConfig()
   if (useCustomTrayMenu) {
     await showCustomTray()
   } else {
@@ -133,12 +142,62 @@ async function handleTrayClick(): Promise<void> {
   }
 }
 
-export const buildContextMenu = async (): Promise<Menu> => {
-  const { mode, tun } = await getControledMihomoConfig()
+// The main on/off switch (TUN or system proxy, depending on the chosen mode), shared by the
+// native tray menu and the tray card. Every open window is told to re-read its config afterwards.
+async function toggleProtection(): Promise<void> {
+  const { tun } = await getControledMihomoConfig()
   const {
     sysProxy,
     proxyMode = false,
     onlyActiveDevice = false,
+    mainSwitchMode = 'tun'
+  } = await getAppConfig()
+  const currentEnabled = mainSwitchMode === 'tun' ? (tun?.enable ?? false) : proxyMode
+  const enable = !currentEnabled
+  try {
+    if (mainSwitchMode === 'tun') {
+      if (enable) {
+        await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
+      } else {
+        await patchControledMihomoConfig({ tun: { enable } })
+      }
+      notifyWindows('controledMihomoConfigUpdated')
+    } else {
+      if (enable) {
+        await patchAppConfig({ proxyMode: true })
+        await mihomoHotReloadConfig()
+        if (sysProxy.enable) {
+          await triggerSysProxy(true, onlyActiveDevice)
+        }
+      } else {
+        if (sysProxy.enable) {
+          await triggerSysProxy(false, onlyActiveDevice)
+        }
+        await patchAppConfig({ proxyMode: false })
+        await mihomoHotReloadConfig()
+      }
+      notifyWindows('appConfigUpdated')
+    }
+    await updateTrayIcon()
+  } catch {
+    // ignore: the windows re-read the real state below
+    notifyWindows('controledMihomoConfigUpdated')
+    notifyWindows('appConfigUpdated')
+  }
+}
+
+function notifyWindows(channel: string): void {
+  mainWindow?.webContents.send(channel)
+  floatingWindow?.webContents.send(channel)
+  if (customTrayWindow && !customTrayWindow.isDestroyed()) {
+    customTrayWindow.webContents.send(channel)
+  }
+}
+
+export const buildContextMenu = async (): Promise<Menu> => {
+  const { mode, tun } = await getControledMihomoConfig()
+  const {
+    proxyMode = false,
     autoCloseConnection,
     proxyInTray = true,
     mainSwitchMode = 'tun',
@@ -245,37 +304,8 @@ export const buildContextMenu = async (): Promise<Menu> => {
         : t('tray.enable'),
       accelerator: mainSwitchMode === 'tun' ? triggerTunShortcut : triggerSysProxyShortcut,
       click: async (): Promise<void> => {
-        const currentEnabled = mainSwitchMode === 'tun' ? (tun?.enable ?? false) : proxyMode
-        const enable = !currentEnabled
         try {
-          if (mainSwitchMode === 'tun') {
-            if (enable) {
-              await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
-            } else {
-              await patchControledMihomoConfig({ tun: { enable } })
-            }
-            mainWindow?.webContents.send('controledMihomoConfigUpdated')
-            floatingWindow?.webContents.send('controledMihomoConfigUpdated')
-          } else {
-            if (enable) {
-              await patchAppConfig({ proxyMode: true })
-              await mihomoHotReloadConfig()
-              if (sysProxy.enable) {
-                await triggerSysProxy(true, onlyActiveDevice)
-              }
-            } else {
-              if (sysProxy.enable) {
-                await triggerSysProxy(false, onlyActiveDevice)
-              }
-              await patchAppConfig({ proxyMode: false })
-              await mihomoHotReloadConfig()
-            }
-            mainWindow?.webContents.send('appConfigUpdated')
-            floatingWindow?.webContents.send('appConfigUpdated')
-          }
-          await updateTrayIcon()
-        } catch {
-          // ignore
+          await toggleProtection()
         } finally {
           ipcMain.emit('updateTrayMenu')
         }
@@ -433,6 +463,33 @@ async function updateTrayMenu(): Promise<void> {
 
 ipcMain.on('customTray:close', () => {
   hideCustomTray()
+})
+
+// Commands from the tray card.
+ipcMain.on('customTray:openMain', () => {
+  hideCustomTray()
+  void showMainWindow()
+})
+ipcMain.on('customTray:quit', () => {
+  hideCustomTray()
+  setNotQuitDialog()
+  app.quit()
+})
+ipcMain.handle('customTray:toggle', async () => {
+  await toggleProtection()
+})
+// A setting changed in the card: let the other windows re-read it.
+ipcMain.on('customTray:configChanged', () => {
+  notifyWindows('appConfigUpdated')
+})
+ipcMain.handle('customTray:availableUpdate', () => getAvailableUpdate() ?? null)
+// The card reports its content height so the window always fits it (an update row may appear).
+ipcMain.on('customTray:resize', (_e, height: number) => {
+  if (!customTrayWindow || customTrayWindow.isDestroyed() || !Number.isFinite(height)) return
+  const next = Math.max(TRAY_MIN_HEIGHT, Math.ceil(height))
+  if (customTrayWindow.getBounds().height === next) return
+  customTrayWindow.setSize(TRAY_WIDTH, next, false)
+  if (customTrayWindow.isVisible()) positionCustomTrayWindow(customTrayWindow)
 })
 
 export async function copyEnv(type: 'bash' | 'cmd' | 'powershell' | 'nushell'): Promise<void> {
