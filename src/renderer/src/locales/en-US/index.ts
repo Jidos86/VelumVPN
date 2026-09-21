@@ -1057,7 +1057,7 @@ export default {
     conflictBulkWarning: '{{count}} items skipped — already present in "{{section}}"'
   },
   velumUi: {
-    nav: { quit: 'Quit', github: 'Our GitHub' },
+    nav: { quit: 'Quit', github: 'GitHub' },
     status: {
       offTitle: 'Disconnected',
       offSub: 'Tap to turn on connection protection',

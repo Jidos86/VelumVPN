@@ -1059,7 +1059,7 @@ export default {
     conflictBulkWarning: '{{count}} пунктов пропущено — они уже есть в разделе "{{section}}"'
   },
   velumUi: {
-    nav: { quit: 'Выход', github: 'Наш GitHub' },
+    nav: { quit: 'Выход', github: 'GitHub' },
     status: {
       offTitle: 'Отключено',
       offSub: 'Нажмите, чтобы включить защиту соединения',
