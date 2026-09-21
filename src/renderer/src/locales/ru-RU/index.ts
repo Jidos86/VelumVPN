@@ -1111,7 +1111,7 @@ export default {
       colDirect: 'В обход VPN',
       dragHint: 'Перетащите запись в другую колонку, чтобы изменить маршрут',
       edit: 'Изменить',
-      sortAdded: 'По добавлению',
+      sortAdded: 'По дате',
       sortName: 'По имени',
       sortAZ: 'А → Я',
       sortZA: 'Я → А',
