@@ -60,10 +60,20 @@ let trayAnchor: { x: number; y: number } | null = null
 // Sizes and places the window in one setBounds call. setSize alone is not enough: on Windows a
 // non-resizable window grows with it but never shrinks back, which left a tall invisible window
 // (and the card floating far above the tray) after the server list was closed.
-function positionCustomTrayWindow(win: BrowserWindow, height = win.getBounds().height): void {
-  if (!tray) return
-  const winW = TRAY_WIDTH
+// The card itself (TRAY_WIDTH) is what is anchored; when the server list flies out next to it the
+// window gets wider, and the card must not move. The list opens on the left when there is room
+// there (the tray is usually near the right edge of the screen), otherwise on the right.
+let traySide: 'left' | 'right' = 'left'
+
+function positionCustomTrayWindow(
+  win: BrowserWindow,
+  height = win.getBounds().height,
+  width = win.getBounds().width
+): 'left' | 'right' {
+  if (!tray) return traySide
+  const winW = width
   const winH = height
+  const extra = Math.max(0, winW - TRAY_WIDTH)
   const trayBounds = tray.getBounds()
   const anchor =
     process.platform === 'win32' && trayAnchor
@@ -75,7 +85,16 @@ function positionCustomTrayWindow(win: BrowserWindow, height = win.getBounds().h
         }
   const display = screen.getDisplayNearestPoint({ x: Math.round(anchor.x), y: Math.round(anchor.y) })
   const { x: dx, y: dy, width: dw, height: dh } = display.workArea
-  let x = Math.round(anchor.x - winW / 2)
+  // Where the card sits, kept inside the work area on its own.
+  const cardX = Math.min(
+    Math.max(Math.round(anchor.x - TRAY_WIDTH / 2), dx),
+    dx + dw - TRAY_WIDTH
+  )
+  if (extra === 0) traySide = 'left'
+  else if (cardX - extra >= dx) traySide = 'left'
+  else if (cardX + TRAY_WIDTH + extra <= dx + dw) traySide = 'right'
+  else traySide = 'left'
+  let x = traySide === 'left' ? cardX - extra : cardX
   // Above the anchor (the taskbar is usually at the bottom); below it on macOS or when there is no room above.
   let y =
     process.platform === 'darwin'
@@ -85,6 +104,7 @@ function positionCustomTrayWindow(win: BrowserWindow, height = win.getBounds().h
   x = Math.min(Math.max(x, dx), dx + dw - winW)
   y = Math.min(Math.max(y, dy), dy + dh - winH)
   win.setBounds({ x, y, width: winW, height: winH }, false)
+  return traySide
 }
 
 function hideCustomTray(): void {
@@ -148,7 +168,8 @@ async function showCustomTray(): Promise<void> {
   }
 
   trayAnchor = screen.getCursorScreenPoint()
-  positionCustomTrayWindow(customTrayWindow)
+  // always start as the bare card; the server list widens the window again when it is opened
+  positionCustomTrayWindow(customTrayWindow, customTrayWindow.getBounds().height, TRAY_WIDTH)
   customTrayWindow.show()
   customTrayWindow.focus()
 }
@@ -503,13 +524,26 @@ ipcMain.on('customTray:configChanged', () => {
   notifyWindows('appConfigUpdated')
 })
 ipcMain.handle('customTray:availableUpdate', () => getAvailableUpdate() ?? null)
-// The card reports its content height so the window always fits it (an update row may appear).
-ipcMain.on('customTray:resize', (_e, height: number) => {
-  if (!customTrayWindow || customTrayWindow.isDestroyed() || !Number.isFinite(height)) return
-  const next = Math.max(TRAY_MIN_HEIGHT, Math.ceil(height))
-  if (customTrayWindow.getBounds().height === next) return
-  positionCustomTrayWindow(customTrayWindow, next)
-})
+// The card reports the size it needs (its content height, plus the width of the server list while it
+// is flown out) so the window always fits it. The answer says on which side the list should be drawn.
+ipcMain.handle(
+  'customTray:layout',
+  (_e, size: { width: number; height: number }): 'left' | 'right' => {
+    if (
+      !customTrayWindow ||
+      customTrayWindow.isDestroyed() ||
+      !Number.isFinite(size?.width) ||
+      !Number.isFinite(size?.height)
+    ) {
+      return traySide
+    }
+    const width = Math.max(TRAY_WIDTH, Math.ceil(size.width))
+    const height = Math.max(TRAY_MIN_HEIGHT, Math.ceil(size.height))
+    const bounds = customTrayWindow.getBounds()
+    if (bounds.width === width && bounds.height === height) return traySide
+    return positionCustomTrayWindow(customTrayWindow, height, width)
+  }
+)
 
 export async function copyEnv(type: 'bash' | 'cmd' | 'powershell' | 'nushell'): Promise<void> {
   const { 'mixed-port': mixedPort = FLAVOR.mixedPort } = await getControledMihomoConfig()

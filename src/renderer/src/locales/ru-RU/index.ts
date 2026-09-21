@@ -1070,6 +1070,7 @@ export default {
       modeBlocked: 'Заблок.',
       modeForeign: 'Зарубеж.',
       modeAll: 'Всё',
+      retest: 'Повторить тест',
       update: 'Доступно обновление',
       open: 'Открыть VelumVPN',
       quit: 'Выход'

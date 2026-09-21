@@ -1068,6 +1068,7 @@ export default {
       modeBlocked: 'Blocked',
       modeForeign: 'Foreign',
       modeAll: 'All',
+      retest: 'Test again',
       update: 'Update available',
       open: 'Open VelumVPN',
       quit: 'Quit'
