@@ -650,7 +650,6 @@ const RulesPage: React.FC = () => {
   return (
     <PageShell title={t('customRules.pageTitle')} subtitle={t('velumUi.rules.subtitle')}>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <div className="flex flex-wrap items-center gap-3">
           <Segmented
             items={tabs}
             value={kind}
@@ -684,9 +683,8 @@ const RulesPage: React.FC = () => {
               )
             })}
           </div>
-        </div>
-        <span className="text-xs text-vl-faint">{t('velumUi.rules.dragHint')}</span>
       </div>
+      <span className="-mt-2 text-xs text-vl-faint">{t('velumUi.rules.dragHint')}</span>
       <div className="flex min-h-0 flex-1 gap-4">
         {renderColumn('vpn')}
         {renderColumn('direct')}
