@@ -90,6 +90,8 @@ interface AppConfig {
   useCustomTrayMenu?: boolean
   // The compact tray card instead of the native tray menu (default: on, except on Linux)
   useTrayCard?: boolean
+  // The newest version the user was already notified about (so it is announced only once)
+  lastNotifiedUpdate?: string
   hosts: IHost[]
   showWindowShortcut?: string
   showFloatingWindowShortcut?: string

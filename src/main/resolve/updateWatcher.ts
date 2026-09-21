@@ -1,17 +1,18 @@
 import { Notification } from 'electron'
-import { getAppConfig } from '../config'
+import { getAppConfig, patchAppConfig } from '../config'
 import { t } from '../utils/i18n'
 import { checkUpdate } from './autoUpdater'
 import { showMainWindow } from '..'
 
 // Checks for a new release from the main process, so it keeps working while the window is closed
 // or unloaded (lightweight mode), and tells the user once per version with a system notification.
+// "Once" survives restarts: the version that was announced is stored in the config, so a user who
+// ignores an update is not reminded on every launch (the tray card and the home screen still show it).
 // The tray menu reads the result through getAvailableUpdate(); nothing is downloaded or installed here.
 const FIRST_CHECK_DELAY_MS = 90_000
 const CHECK_INTERVAL_MS = 30 * 60_000
 
 let started = false
-let notifiedVersion: string | undefined
 
 function notifyUpdate(version: string): void {
   if (!Notification.isSupported()) return
@@ -27,11 +28,12 @@ function notifyUpdate(version: string): void {
 
 async function tick(): Promise<void> {
   try {
-    const { autoCheckUpdate = true } = await getAppConfig()
+    const { autoCheckUpdate = true, lastNotifiedUpdate } = await getAppConfig()
     if (autoCheckUpdate) {
       const update = await checkUpdate()
-      if (update && update.version !== notifiedVersion) {
-        notifiedVersion = update.version
+      if (update && update.version !== lastNotifiedUpdate) {
+        // remember first: if saving fails we would rather skip a notification than repeat it forever
+        await patchAppConfig({ lastNotifiedUpdate: update.version })
         notifyUpdate(update.version)
       }
     }
