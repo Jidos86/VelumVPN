@@ -54,17 +54,39 @@ const CodeBadge: React.FC<{ entry: ServerEntry }> = ({ entry }) => {
 
 // Ping label follows the same rules as the previous list: a speed label by default,
 // or the number in ms when the "delay display" appearance setting is switched to numbers.
-const Ping: React.FC<{ delay: number }> = ({ delay }) => {
+// While `testing`, the number spins through random values (like a slot machine) and then
+// settles on the real ping when the result arrives.
+const SPIN_MS = 110
+const SPIN_TIMING = { duration: 180, easing: 'ease-out' }
+
+const Ping: React.FC<{ delay: number; testing?: boolean }> = ({ delay, testing = false }) => {
   const { appConfig } = useAppConfig()
   const bandLabel = useBandLabel()
   const band = pingBand(delay)
   const numberMode = (appConfig?.delayDisplayMode ?? 'text') === 'number'
+  const [spinValue, setSpinValue] = useState(() => 120 + Math.floor(Math.random() * 400))
+
+  useEffect(() => {
+    if (!testing || !numberMode) return undefined
+    const id = setInterval(() => setSpinValue(30 + Math.floor(Math.random() * 570)), SPIN_MS)
+    return () => clearInterval(id)
+  }, [testing, numberMode])
+
+  const spinning = testing && numberMode
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${bandColor[band]}`}>
       <span className="size-1.5 rounded-full bg-current" />
-      {numberMode && delay > 0 ? (
-        // The digits roll to the new value, so a re-test visibly updates the number.
-        <NumberFlow value={delay} suffix=" ms" format={{ useGrouping: false }} />
+      {spinning || (numberMode && delay > 0) ? (
+        <NumberFlow
+          value={spinning ? spinValue : delay}
+          suffix=" ms"
+          format={{ useGrouping: false }}
+          // Fast rolls while spinning, a normal slower settle onto the final value.
+          {...(spinning ? { transformTiming: SPIN_TIMING, spinTiming: SPIN_TIMING } : {})}
+        />
+      ) : testing ? (
+        // Text mode has no digits to spin, so show that a test is running.
+        <RefreshCw className="size-3 animate-spin" />
       ) : (
         bandLabel(band)
       )}
@@ -139,11 +161,7 @@ export const ServerCard: React.FC = () => {
             }}
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 transition-colors hover:bg-white/5"
           >
-            {servers.testing.has(shown.name) ? (
-              <RefreshCw className="size-3.5 animate-spin text-vl-accent" />
-            ) : (
-              <Ping delay={shown.delay} />
-            )}
+            <Ping delay={shown.delay} testing={servers.testing.has(shown.name)} />
           </span>
         )}
         <ChevronRight className="size-4 shrink-0 text-vl-faint" />
@@ -268,7 +286,7 @@ const ServerPickerModal: React.FC<{
                     <div className="truncate text-xs text-vl-muted">{t('velumUi.server.auto')}</div>
                   )}
                 </div>
-                <Ping delay={entry.delay} />
+                <Ping delay={entry.delay} testing={busy} />
                 {!entry.isAuto && servers.canPin && (
                   <button
                     type="button"
