@@ -1,7 +1,8 @@
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
 import React, { useEffect, useRef, useState } from 'react'
-import { NavigateFunction, useNavigate, useRoutes } from 'react-router-dom'
+import { NavigateFunction, useLocation, useNavigate, useRoutes } from 'react-router-dom'
+import { motion } from 'motion/react'
 import './i18n'
 import { useTranslation } from 'react-i18next'
 import routes from '@renderer/routes'
@@ -35,6 +36,7 @@ const App: React.FC = () => {
   const { customTheme, autoCheckUpdate } = appConfig || {}
   const { setTheme } = useTheme()
   navigate = useNavigate()
+  const location = useLocation()
   const page = useRoutes(routes)
   // The background check fills the shared 'checkUpdate' cache; Home shows the update tile from it.
   useSWR(
@@ -232,7 +234,18 @@ const App: React.FC = () => {
         <TitleBar />
         <div className="flex min-h-0 flex-1">
           <NavRail />
-          <div className="relative main min-w-0 grow h-full overflow-y-auto">{page}</div>
+          <div className="relative main min-w-0 grow h-full overflow-y-auto">
+            {/* Enter-only fade so navigation never waits for an exit animation. */}
+            <motion.div
+              key={location.pathname}
+              className="h-full"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {page}
+            </motion.div>
+          </div>
         </div>
       </div>
     </SidebarProvider>

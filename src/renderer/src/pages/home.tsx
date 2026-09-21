@@ -13,6 +13,7 @@ import {
   checkUpdate
 } from '@renderer/utils/ipc'
 import NumberFlow from '@number-flow/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -47,6 +48,14 @@ const TEAL_GLOW = '0 0 26px oklch(0.82 0.16 196 / 16%)'
 type Phase = 'off' | 'connecting' | 'disconnecting' | 'on'
 
 const panel = 'rounded-2xl border border-vl-line bg-vl-panel'
+
+// Short fade + slide used when the timer and the hint swap places under the power button.
+const fadeSwap = {
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -6 },
+  transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }
+}
 
 const Home: React.FC = () => {
   const { t } = useTranslation()
@@ -401,6 +410,17 @@ const Home: React.FC = () => {
             data-guide="home-power-toggle"
             className="relative group my-1 cursor-pointer transition-transform active:scale-95 disabled:cursor-default"
           >
+            {/* A ring spreading out of the button while connecting or disconnecting */}
+            {loading && (
+              <motion.span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 rounded-full border-2"
+                style={{ borderColor: TEAL }}
+                initial={{ scale: 1, opacity: 0.5 }}
+                animate={{ scale: 1.4, opacity: 0 }}
+                transition={{ duration: 1.3, repeat: Infinity, ease: 'easeOut' }}
+              />
+            )}
             <div
               className="w-28 h-28 rounded-full flex items-center justify-center transition-all duration-400"
               style={{
@@ -442,8 +462,13 @@ const Home: React.FC = () => {
 
           {/* Timer + traffic while connected, a short hint otherwise */}
           <div className="flex min-h-14 flex-col items-center justify-start gap-1.5 tabular-nums">
+            <AnimatePresence mode="wait" initial={false}>
             {showConnectedTimer ? (
-              <>
+              <motion.div
+                key="timer"
+                {...fadeSwap}
+                className="flex flex-col items-center gap-1.5"
+              >
                 <div
                   className="inline-flex items-center gap-0.5 text-lg font-semibold"
                   style={{ color: TEAL }}
@@ -465,10 +490,13 @@ const Home: React.FC = () => {
                     {calcTraffic(trafficInfo.downTotal)}
                   </span>
                 </div>
-              </>
+              </motion.div>
             ) : (
-              <div className="text-sm text-vl-muted">{t(`velumUi.status.${phase}Sub`)}</div>
+              <motion.div key="hint" {...fadeSwap} className="text-sm text-vl-muted">
+                {t(`velumUi.status.${phase}Sub`)}
+              </motion.div>
             )}
+            </AnimatePresence>
           </div>
         </div>
 
@@ -489,20 +517,29 @@ const Home: React.FC = () => {
                   type="button"
                   disabled={routeLoading}
                   onClick={() => handleRouteModeChange(m.key)}
-                  className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors ${
+                  className={`relative flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors ${
                     active
-                      ? 'border-vl-accent/35 bg-vl-accent/10'
+                      ? 'border-transparent'
                       : 'border-vl-line bg-vl-panel hover:border-vl-line-strong'
                   } ${routeLoading ? 'opacity-60' : ''}`}
                 >
+                  {/* One highlight that glides between the modes instead of switching on and off. */}
+                  {active && (
+                    <motion.span
+                      layoutId="route-mode-highlight"
+                      aria-hidden
+                      className="absolute -inset-px rounded-xl border border-vl-accent/35 bg-vl-accent/10"
+                      transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                    />
+                  )}
                   <span
-                    className={`flex size-4 shrink-0 items-center justify-center rounded-full border-[1.5px] ${
+                    className={`relative flex size-4 shrink-0 items-center justify-center rounded-full border-[1.5px] ${
                       active ? 'border-vl-accent' : 'border-white/25'
                     }`}
                   >
                     {active && <span className="size-2 rounded-full bg-vl-accent" />}
                   </span>
-                  <span className="min-w-0">
+                  <span className="relative min-w-0">
                     <span className="block truncate text-sm font-semibold text-vl-text">{m.label}</span>
                     <span className="block truncate text-xs text-vl-muted">{m.desc}</span>
                   </span>

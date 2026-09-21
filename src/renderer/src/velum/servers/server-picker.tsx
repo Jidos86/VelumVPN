@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronRight, MapPin, RefreshCw, Search, Sparkles, X } from 'lucide-react'
 import { toast } from 'sonner'
+import NumberFlow from '@number-flow/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useServers } from './use-servers'
 import { bandColor, pingBand, PingBand, ServerEntry } from './server-utils'
@@ -61,7 +62,12 @@ const Ping: React.FC<{ delay: number }> = ({ delay }) => {
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-semibold ${bandColor[band]}`}>
       <span className="size-1.5 rounded-full bg-current" />
-      {numberMode && delay > 0 ? `${delay} ms` : bandLabel(band)}
+      {numberMode && delay > 0 ? (
+        // The digits roll to the new value, so a re-test visibly updates the number.
+        <NumberFlow value={delay} suffix=" ms" format={{ useGrouping: false }} />
+      ) : (
+        bandLabel(band)
+      )}
     </span>
   )
 }

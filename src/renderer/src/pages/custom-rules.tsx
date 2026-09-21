@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSWRConfig } from 'swr'
+import { AnimatePresence, motion } from 'motion/react'
 import { toast } from 'sonner'
 import { CheckSquare, GripVertical, Pencil, ListTree, Plus, Square, Trash2, Upload, X } from 'lucide-react'
 import { CustomRules, getCustomRules, setCustomRules } from '@renderer/utils/ipc'
@@ -477,17 +478,27 @@ const RulesPage: React.FC = () => {
           </div>
         )}
 
-        <div ref={rowWheelRef} className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pb-4 pl-4 pr-2 [scrollbar-gutter:stable]">
+        <motion.div layoutScroll ref={rowWheelRef} className="custom-scrollbar flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto pb-4 pl-4 pr-2 [scrollbar-gutter:stable]">
           {items.length === 0 && (
             <div className="py-6 text-center text-sm text-vl-faint">{t('velumUi.rules.empty')}</div>
           )}
+          {/* The motion wrapper animates entering, leaving and neighbours sliding into place;
+              the HTML5 drag & drop stays on the inner row so the two do not fight over drag events. */}
+          <AnimatePresence initial={false} mode="popLayout">
           {items.map((item) => {
             const checked = selected.has(item)
             const isEditing = editing?.side === side && editing.item === item
             const canDrag = !isSelecting && !isEditing && !saving
             return (
-              <div
+              <motion.div
                 key={item}
+                layout="position"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              >
+              <div
                 draggable={canDrag}
                 onDragStart={(e) => {
                   e.dataTransfer.effectAllowed = 'move'
@@ -570,9 +581,11 @@ const RulesPage: React.FC = () => {
                   </>
                 )}
               </div>
+              </motion.div>
             )
           })}
-        </div>
+          </AnimatePresence>
+        </motion.div>
       </div>
     )
   }
