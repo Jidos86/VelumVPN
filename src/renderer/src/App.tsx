@@ -20,6 +20,7 @@ import ConfirmModal from '@renderer/components/base/base-confirm'
 import { SidebarProvider } from '@renderer/components/ui/sidebar'
 import TitleBar from '@renderer/velum/shell/title-bar'
 import NavRail from '@renderer/velum/shell/nav-rail'
+import { RknPeeker } from '@renderer/velum/easter-egg/rkn-peeker'
 import HwidLimitAlert from '@renderer/components/profiles/hwid-limit-alert'
 import ExpiryAlert from '@renderer/components/profiles/expiry-alert'
 import WindowControls from '@renderer/components/window-controls'
@@ -235,6 +236,7 @@ const App: React.FC = () => {
         <TitleBar />
         <div className="relative flex min-h-0 flex-1">
           <NavRail />
+          <RknPeeker />
           <div className="relative main min-w-0 grow h-full overflow-y-auto">
             {/* The old page fades out quickly, then the new one fades in. The routes are rendered
                 for a location passed in, so the leaving page keeps showing itself while it fades. */}
