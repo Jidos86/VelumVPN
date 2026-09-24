@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useId } from 'react'
 import { X } from 'lucide-react'
+import { motion } from 'motion/react'
 
 export const panelClass = 'rounded-2xl border border-vl-line bg-vl-panel'
 
@@ -65,7 +66,9 @@ export interface SegmentedItem<T extends string> {
   label: React.ReactNode
 }
 
-// Pill tabs used for in-page sections (rules kind, settings groups, filters).
+// Pill tabs used for in-page sections (rules kind, settings groups, filters). The active pill
+// glides between items instead of jumping; each instance gets its own layoutId (via useId) so
+// several Segmented groups on the same page never mix their highlights up.
 export function Segmented<T extends string>({
   items,
   value,
@@ -75,20 +78,32 @@ export function Segmented<T extends string>({
   value: T
   onChange: (key: T) => void
 }): React.ReactElement {
+  const layoutId = useId()
   return (
     <div className="inline-flex gap-1 rounded-xl border border-vl-line bg-vl-panel p-1">
-      {items.map((item) => (
-        <button
-          key={item.key}
-          type="button"
-          onClick={() => onChange(item.key)}
-          className={`cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-            value === item.key ? 'bg-vl-accent/16 text-vl-text' : 'text-vl-muted hover:text-vl-text'
-          }`}
-        >
-          {item.label}
-        </button>
-      ))}
+      {items.map((item) => {
+        const active = value === item.key
+        return (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => onChange(item.key)}
+            className={`relative cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-semibold ${
+              active ? 'text-vl-text' : 'text-vl-muted transition-colors hover:text-vl-text'
+            }`}
+          >
+            {active && (
+              <motion.span
+                layoutId={`${layoutId}-pill`}
+                aria-hidden
+                className="absolute inset-0 rounded-lg bg-vl-accent/16"
+                transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+              />
+            )}
+            <span className="relative">{item.label}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }
