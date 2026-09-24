@@ -37,3 +37,27 @@
   --sidebar-border: rgb(255 255 255 / 0.07);
   --stroke: rgb(255 255 255 / 0.1);
 }
+
+/*
+ * Sonner's close button ships pinned to the top-left corner, half hanging off the toast's edge
+ * (its own default look). Move it inside, vertically centered on the right - a plain icon button
+ * next to the text, not a floating badge - and make room for it in the toast's own padding.
+ * !important: sonner injects its own stylesheet at runtime, after ours.
+ */
+[data-sonner-toast][data-styled='true'] {
+  padding-right: 40px !important;
+}
+[data-sonner-toast] [data-close-button] {
+  top: 50% !important;
+  left: auto !important;
+  right: 10px !important;
+  transform: translateY(-50%) !important;
+  background: transparent !important;
+  border: none !important;
+  color: rgb(242 245 248 / 0.5) !important;
+}
+[data-sonner-toast]:hover [data-close-button]:hover {
+  background: rgb(255 255 255 / 0.08) !important;
+  border-color: transparent !important;
+  color: rgb(242 245 248 / 0.9) !important;
+}
