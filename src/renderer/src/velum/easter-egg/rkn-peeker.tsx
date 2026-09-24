@@ -24,7 +24,10 @@ export const RknPeeker: React.FC = () => {
       transition={{ duration: 1.8, times: [0, 0.5, 1], ease: 'easeInOut' }}
       className="pointer-events-none fixed bottom-10 z-[60]"
     >
-      <div className="size-7 overflow-hidden rounded-full shadow-lg shadow-black/50">
+      <div
+        className="overflow-hidden rounded-full shadow-lg shadow-black/50"
+        style={{ width: SIZE, height: SIZE }}
+      >
         <svg viewBox="0 0 1024 1024" className="size-full">
           <path
             fill="#1e8ece"
