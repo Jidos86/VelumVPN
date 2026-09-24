@@ -9,7 +9,7 @@ import { IS_BETA } from '@renderer/velum/flavor'
 // the right, crashing into the minimize button - which actually minimizes the window. Windows/
 // Linux only - on macOS the traffic lights live in a separate overlay outside this bar, not worth
 // chasing across it.
-const DRIVE_MS = 650
+const DRIVE_MS = 1600
 const TRIGGER_CLICKS = 5
 const TRIGGER_WINDOW_MS = 1500
 
@@ -53,7 +53,7 @@ const TitleBar: React.FC = () => {
         ref={logoRef}
         type="button"
         onClick={!isMac ? drive : undefined}
-        className={`app-nodrag flex items-center gap-2 rounded bg-transparent ${isMac ? 'cursor-default' : 'cursor-pointer'} ${driving ? 'invisible' : ''}`}
+        className={`app-nodrag flex items-center gap-2 rounded bg-transparent ${isMac ? 'cursor-default' : 'cursor-pointer'} ${driving ? 'opacity-0' : ''}`}
       >
         <img src={Logo} alt="" className="size-4" draggable={false} />
         <span className="text-xs font-semibold tracking-wide text-vl-muted">VelumVPN</span>
