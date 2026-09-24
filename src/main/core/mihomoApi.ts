@@ -119,8 +119,15 @@ export const mihomoGroups = async (): Promise<ControllerMixedGroup[]> => {
 
   const serverDescriptionMap = new Map<string, string>()
   if (runtime?.proxies) {
-    for (const p of runtime.proxies as { name?: string; serverDescription?: string }[]) {
-      if (p.name && p.serverDescription) serverDescriptionMap.set(p.name, p.serverDescription)
+    // Some panels (e.g. Remnawave) nest this under "meta" instead of putting it on the proxy
+    // directly - accept both.
+    for (const p of runtime.proxies as {
+      name?: string
+      serverDescription?: string
+      meta?: { serverDescription?: string }
+    }[]) {
+      const desc = p.serverDescription || p.meta?.serverDescription
+      if (p.name && desc) serverDescriptionMap.set(p.name, desc)
     }
   }
 
