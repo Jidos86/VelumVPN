@@ -15,12 +15,14 @@ import {
   ShoppingBag,
   WalletCards
 } from 'lucide-react'
+import { LifeBuoy } from 'lucide-react'
 import { SiTelegram } from 'react-icons/si'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { quitApp } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
 import ConfigViewer from '@renderer/components/sider/config-viewer'
+import { DEFAULT_SHOP_URL, DEFAULT_SUPPORT_URL } from './default-links'
 
 const navItems = [
   { key: 'main', path: '/home', icon: House, i18nKey: 'sider.home' },
@@ -53,6 +55,19 @@ const NavRail: React.FC = () => {
     .filter((item) => expertMode || !expertOnlyItems.has(item.key))
     .filter((item) => hasProfiles || allowedWithoutProfiles.has(item.key))
 
+  const currentProfile = profileConfig?.items?.find((item) => item.id === profileConfig.current)
+  const shopUrl = currentProfile?.home || DEFAULT_SHOP_URL
+  const supportUrl = currentProfile?.supportUrl || DEFAULT_SUPPORT_URL
+  const isTelegramSupport = (() => {
+    try {
+      return /(^|\.)t\.me$|telegram/i.test(new URL(supportUrl).hostname)
+    } catch {
+      return /telegram/i.test(supportUrl)
+    }
+  })()
+  // The provider can hide the raw merged-config view (real server addresses) for this profile.
+  const configViewAllowed = !currentProfile?.hideSettings
+
   return (
     <nav
       data-guide="app-sidebar"
@@ -70,7 +85,9 @@ const NavRail: React.FC = () => {
             aria-label={label}
             data-guide={item.key === 'main' ? 'sidebar-home-button' : undefined}
             onClick={() => navigate(item.path)}
-            onDoubleClick={item.key === 'profile' ? () => setShowRuntimeConfig(true) : undefined}
+            onDoubleClick={
+              item.key === 'profile' && configViewAllowed ? () => setShowRuntimeConfig(true) : undefined
+            }
             className={`${railButton} relative ${active ? 'text-vl-accent' : 'text-vl-muted'}`}
           >
             {/* One highlight that glides to the selected item instead of jumping. */}
@@ -94,7 +111,7 @@ const NavRail: React.FC = () => {
           type="button"
           title={t('sider.shop')}
           aria-label={t('sider.shop')}
-          onClick={() => open('https://shop.velum.uno/')}
+          onClick={() => open(shopUrl)}
           className={`${railButton} text-vl-faint hover:text-vl-text`}
         >
           <ShoppingBag className="size-[18px]" strokeWidth={1.6} />
@@ -104,10 +121,14 @@ const NavRail: React.FC = () => {
         type="button"
         title={t('sider.support')}
         aria-label={t('sider.support')}
-        onClick={() => open('https://t.me/Veluum_support_bot')}
+        onClick={() => open(supportUrl)}
         className={`${railButton} text-vl-faint hover:text-vl-text`}
       >
-        <SiTelegram className="size-[17px]" />
+        {isTelegramSupport ? (
+          <SiTelegram className="size-[17px]" />
+        ) : (
+          <LifeBuoy className="size-[18px]" strokeWidth={1.6} />
+        )}
       </button>
       <button
         type="button"
@@ -119,7 +140,9 @@ const NavRail: React.FC = () => {
         <Power className="size-[18px]" strokeWidth={1.6} />
       </button>
 
-      {showRuntimeConfig && <ConfigViewer onClose={() => setShowRuntimeConfig(false)} />}
+      {showRuntimeConfig && configViewAllowed && (
+        <ConfigViewer onClose={() => setShowRuntimeConfig(false)} />
+      )}
     </nav>
   )
 }

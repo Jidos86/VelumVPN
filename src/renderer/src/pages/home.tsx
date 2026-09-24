@@ -18,7 +18,7 @@ import { useTranslation } from 'react-i18next'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
-import { ArrowDown, ArrowUp, ChevronRight, InfinityIcon, PlusCircle, RefreshCcw, WifiOff } from 'lucide-react'
+import { ArrowDown, ArrowUp, ChevronRight, InfinityIcon, LifeBuoy, PlusCircle, RefreshCcw, WifiOff } from 'lucide-react'
 import { SiGithub, SiTelegram } from 'react-icons/si'
 import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import { calcTraffic } from '@renderer/utils/calc'
@@ -27,6 +27,7 @@ import { ServerCard } from '@renderer/velum/servers/server-picker'
 import UpdaterButton from '@renderer/components/updater/updater-button'
 import { Switch } from '@renderer/velum/ui/primitives'
 import { SIMULATED_UPDATE } from '@renderer/velum/dev/simulated-update'
+import { DEFAULT_SUPPORT_URL } from '@renderer/velum/shell/default-links'
 import Power from '@renderer/assets/on_icon.svg'
 import Pause from '@renderer/assets/pause_icon.svg'
 import { Spinner } from '@renderer/components/ui/spinner'
@@ -152,6 +153,28 @@ const Home: React.FC = () => {
     if (!profileConfig?.current || !profileConfig?.items) return null
     return profileConfig.items.find((item) => item.id === profileConfig.current) ?? null
   }, [profileConfig])
+
+  // "support-url" from the subscription (falls back to our own Telegram bot); the icon follows suit
+  // so a provider-set website link is not shown with a Telegram badge.
+  const supportUrl = currentProfile?.supportUrl || DEFAULT_SUPPORT_URL
+  const isTelegramSupport = /(^|\.)t\.me$|telegram/i.test(
+    (() => {
+      try {
+        return new URL(supportUrl).hostname
+      } catch {
+        return supportUrl
+      }
+    })()
+  )
+  const supportUrlLabel = isTelegramSupport
+    ? 'Telegram'
+    : (() => {
+        try {
+          return new URL(supportUrl).hostname
+        } catch {
+          return supportUrl
+        }
+      })()
 
   const handleUpdateProfile = async (): Promise<void> => {
     if (!currentProfile || updating) return
@@ -666,13 +689,17 @@ const Home: React.FC = () => {
         <button
           type="button"
           data-guide="home-support-link"
-          onClick={() => open('https://t.me/Veluum_support_bot')}
+          onClick={() => open(supportUrl)}
           className={`${panel} col-start-2 row-start-3 flex cursor-pointer items-center gap-3 p-4 text-left transition-colors hover:border-vl-line-strong`}
         >
-          <SiTelegram className="size-4 shrink-0 text-vl-accent" />
+          {isTelegramSupport ? (
+            <SiTelegram className="size-4 shrink-0 text-vl-accent" />
+          ) : (
+            <LifeBuoy className="size-4 shrink-0 text-vl-accent" />
+          )}
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold text-vl-text">{t('pages.profiles.support')}</div>
-            <div className="truncate text-xs text-vl-muted">Telegram</div>
+            <div className="truncate text-xs text-vl-muted">{supportUrlLabel}</div>
           </div>
         </button>
         {/* Updates, right of the routing modes: separate tiles in the same style/height as the

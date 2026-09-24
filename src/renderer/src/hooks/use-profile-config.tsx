@@ -21,7 +21,7 @@ interface ProfileConfigContextType {
   changeCurrentProfile: (id: string) => Promise<void>
   hwidLimitError: string | null
   clearHwidLimitError: () => void
-  expiryAlert: { name: string; daysLeft: number } | null
+  expiryAlert: { name: string; daysLeft: number; home?: string } | null
   clearExpiryAlert: () => void
 }
 
@@ -32,7 +32,11 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     getProfileConfig()
   )
   const [hwidLimitError, setHwidLimitError] = useState<string | null>(null)
-  const [expiryAlert, setExpiryAlert] = useState<{ name: string; daysLeft: number } | null>(null)
+  const [expiryAlert, setExpiryAlert] = useState<{
+    name: string
+    daysLeft: number
+    home?: string
+  } | null>(null)
   const expiryChecked = useRef(false)
 
   useEffect(() => {
@@ -47,7 +51,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
         const daysLeft = dayjs.unix(expire).diff(dayjs(), 'day')
         if (daysLeft > WARN_DAYS) continue
         const name = item.name ?? ''
-        setExpiryAlert({ name, daysLeft })
+        setExpiryAlert({ name, daysLeft, home: item.home })
         if (daysLeft <= 0) {
           new Notification(`Подписка истекла`, { body: `«${name}» — требуется продление` })
         } else {

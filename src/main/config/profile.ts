@@ -168,46 +168,66 @@ export async function createProfile(item: Partial<ProfileItem>): Promise<Profile
     autoUpdate: item.autoUpdate ?? true,
     interval: item.interval || 0,
     useProxy: item.useProxy || false,
-    updated: new Date().getTime()
+    updated: new Date().getTime(),
+    // Sticky provider settings: kept across updates unless the provider explicitly changes them,
+    // so a fallback address or a hidden config does not silently disappear just because one
+    // response forgot to repeat the header (see the "new-domain"/"hide-settings" headers below).
+    fallbackUrl: item.fallbackUrl,
+    hideSettings: item.hideSettings
   } as ProfileItem
   switch (newItem.type) {
     case 'remote': {
       const { 'mixed-port': mixedPort = 0 } = (await getRuntimeConfig()) ?? {}
       if (!item.url) throw new Error('Empty URL')
-      let res: AxiosResponse
-      try {
-        const httpsAgent = new https.Agent()
+      const httpsAgent = new https.Agent()
+      const requestConfig = {
+        httpsAgent,
+        ...(newItem.useProxy &&
+          mixedPort && {
+            proxy: { protocol: 'http' as const, host: '127.0.0.1', port: mixedPort }
+          }),
+        headers: {
+          'User-Agent': newItem.ua || (await getUserAgent()),
+          'x-hwid': getHWID(),
+          'x-device-os': getDeviceOS(),
+          'x-ver-os': getOSVersion(),
+          'x-device-model': getDeviceModel()
+        },
+        responseType: 'text' as const
+      }
 
-        res = await axios.get(item.url, {
-          httpsAgent,
-          ...(newItem.useProxy &&
-            mixedPort && {
-              proxy: { protocol: 'http', host: '127.0.0.1', port: mixedPort }
-            }),
-          headers: {
-            'User-Agent': newItem.ua || (await getUserAgent()),
-            'x-hwid': getHWID(),
-            'x-device-os': getDeviceOS(),
-            'x-ver-os': getOSVersion(),
-            'x-device-model': getDeviceModel()
-          },
-          responseType: 'text'
-        })
-      } catch (error) {
+      const fetchError = (url: string, error: unknown): Error => {
         if (axios.isAxiosError(error)) {
           if (error.code === 'ECONNRESET' || error.code === 'ECONNABORTED') {
-            throw new Error(`${t('error.networkResetOrTimeout')}：${item.url}`)
+            return new Error(`${t('error.networkResetOrTimeout')}：${url}`)
           } else if (error.code === 'CERT_HAS_EXPIRED') {
-            throw new Error(`${t('error.serverCertExpired')}：${item.url}`)
+            return new Error(`${t('error.serverCertExpired')}：${url}`)
           } else if (error.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
-            throw new Error(`${t('error.unableToVerifyCert')}：${item.url}`)
+            return new Error(`${t('error.unableToVerifyCert')}：${url}`)
           } else if (error.message.includes('Certificate verification failed')) {
-            throw new Error(`${t('error.certVerificationFailed')}：${item.url}`)
+            return new Error(`${t('error.certVerificationFailed')}：${url}`)
           } else {
-            throw new Error(`${t('error.requestFailed')}：${error.message}`)
+            return new Error(`${t('error.requestFailed')}：${error.message}`)
           }
         }
-        throw error
+        return error instanceof Error ? error : new Error(String(error))
+      }
+
+      let res: AxiosResponse
+      try {
+        res = await axios.get(item.url, requestConfig)
+      } catch (primaryError) {
+        // "fallback-url" (set by the provider on an earlier response): tried once when the main
+        // address is unreachable, e.g. right after the provider's domain has been seized/blocked.
+        if (item.fallbackUrl && item.fallbackUrl !== item.url) {
+          try {
+            res = await axios.get(item.fallbackUrl, requestConfig)
+          } catch {
+            throw fetchError(item.url, primaryError)
+          }
+        } else {
+          throw fetchError(item.url, primaryError)
+        }
       }
 
 
@@ -293,6 +313,36 @@ export async function createProfile(item: Partial<ProfileItem>): Promise<Profile
           ? Buffer.from(announceValue.slice(7), 'base64').toString('utf-8')
           : announceValue
         newItem.announce = decoded.replace(/\\n/g, '\n')
+      }
+      // "new-url" / "new-domain": lets a provider move a subscription to a new address (e.g. after
+      // a domain is blocked) without the user re-adding the profile. "new-url" replaces the whole
+      // address; "new-domain" keeps the path/query and only swaps the host. "new-url" wins if both
+      // are sent. The current fetch already has its data, so this only takes effect on the next
+      // scheduled or manual update.
+      const newUrlKey = Object.keys(headers).find((k) => k.toLowerCase().endsWith('new-url'))
+      const newDomainKey = Object.keys(headers).find((k) => k.toLowerCase().endsWith('new-domain'))
+      if (newUrlKey && headers[newUrlKey]) {
+        newItem.url = headers[newUrlKey]
+      } else if (newDomainKey && headers[newDomainKey] && newItem.url) {
+        try {
+          const nextUrl = new URL(newItem.url)
+          nextUrl.hostname = headers[newDomainKey].replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
+          newItem.url = nextUrl.toString()
+        } catch {
+          // malformed domain from the provider: keep the working address
+        }
+      }
+      const fallbackUrlKey = Object.keys(headers).find((k) =>
+        k.toLowerCase().endsWith('fallback-url')
+      )
+      if (fallbackUrlKey && headers[fallbackUrlKey]) {
+        newItem.fallbackUrl = headers[fallbackUrlKey]
+      }
+      const hideSettingsKey = Object.keys(headers).find((k) =>
+        k.toLowerCase().endsWith('hide-settings')
+      )
+      if (hideSettingsKey) {
+        newItem.hideSettings = ['true', '1'].includes(headers[hideSettingsKey].trim().toLowerCase())
       }
       if (newItem.verify) {
         let parsed: MihomoConfig

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Clock } from 'lucide-react'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
+import { DEFAULT_SHOP_URL } from '@renderer/velum/shell/default-links'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,7 +47,7 @@ const ExpiryAlert = () => {
           <AlertDialogCancel onClick={clearExpiryAlert}>{t('common.close')}</AlertDialogCancel>
           <AlertDialogAction
             onClick={() => {
-              open('https://shop.velum.uno/')
+              open(expiryAlert?.home || DEFAULT_SHOP_URL)
               clearExpiryAlert()
             }}
           >

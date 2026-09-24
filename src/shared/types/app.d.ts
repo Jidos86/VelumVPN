@@ -143,6 +143,12 @@ interface ProfileItem {
   announce?: string
   logo?: string
   supportUrl?: string
+  // Provider ("new-domain"/"new-url" headers): keep working when the subscription domain changes,
+  // without the user having to re-add the profile.
+  fallbackUrl?: string
+  // Provider ("hide-settings" header): hide the raw merged-config viewer for this profile so the
+  // real server addresses in it are not exposed to the end user.
+  hideSettings?: boolean
 }
 
 interface SubscriptionUserInfo {
