@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 
-// Bridges the title bar (where the click happens) and the sidebar-area peeker (where the RKN logo
-// actually lives) - they are not in the same subtree. Each peek() bumps `nonce`; the peeker replays
-// its one-shot animation whenever it changes.
+// Bridges the title bar (where the click happens) and the sidebar-area scene (rkn-peeker.tsx) -
+// they are not in the same subtree. Each peek() bumps `nonce`; the scene replays its whole
+// sequence whenever it changes.
 interface RknPeekStore {
   nonce: number
   peek: () => void
