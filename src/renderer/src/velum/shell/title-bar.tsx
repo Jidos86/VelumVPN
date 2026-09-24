@@ -13,6 +13,18 @@ const DRIVE_MS = 1600
 const TRIGGER_CLICKS = 5
 const TRIGGER_WINDOW_MS = 1500
 
+// A plain rotating circle shows no motion (it is symmetric); a tiny off-center hub marker makes
+// the spin actually readable at this size.
+const Wheel: React.FC<{ className: string }> = ({ className }) => (
+  <motion.span
+    animate={{ rotate: 360 }}
+    transition={{ duration: 0.16, repeat: Infinity, ease: 'linear' }}
+    className={`absolute flex size-[9px] items-center justify-center rounded-full border-2 border-vl-panel bg-[#1c2230] ${className}`}
+  >
+    <span className="absolute top-px size-[2px] rounded-full bg-vl-faint" />
+  </motion.span>
+)
+
 const TitleBar: React.FC = () => {
   const isMac = platform === 'darwin'
   const [driving, setDriving] = useState(false)
@@ -83,23 +95,16 @@ const TitleBar: React.FC = () => {
             width: logoRef.current?.getBoundingClientRect().width,
             height: logoRef.current?.getBoundingClientRect().height
           }}
-          className="pointer-events-none z-[200] flex items-center gap-2"
+          className="pointer-events-none z-[200] flex items-center"
         >
-          <span className="relative inline-flex">
+          {/* The whole badge is the car body, riding on two wheels at its ends - not just the
+              small icon, so it actually reads as a little car and not a stray dot. */}
+          <div className="relative flex items-center gap-1.5 rounded-full border border-vl-line-strong bg-vl-panel py-1 pl-2 pr-2.5 shadow-lg shadow-black/50">
             <img src={Logo} alt="" className="size-4" />
-            {/* Two little spinning wheels under the logo. */}
-            <motion.span
-              animate={{ rotate: 360 }}
-              transition={{ duration: 0.22, repeat: Infinity, ease: 'linear' }}
-              className="absolute -bottom-1 left-[1px] size-[5px] rounded-full border border-vl-faint bg-vl-chrome"
-            />
-            <motion.span
-              animate={{ rotate: 360 }}
-              transition={{ duration: 0.22, repeat: Infinity, ease: 'linear' }}
-              className="absolute -bottom-1 right-[1px] size-[5px] rounded-full border border-vl-faint bg-vl-chrome"
-            />
-          </span>
-          <span className="text-xs font-semibold tracking-wide text-vl-muted">VelumVPN</span>
+            <span className="text-xs font-semibold tracking-wide text-vl-muted">VelumVPN</span>
+            <Wheel className="-bottom-[3px] left-1.5" />
+            <Wheel className="-bottom-[3px] right-1.5" />
+          </div>
         </motion.div>
       )}
     </div>
