@@ -9,7 +9,7 @@ import { create } from 'zustand'
 export const RKN_PEEK_MS = 700
 export const RKN_HOLD_MS = 150 // beat between RKN peeking in and getting shot
 export const RKN_FIRE_MS = 250
-export const RKN_HIT_MS = 450
+export const RKN_HIT_MS = 1000 // covers the dissolve's sweep delay (up to ~0.43s) + fade (0.55s)
 // When the shot fires, relative to the trigger.
 export const RKN_FIRE_DELAY_MS = RKN_PEEK_MS + RKN_HOLD_MS
 
