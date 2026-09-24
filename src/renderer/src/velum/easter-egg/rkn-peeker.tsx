@@ -26,7 +26,9 @@ export function rknTargetPoint(): { x: number; y: number } {
 }
 
 const RKN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><path fill="%231e8ece" d="M765.748,167.568L598.331,0.151,425.5-.016-0.016,425.5v173L167.4,765.915,295.753,637.563,170.191,512,512,170.191,637.563,295.753Z"/><path fill="%230b4680" d="M512.9,339.5l173,173L512.5,685.9l-173-173Z"/><path fill="%230b4680" d="M258.252,856.432L425.669,1023.85l172.83,0.17L1024.02,598.5v-173L856.6,258.085,728.247,386.437,853.809,512,512,853.809,386.437,728.247Z"/></svg>`
-const RKN_DATA_URI = `url("data:image/svg+xml,${RKN_SVG}")`
+// Single-quoted wrapper: the SVG markup itself uses double quotes for its attributes, which would
+// otherwise terminate this url("...") early and leave the background image blank.
+const RKN_DATA_URI = `url('data:image/svg+xml,${RKN_SVG}')`
 
 // A regular grid so a shared CSS background-position slices the same image consistently.
 const GRID = 12
