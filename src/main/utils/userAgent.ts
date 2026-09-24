@@ -5,5 +5,5 @@ export async function getUserAgent(): Promise<string> {
   const { userAgent } = await getAppConfig()
   if (userAgent) return userAgent
 
-  return `clash.meta/${version}`
+  return `VelumClash/${version}`
 }
