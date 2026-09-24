@@ -479,7 +479,8 @@ export default {
 
   errorBoundary: {
     title: '应用崩溃了 :( 请将以下信息提交给开发者以排查错误',
-    copyErrorInfo: '复制报错信息'
+    copyErrorInfo: '复制报错信息',
+    close: '关闭'
   },
 
   modal: {

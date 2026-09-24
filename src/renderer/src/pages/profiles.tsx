@@ -172,16 +172,34 @@ const Profiles: React.FC = () => {
             aria-label={t('pages.profiles.updateAll')}
             onClick={async () => {
               setUpdating(true)
-              for (const item of itemsArray) {
-                if (item.id === current) continue
-                if (item.type !== 'remote') continue
-                await addProfileItem(item)
+              try {
+                let failed = 0
+                for (const item of itemsArray) {
+                  if (item.id === current) continue
+                  if (item.type !== 'remote') continue
+                  try {
+                    await addProfileItem(item)
+                  } catch {
+                    // one broken profile must not stop the rest from updating
+                    failed++
+                  }
+                }
+                const currentItem = itemsArray.find((item) => item.id === current)
+                if (currentItem && currentItem.type === 'remote') {
+                  try {
+                    await addProfileItem(currentItem)
+                  } catch {
+                    failed++
+                  }
+                }
+                if (failed === 0) {
+                  toast.success(t('velumUi.subscription.updated'))
+                } else {
+                  toast.error(t('velumUi.subscription.updateFailedSome', { count: failed }))
+                }
+              } finally {
+                setUpdating(false)
               }
-              const currentItem = itemsArray.find((item) => item.id === current)
-              if (currentItem && currentItem.type === 'remote') {
-                await addProfileItem(currentItem)
-              }
-              setUpdating(false)
             }}
           >
             <RefreshCcw className={`text-lg ${updating ? 'animate-spin' : ''}`} />

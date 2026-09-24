@@ -233,7 +233,7 @@ const App: React.FC = () => {
       )}
       <div className="flex h-full w-full flex-col">
         <TitleBar />
-        <div className="flex min-h-0 flex-1">
+        <div className="relative flex min-h-0 flex-1">
           <NavRail />
           <div className="relative main min-w-0 grow h-full overflow-y-auto">
             {/* The old page fades out quickly, then the new one fades in. The routes are rendered

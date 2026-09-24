@@ -3,7 +3,7 @@ import { JSX, ReactNode } from 'react'
 import { ErrorBoundary, FallbackProps } from 'react-error-boundary'
 import { useTranslation } from 'react-i18next'
 
-const ErrorFallback = ({ error }: FallbackProps): JSX.Element => {
+const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps): JSX.Element => {
   const { t } = useTranslation()
   const err = error instanceof Error ? error : new Error(String(error))
   return (
@@ -12,6 +12,9 @@ const ErrorFallback = ({ error }: FallbackProps): JSX.Element => {
         {t('errorBoundary.title')}
       </h2>
 
+      <Button size="sm" onClick={resetErrorBoundary}>
+        {t('errorBoundary.close')}
+      </Button>
       <Button
         size="sm"
         variant="secondary"

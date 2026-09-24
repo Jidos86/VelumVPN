@@ -410,7 +410,8 @@ export default {
 
   errorBoundary: {
     title: 'The app crashed :( Please submit the info below to help debug',
-    copyErrorInfo: 'Copy error info'
+    copyErrorInfo: 'Copy error info',
+    close: 'Close'
   },
 
   modal: {
@@ -1104,7 +1105,14 @@ export default {
       empty: 'Nothing found',
       notTested: 'Not tested'
     },
-    subscription: { title: 'Subscription', refresh: 'Refresh', daysLeft: 'days left', expires: 'expires' },
+    subscription: {
+      title: 'Subscription',
+      refresh: 'Refresh',
+      daysLeft: 'days left',
+      expires: 'expires',
+      updated: 'Subscription updated',
+      updateFailedSome: 'Failed to update: {{count}}'
+    },
     update: {
       geodata: 'Update geo files',
       geodataDesc: 'Lists of blocked sites and IPs',

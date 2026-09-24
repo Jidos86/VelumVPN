@@ -181,6 +181,7 @@ const Home: React.FC = () => {
     setUpdating(true)
     try {
       await addProfileItem(currentProfile)
+      toast.success(t('velumUi.subscription.updated'))
     } catch (e) {
       toast.error(`${e}`)
     } finally {

@@ -411,7 +411,8 @@ export default {
 
   errorBoundary: {
     title: 'Приложение упало :( Отправьте информацию ниже разработчикам',
-    copyErrorInfo: 'Копировать информацию об ошибке'
+    copyErrorInfo: 'Копировать информацию об ошибке',
+    close: 'Закрыть'
   },
 
   modal: {
@@ -1106,7 +1107,14 @@ export default {
       empty: 'Ничего не найдено',
       notTested: 'Не проверен'
     },
-    subscription: { title: 'Подписка', refresh: 'Обновить', daysLeft: 'дней осталось', expires: 'дата окончания' },
+    subscription: {
+      title: 'Подписка',
+      refresh: 'Обновить',
+      daysLeft: 'дней осталось',
+      expires: 'дата окончания',
+      updated: 'Подписка обновлена',
+      updateFailedSome: 'Не удалось обновить: {{count}}'
+    },
     update: {
       geodata: 'Обновить геофайлы',
       geodataDesc: 'Списки заблокированных сайтов и IP',

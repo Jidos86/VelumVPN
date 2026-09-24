@@ -1,3 +1,4 @@
+import { toast } from 'sonner'
 import { Button } from '@renderer/components/ui/button'
 import {
   DropdownMenu,
@@ -189,6 +190,9 @@ const ProfileItem: React.FC<Props> = (props) => {
         setUpdating(true)
         try {
           await addProfileItem(info)
+          toast.success(t('velumUi.subscription.updated'))
+        } catch (e) {
+          toast.error(`${e}`)
         } finally {
           setUpdating(false)
         }

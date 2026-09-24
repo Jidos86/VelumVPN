@@ -51,7 +51,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
                     <RulesProvider>
                       <App />
                       {/* Top of the window, just below the 32px title bar */}
-                      <Toaster richColors position="top-center" offset={44} />
+                      <Toaster richColors closeButton position="top-center" offset={44} />
                     </RulesProvider>
                   </GroupsProvider>
                 </ProfileConfigProvider>

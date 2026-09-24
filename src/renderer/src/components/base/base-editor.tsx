@@ -1,6 +1,6 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import * as monaco from 'monaco-editor'
-import MonacoEditor, { MonacoDiffEditor } from 'react-monaco-editor'
+import MonacoEditor from 'react-monaco-editor'
 import { configureMonacoYaml } from 'monaco-yaml'
 import metaSchema from 'meta-json-schema/schemas/meta-json-schema.json'
 import pac from 'types-pac/pac.d.ts?raw'
@@ -104,7 +104,6 @@ export const BaseEditor: React.FC<Props> = (props) => {
   } = props
 
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor>(undefined)
-  const diffEditorRef = useRef<monaco.editor.IStandaloneDiffEditor>(undefined)
 
   const editorWillMount = (): void => {
     monacoInitialization()
@@ -120,29 +119,6 @@ export const BaseEditor: React.FC<Props> = (props) => {
   const editorWillUnmount = (): void => {
     editorRef.current?.getModel()?.dispose()
     editorRef.current?.dispose()
-  }
-
-  const diffEditorDidMount = (editor: monaco.editor.IStandaloneDiffEditor): void => {
-    diffEditorRef.current = editor
-    const originalUri = monaco.Uri.parse(
-      `original-${nanoid()}.${language === 'yaml' ? 'clash' : ''}.${language}`
-    )
-    const modifiedUri = monaco.Uri.parse(
-      `modified-${nanoid()}.${language === 'yaml' ? 'clash' : ''}.${language}`
-    )
-    const originalModel = monaco.editor.createModel(originalValue || '', language, originalUri)
-    const modifiedModel = monaco.editor.createModel(value, language, modifiedUri)
-    diffEditorRef.current.setModel({
-      original: originalModel,
-      modified: modifiedModel
-    })
-  }
-
-  const diffEditorWillUnmount = (): void => {
-    const model = diffEditorRef.current?.getModel()
-    model?.original?.dispose()
-    model?.modified?.dispose()
-    diffEditorRef.current?.dispose()
   }
 
   const options = {
@@ -188,16 +164,12 @@ export const BaseEditor: React.FC<Props> = (props) => {
 
   if (originalValue !== undefined) {
     return (
-      <MonacoDiffEditor
+      <DiffEditor
         language={language}
         original={originalValue}
         value={value}
-        height="100%"
         theme={trueTheme?.includes('light') ? 'vs' : 'vs-dark'}
         options={options}
-        editorWillMount={editorWillMount}
-        editorDidMount={diffEditorDidMount}
-        editorWillUnmount={diffEditorWillUnmount}
         onChange={onChange}
       />
     )
@@ -216,4 +188,95 @@ export const BaseEditor: React.FC<Props> = (props) => {
       onChange={onChange}
     />
   )
+}
+
+// A self-managed diff editor instead of react-monaco-editor's <MonacoDiffEditor>: its unmount
+// cleanup calls dispose() on the editor and only then reads getModel() off it — which is null by
+// then — crashing with "Cannot read properties of null (reading 'original')" every time the diff
+// view closes (turning "Показать изменения" off, or closing the modal while it's on). This reimplements
+// the same effects, in the same order, just with the model captured before disposal.
+const DiffEditor: React.FC<{
+  language: Language
+  original: string
+  value: string
+  theme: string
+  options: monaco.editor.IDiffEditorConstructionOptions
+  onChange?: (value: string) => void
+}> = ({ language, original, value, theme, options, onChange }) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const editorRef = useRef<monaco.editor.IStandaloneDiffEditor>(undefined)
+  const subscriptionRef = useRef<monaco.IDisposable>(undefined)
+  const preventChangeEvent = useRef(false)
+  // Read through a ref in the mount effect so it only runs once, like the library did.
+  const latest = useRef({ language, original, value, theme, options, onChange })
+  latest.current = { language, original, value, theme, options, onChange }
+
+  useEffect(() => {
+    if (!containerRef.current) return undefined
+    monacoInitialization()
+    const { language, original, value, theme, options } = latest.current
+    const editor = monaco.editor.createDiffEditor(containerRef.current, { ...options, theme })
+    editorRef.current = editor
+
+    const originalUri = monaco.Uri.parse(
+      `original-${nanoid()}.${language === 'yaml' ? 'clash' : ''}.${language}`
+    )
+    const modifiedUri = monaco.Uri.parse(
+      `modified-${nanoid()}.${language === 'yaml' ? 'clash' : ''}.${language}`
+    )
+    const originalModel = monaco.editor.createModel(original, language, originalUri)
+    const modifiedModel = monaco.editor.createModel(value, language, modifiedUri)
+    editor.setModel({ original: originalModel, modified: modifiedModel })
+
+    subscriptionRef.current = modifiedModel.onDidChangeContent(() => {
+      if (!preventChangeEvent.current) latest.current.onChange?.(modifiedModel.getValue())
+    })
+
+    return () => {
+      subscriptionRef.current?.dispose()
+      // Model first, then the editor — the other way around leaves getModel() returning null.
+      const model = editorRef.current?.getModel()
+      model?.original?.dispose()
+      model?.modified?.dispose()
+      editorRef.current?.dispose()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    editorRef.current?.updateOptions(options)
+  }, [options])
+
+  useEffect(() => {
+    monaco.editor.setTheme(theme)
+  }, [theme])
+
+  useEffect(() => {
+    const model = editorRef.current?.getModel()
+    if (!model) return
+    monaco.editor.setModelLanguage(model.original, language)
+    monaco.editor.setModelLanguage(model.modified, language)
+  }, [language])
+
+  useEffect(() => {
+    const originalModel = editorRef.current?.getModel()?.original
+    if (originalModel && original !== originalModel.getValue()) {
+      originalModel.setValue(original)
+    }
+  }, [original])
+
+  // Replace the content through an edit operation (not setValue) so the modified side keeps its
+  // undo history and cursor position while the user types.
+  useEffect(() => {
+    const editor = editorRef.current
+    const modified = editor?.getModel()?.modified
+    if (!editor || !modified || value === modified.getValue()) return
+    preventChangeEvent.current = true
+    editor.getModifiedEditor().pushUndoStop()
+    modified.pushEditOperations([], [{ range: modified.getFullModelRange(), text: value }], () => null)
+    editor.getModifiedEditor().pushUndoStop()
+    preventChangeEvent.current = false
+  }, [value])
+
+  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 }
