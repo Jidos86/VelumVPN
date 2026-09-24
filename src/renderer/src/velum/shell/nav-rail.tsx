@@ -92,7 +92,9 @@ const NavRail: React.FC = () => {
         initial={false}
         animate={{ width: expanded ? RAIL_EXPANDED : RAIL_COLLAPSED }}
         transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-        className="absolute inset-y-0 left-0 z-30 flex flex-col gap-1 overflow-hidden border-r border-vl-line bg-vl-chrome py-3 shadow-2xl shadow-black/40"
+        // Higher than a page's own title bar / sticky header (z-40) so the expanded rail is never
+        // shown through, but still below modal dialogs (z-50) so those stay on top of everything.
+        className="absolute inset-y-0 left-0 z-[45] flex flex-col gap-1 overflow-hidden border-r border-vl-line bg-vl-chrome py-3 shadow-2xl shadow-black/40"
       >
         {items.map((item) => {
           const Icon = item.icon
