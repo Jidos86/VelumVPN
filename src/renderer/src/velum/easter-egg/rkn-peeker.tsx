@@ -1,40 +1,45 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'motion/react'
-import PowerIcon from '@renderer/assets/on_icon.svg'
-import { useRknPeekStore } from './rkn-peek-store'
+import {
+  RKN_FIRE_DELAY_MS,
+  RKN_FIRE_MS,
+  RKN_HIT_MS,
+  useRknPeekStore
+} from './rkn-peek-store'
 
 // A little scene, triggered by clicking the title bar logo a few times (see title-bar.tsx):
-// Roskomnadzor's own logo sneaks a peek in from behind the window's right edge, the connection
-// icon flashes red and fires a laser at it, and it gets knocked back out. Fully self-contained
-// (a decorative copy of the power icon, not the real button - this plays the same on every page,
-// not just Home) and layered above everything, pointer-events-none throughout.
-const SIZE = 180
-const HIDDEN_RIGHT = -SIZE - 10 // fully past the window's right edge - genuinely off-window
-const PEEK_RIGHT = -SIZE * 0.4 // shows most of it without covering too much of the UI
-const KNOCKBACK_RIGHT = -SIZE * 2.5 // sent flying well past its usual hiding spot
+// Roskomnadzor's own logo sneaks a peek in from behind the window's right edge, gets shot at by
+// the real power button on Home (which flashes red and fires the laser - see home.tsx), and gets
+// knocked back out. This overlay owns RKN itself and the laser; the power button's own flash lives
+// in home.tsx since only it knows the real button's position. Everything here is pointer-events-none.
+export const RKN_SIZE = 180
+const HIDDEN_RIGHT = -RKN_SIZE - 10 // fully past the window's right edge - genuinely off-window
+const PEEK_RIGHT = -RKN_SIZE * 0.4 // shows most of it without covering too much of the UI
+const KNOCKBACK_RIGHT = -RKN_SIZE * 2.5 // sent flying well past its usual hiding spot
 
-const PEEK_MS = 700
-const FIRE_MS = 250
-const HIT_MS = 450
-const HOLD_MS = 150 // beat between peeking in and getting shot
+// Where RKN sits while peeking, in screen coordinates - the laser's target.
+export function rknTargetPoint(): { x: number; y: number } {
+  return {
+    x: window.innerWidth - 10 - RKN_SIZE * 0.4,
+    y: window.innerHeight - 10 - RKN_SIZE / 2
+  }
+}
 
 type Phase = 'idle' | 'peek' | 'fire' | 'hit'
 
 export const RknPeeker: React.FC = () => {
   const nonce = useRknPeekStore((s) => s.nonce)
+  const powerButtonOrigin = useRknPeekStore((s) => s.powerButtonOrigin)
   const [phase, setPhase] = useState<Phase>('idle')
-  const [beam, setBeam] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(
-    null
-  )
 
   useEffect(() => {
     if (nonce === 0) return undefined
     setPhase('peek')
-    const toFire = setTimeout(() => setPhase('fire'), PEEK_MS + HOLD_MS)
-    const toHit = setTimeout(() => setPhase('hit'), PEEK_MS + HOLD_MS + FIRE_MS)
+    const toFire = setTimeout(() => setPhase('fire'), RKN_FIRE_DELAY_MS)
+    const toHit = setTimeout(() => setPhase('hit'), RKN_FIRE_DELAY_MS + RKN_FIRE_MS)
     const toIdle = setTimeout(
       () => setPhase('idle'),
-      PEEK_MS + HOLD_MS + FIRE_MS + HIT_MS
+      RKN_FIRE_DELAY_MS + RKN_FIRE_MS + RKN_HIT_MS
     )
     return () => {
       clearTimeout(toFire)
@@ -43,25 +48,14 @@ export const RknPeeker: React.FC = () => {
     }
   }, [nonce])
 
-  useEffect(() => {
-    if (phase !== 'fire') {
-      setBeam(null)
-      return
-    }
-    setBeam({
-      x1: window.innerWidth * 0.5,
-      y1: window.innerHeight * 0.38,
-      x2: window.innerWidth - 10 - SIZE * 0.4,
-      y2: window.innerHeight - 10 - SIZE / 2
-    })
-  }, [phase])
-
   if (phase === 'idle') return null
 
   const rknTarget =
     phase === 'hit'
       ? { right: KNOCKBACK_RIGHT, rotate: 35, opacity: 0 }
       : { right: PEEK_RIGHT, rotate: 0, opacity: 1 }
+
+  const target = rknTargetPoint()
 
   return (
     <>
@@ -71,14 +65,14 @@ export const RknPeeker: React.FC = () => {
         animate={rknTarget}
         transition={
           phase === 'hit'
-            ? { duration: HIT_MS / 1000, ease: 'circIn' }
-            : { duration: PEEK_MS / 1000, ease: 'easeOut' }
+            ? { duration: RKN_HIT_MS / 1000, ease: 'circIn' }
+            : { duration: RKN_FIRE_DELAY_MS / 1000, ease: 'easeOut' }
         }
         className="pointer-events-none fixed bottom-10 z-[60]"
       >
         <div
           className="overflow-hidden rounded-full shadow-lg shadow-black/50"
-          style={{ width: SIZE, height: SIZE }}
+          style={{ width: RKN_SIZE, height: RKN_SIZE }}
         >
           <svg viewBox="0 0 1024 1024" className="size-full">
             <path
@@ -94,46 +88,19 @@ export const RknPeeker: React.FC = () => {
         </div>
       </motion.div>
 
-      {(phase === 'fire' || phase === 'hit') && (
-        <motion.div
-          aria-hidden
-          initial={{ opacity: 0, scale: 0.6 }}
-          animate={{ opacity: [0, 1, 1, 0], scale: [0.6, 1.15, 1, 1] }}
-          transition={{ duration: (FIRE_MS + HIT_MS) / 1000 }}
-          className="pointer-events-none fixed z-[60] flex items-center justify-center"
-          style={{ left: '50%', top: '38%', transform: 'translate(-50%, -50%)' }}
-        >
-          <div
-            className="flex size-16 items-center justify-center rounded-full"
-            style={{ boxShadow: '0 0 40px 12px rgba(229,72,77,0.55)' }}
-          >
-            <img
-              src={PowerIcon}
-              alt=""
-              className="size-9"
-              // Force the (white) icon toward red - it has no color of its own to just override.
-              style={{
-                filter:
-                  'brightness(0) saturate(100%) invert(38%) sepia(80%) saturate(3500%) hue-rotate(-5deg) brightness(1.05)'
-              }}
-            />
-          </div>
-        </motion.div>
-      )}
-
-      {phase === 'fire' && beam && (
+      {phase === 'fire' && powerButtonOrigin && (
         <svg className="pointer-events-none fixed inset-0 z-[60] size-full">
           <motion.line
-            x1={beam.x1}
-            y1={beam.y1}
-            x2={beam.x2}
-            y2={beam.y2}
+            x1={powerButtonOrigin.x}
+            y1={powerButtonOrigin.y}
+            x2={target.x}
+            y2={target.y}
             stroke="#e5484d"
             strokeWidth={3}
             strokeLinecap="round"
             initial={{ pathLength: 0, opacity: 1 }}
             animate={{ pathLength: 1, opacity: [1, 1, 0] }}
-            transition={{ duration: FIRE_MS / 1000, ease: 'easeOut' }}
+            transition={{ duration: RKN_FIRE_MS / 1000, ease: 'easeOut' }}
           />
         </svg>
       )}

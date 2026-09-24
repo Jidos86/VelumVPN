@@ -15,7 +15,7 @@ import {
 import NumberFlow from '@number-flow/react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
 import { ArrowDown, ArrowUp, ChevronRight, InfinityIcon, LifeBuoy, PlusCircle, RefreshCcw, WifiOff } from 'lucide-react'
@@ -32,6 +32,12 @@ import Power from '@renderer/assets/on_icon.svg'
 import Pause from '@renderer/assets/pause_icon.svg'
 import { Spinner } from '@renderer/components/ui/spinner'
 import { CharacterMorph } from '@renderer/components/ui/character-morph'
+import {
+  RKN_FIRE_DELAY_MS,
+  RKN_FIRE_MS,
+  RKN_HIT_MS,
+  useRknPeekStore
+} from '@renderer/velum/easter-egg/rkn-peek-store'
 
 function formatBytes(bytes: number): string {
   if (bytes <= 0) return '0 B'
@@ -45,6 +51,9 @@ let connectionStartTime: number | null = null
 
 const TEAL = 'var(--color-vl-accent)'
 const TEAL_GLOW = '0 0 26px oklch(0.82 0.16 196 / 16%)'
+// Easter egg (rkn-peek-store.ts): forces the button's white icon glyph toward red while it fires.
+const RKN_FIRE_FILTER =
+  'brightness(0) saturate(100%) invert(38%) sepia(80%) saturate(3500%) hue-rotate(-5deg) brightness(1.05)'
 
 type Phase = 'off' | 'connecting' | 'disconnecting' | 'on'
 
@@ -105,6 +114,31 @@ const Home: React.FC = () => {
   const [loadingDirection, setLoadingDirection] = useState<'connecting' | 'disconnecting'>(
     'connecting'
   )
+
+  // Easter egg (rkn-peek-store.ts): the button is the laser's real origin and flashes red when it
+  // fires, so it reports its own position rather than the effects overlay guessing at one.
+  const powerButtonRef = useRef<HTMLButtonElement>(null)
+  const [rknFiring, setRknFiring] = useState(false)
+  const rknNonce = useRknPeekStore((s) => s.nonce)
+  const setPowerButtonOrigin = useRknPeekStore((s) => s.setPowerButtonOrigin)
+  useEffect(() => {
+    if (rknNonce === 0) return undefined
+    const toFire = setTimeout(() => {
+      const rect = powerButtonRef.current?.getBoundingClientRect()
+      if (!rect) return
+      setPowerButtonOrigin({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 })
+      setRknFiring(true)
+    }, RKN_FIRE_DELAY_MS)
+    const toIdle = setTimeout(() => {
+      setRknFiring(false)
+      setPowerButtonOrigin(null)
+    }, RKN_FIRE_DELAY_MS + RKN_FIRE_MS + RKN_HIT_MS)
+    return () => {
+      clearTimeout(toFire)
+      clearTimeout(toIdle)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rknNonce])
 
   const [elapsed, setElapsed] = useState(() => {
     if (connectionStartTime !== null) {
@@ -444,6 +478,7 @@ const Home: React.FC = () => {
 
           {/* Power button (original look) */}
           <button
+            ref={powerButtonRef}
             disabled={isDisabled}
             onClick={() => onValueChange(!isSelected)}
             data-guide="home-power-toggle"
@@ -460,6 +495,17 @@ const Home: React.FC = () => {
                 transition={{ duration: 1.3, repeat: Infinity, ease: 'easeOut' }}
               />
             )}
+            {/* Easter egg: flashes when the RKN scene fires at it (see rkn-peek-store.ts) */}
+            {rknFiring && (
+              <motion.span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 rounded-full"
+                style={{ boxShadow: '0 0 0 6px rgba(229,72,77,0.35), 0 0 40px 14px rgba(229,72,77,0.5)' }}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: [0, 1, 1, 0], scale: [0.9, 1.05, 1, 1] }}
+                transition={{ duration: (RKN_FIRE_MS + RKN_HIT_MS) / 1000 }}
+              />
+            )}
             <div
               className="w-28 h-28 rounded-full flex items-center justify-center transition-all duration-400"
               style={{
@@ -468,10 +514,13 @@ const Home: React.FC = () => {
                 background: isSelected
                   ? `radial-gradient(circle at 35% 40%, #17232d, #0e151f)`
                   : `radial-gradient(circle at 35% 40%, #182131, #0d121b)`,
-                border: isSelected
-                  ? `2px solid oklch(0.82 0.16 196 / 50%)`
-                  : `2px solid rgb(255 255 255 / 0.1)`,
-                boxShadow: isSelected ? TEAL_GLOW : 'none'
+                border: rknFiring
+                  ? '2px solid rgba(229,72,77,0.7)'
+                  : isSelected
+                    ? `2px solid oklch(0.82 0.16 196 / 50%)`
+                    : `2px solid rgb(255 255 255 / 0.1)`,
+                boxShadow: rknFiring ? '0 0 26px oklch(0.6 0.2 25 / 45%)' : isSelected ? TEAL_GLOW : 'none',
+                transition: 'border-color 150ms, box-shadow 150ms'
               }}
             >
               <div className="relative size-14">
@@ -484,6 +533,7 @@ const Home: React.FC = () => {
                 <img
                   src={Pause}
                   alt=""
+                  style={rknFiring ? { filter: RKN_FIRE_FILTER } : undefined}
                   className={`absolute inset-0 size-14 transition-all duration-300 ease-out ${
                     !loading && isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
                   }`}
@@ -491,6 +541,7 @@ const Home: React.FC = () => {
                 <img
                   src={Power}
                   alt=""
+                  style={rknFiring ? { filter: RKN_FIRE_FILTER } : undefined}
                   className={`absolute inset-0 size-14 transition-all duration-300 ease-out ${
                     !loading && !isSelected ? 'opacity-70 scale-100' : 'opacity-0 scale-90'
                   }`}
