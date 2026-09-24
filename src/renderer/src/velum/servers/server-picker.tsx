@@ -156,7 +156,7 @@ export const ServerCard: React.FC = () => {
           <div className="truncate text-xs text-vl-muted">
             {current?.isAuto && shown && shown !== current
               ? `${t('velumUi.server.now')}: ${shown.label}`
-              : t('velumUi.server.title')}
+              : (current?.description ?? shown?.description) || t('velumUi.server.title')}
           </div>
         </div>
         {shown && (
@@ -308,8 +308,12 @@ const ServerPickerModal: React.FC<{
                 <CodeBadge entry={entry} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold text-vl-text">{entry.label}</div>
-                  {entry.isAuto && (
+                  {entry.isAuto ? (
                     <div className="truncate text-xs text-vl-muted">{t('velumUi.server.auto')}</div>
+                  ) : (
+                    entry.description && (
+                      <div className="truncate text-xs text-vl-muted">{entry.description}</div>
+                    )
                   )}
                 </div>
                 <Ping delay={entry.delay} testing={busy} />

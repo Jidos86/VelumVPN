@@ -12,6 +12,9 @@ export interface ServerEntry {
   resolvedName?: string
   // for auto groups: the node the user pinned in it (the group keeps using it until unpinned)
   fixed?: string
+  // Custom per-node label from the panel/subscription ("serverDescription"), shown instead of the
+  // generic "Server" subtitle when the provider set one.
+  description?: string
 }
 
 const FLAG_PAIR = /[\u{1F1E6}-\u{1F1FF}]{2}/gu

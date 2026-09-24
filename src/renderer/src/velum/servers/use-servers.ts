@@ -70,7 +70,8 @@ export function useServers(): {
           code,
           flag,
           delay: rememberedDelay(item.name, lastDelay(item)),
-          isAuto: false
+          isAuto: false,
+          description: item.serverDescription || undefined
         })
       }
     }

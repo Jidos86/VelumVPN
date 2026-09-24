@@ -151,14 +151,20 @@ const ProfileItem: React.FC<Props> = (props) => {
         icon: <Pencil />,
         showDivider: false,
         variant: 'default'
-      },
-      {
+      }
+    )
+    // "hide-settings": the provider does not want the real server list in this subscription
+    // readable from inside the app.
+    if (!info.hideSettings) {
+      list.push({
         key: 'edit-file',
         label: t('profile.editFile'),
         icon: <FileText />,
         showDivider: false,
         variant: 'default'
-      },
+      })
+    }
+    list.push(
       {
         key: 'edit-rules',
         label: t('profile.editRule'),
@@ -203,6 +209,7 @@ const ProfileItem: React.FC<Props> = (props) => {
         break
       }
       case 'edit-file': {
+        if (info.hideSettings) break
         setOpenFileEditor(true)
         break
       }
