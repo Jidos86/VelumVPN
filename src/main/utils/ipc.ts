@@ -112,7 +112,7 @@ import {
   resolveThemes,
   writeTheme
 } from '../resolve/theme'
-import { logDir, templatesDir, userTemplatesDir } from './dirs'
+import { logDir, templatesDir, userTemplatesDir, getFullChangelog } from './dirs'
 import { getBrand } from './brand'
 import { ROUTE_MODE_TEMPLATES } from '../core/factory'
 import path from 'path'
@@ -249,6 +249,7 @@ ipcMain.handle('patchMihomoConfig', (_e, patch) => ipcErrorWrapper(patchMihomoCo
   ipcMain.handle('autoUpdateSupported', () => autoInstallSupported())
   ipcMain.handle('cancelUpdate', ipcErrorWrapper(cancelUpdate))
   ipcMain.handle('getVersion', () => app.getVersion())
+  ipcMain.handle('getFullChangelog', ipcErrorWrapper(async () => getFullChangelog()))
   ipcMain.handle('platform', () => process.platform)
   ipcMain.handle('openUWPTool', ipcErrorWrapper(openUWPTool))
   ipcMain.handle('setupFirewall', ipcErrorWrapper(setupFirewall))

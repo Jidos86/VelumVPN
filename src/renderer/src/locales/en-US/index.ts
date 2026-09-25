@@ -1063,6 +1063,7 @@ export default {
   },
   velumUi: {
     nav: { quit: 'Quit', github: 'GitHub' },
+    changelog: { title: 'Changelog' },
     tray: {
       protected: 'You are protected',
       unprotected: 'Protection is off',

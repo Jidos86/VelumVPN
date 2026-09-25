@@ -20,6 +20,8 @@ extraResources:
     to: ''
   - from: './build/icons/'
     to: 'icons'
+  - from: './changelog.md'
+    to: 'changelog.md'
 protocols:
   name: 'VelumVPN URI Scheme'
   schemes:

@@ -332,6 +332,10 @@ export async function getVersion(): Promise<string> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getVersion'))
 }
 
+export async function getFullChangelog(): Promise<string> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getFullChangelog'))
+}
+
 export async function openUWPTool(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('openUWPTool'))
 }

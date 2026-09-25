@@ -21,6 +21,8 @@ import dayjs from 'dayjs'
 import { ArrowDown, ArrowUp, ChevronRight, InfinityIcon, LifeBuoy, PlusCircle, RefreshCcw, WifiOff } from 'lucide-react'
 import { SiGithub, SiTelegram } from 'react-icons/si'
 import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
+import ChangelogModal from '@renderer/components/updater/changelog-modal'
+import { version } from '@renderer/utils/init'
 import { calcTraffic } from '@renderer/utils/calc'
 import { useTrafficStore } from '@renderer/store/traffic-store'
 import { ServerCard } from '@renderer/velum/servers/server-picker'
@@ -89,6 +91,7 @@ const Home: React.FC = () => {
   const navigate = useNavigate()
   const hasProfiles = (profileConfig?.items?.length ?? 0) > 0
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showChangelog, setShowChangelog] = useState(false)
   const [editingItem, setEditingItem] = useState<ProfileItem | null>(null)
   const [updating, setUpdating] = useState(false)
   const [geodataProgress, setGeodataProgress] = useState<number | null>(null)
@@ -459,15 +462,27 @@ const Home: React.FC = () => {
       <section className="contents">
         <div className="col-span-2 row-start-1 flex items-center justify-between gap-4">
           <h1 className="text-xl font-extrabold text-vl-text">{t('sider.home')}</h1>
-          <button
-            type="button"
-            onClick={() => open('https://github.com/Jidos86/VelumVPN')}
-            className="inline-flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-vl-muted transition-colors hover:bg-white/6 hover:text-vl-text"
-          >
-            <SiGithub className="size-3.5" />
-            {t('velumUi.nav.github')}
-          </button>
+          <div className="flex items-center gap-1">
+            {version && (
+              <button
+                type="button"
+                onClick={() => setShowChangelog(true)}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-vl-muted transition-colors hover:bg-white/6 hover:text-vl-text"
+              >
+                v{version}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => open('https://github.com/Jidos86/VelumVPN')}
+              className="inline-flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-vl-muted transition-colors hover:bg-white/6 hover:text-vl-text"
+            >
+              <SiGithub className="size-3.5" />
+              {t('velumUi.nav.github')}
+            </button>
+          </div>
         </div>
+        {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
 
         <div className={`${panel} col-start-1 row-start-2 flex flex-col items-center justify-center gap-2 overflow-hidden px-6 py-8`}>
           {/* Status label */}

@@ -1,6 +1,6 @@
 import { FLAVOR } from './flavor'
 import { is } from '@electron-toolkit/utils'
-import { existsSync, mkdirSync, readdirSync } from 'fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync } from 'fs'
 import { app } from 'electron'
 import path from 'path'
 import { execSync } from 'child_process'
@@ -48,6 +48,15 @@ export function resourcesDir(): string {
       return path.join(app.getAppPath(), 'resources')
     }
   }
+}
+
+// The full, multi-version changelog.md from the repo root - not the single-version excerpt
+// latest.yml carries for the update-available toast (see scripts/updater.mjs).
+export function getFullChangelog(): string {
+  const changelogPath = is.dev
+    ? path.join(__dirname, '../../changelog.md')
+    : path.join(resourcesDir(), 'changelog.md')
+  return readFileSync(changelogPath, 'utf-8')
 }
 
 export function resourcesFilesDir(): string {

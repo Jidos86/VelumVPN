@@ -1065,6 +1065,7 @@ export default {
   },
   velumUi: {
     nav: { quit: 'Выход', github: 'GitHub' },
+    changelog: { title: 'Список изменений' },
     tray: {
       protected: 'Вы под защитой',
       unprotected: 'Защита отключена',
