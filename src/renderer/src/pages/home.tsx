@@ -463,6 +463,14 @@ const Home: React.FC = () => {
         <div className="col-span-2 row-start-1 flex items-center justify-between gap-4">
           <h1 className="text-xl font-extrabold text-vl-text">{t('sider.home')}</h1>
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => open('https://github.com/Jidos86/VelumVPN')}
+              className="inline-flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-vl-muted transition-colors hover:bg-white/6 hover:text-vl-text"
+            >
+              <SiGithub className="size-3.5" />
+              {t('velumUi.nav.github')}
+            </button>
             {version && (
               <button
                 type="button"
@@ -472,14 +480,6 @@ const Home: React.FC = () => {
                 v{version}
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => open('https://github.com/Jidos86/VelumVPN')}
-              className="inline-flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-vl-muted transition-colors hover:bg-white/6 hover:text-vl-text"
-            >
-              <SiGithub className="size-3.5" />
-              {t('velumUi.nav.github')}
-            </button>
           </div>
         </div>
         {showChangelog && <ChangelogModal onClose={() => setShowChangelog(false)} />}
