@@ -8,11 +8,13 @@ import {
   Globe,
   House,
   ListChecks,
+  Lock,
   Power,
   ScrollText,
   Settings,
   ShieldCheck,
   ShoppingBag,
+  Unlock,
   WalletCards
 } from 'lucide-react'
 import { LifeBuoy } from 'lucide-react'
@@ -57,10 +59,11 @@ const NavRail: React.FC = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { profileConfig } = useProfileConfig()
-  const { appConfig } = useAppConfig()
+  const { appConfig, patchAppConfig } = useAppConfig()
   const [showRuntimeConfig, setShowRuntimeConfig] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const expertMode = appConfig?.expertMode ?? false
+  const expandOnHover = appConfig?.expandSidebarOnHover ?? true
   const hasProfiles = (profileConfig?.items?.length ?? 0) > 0
   const items = navItems
     .filter((item) => expertMode || !expertOnlyItems.has(item.key))
@@ -87,7 +90,7 @@ const NavRail: React.FC = () => {
       <div className="w-14 shrink-0" />
       <motion.nav
         data-guide="app-sidebar"
-        onMouseEnter={() => setExpanded(true)}
+        onMouseEnter={() => expandOnHover && setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
         initial={false}
         animate={{ width: expanded ? RAIL_EXPANDED : RAIL_COLLAPSED }}
@@ -132,6 +135,26 @@ const NavRail: React.FC = () => {
         })}
 
         <div className="flex-1" />
+
+        <button
+          type="button"
+          title={t(expandOnHover ? 'sider.lockSidebar' : 'sider.unlockSidebar')}
+          aria-label={t(expandOnHover ? 'sider.lockSidebar' : 'sider.unlockSidebar')}
+          onClick={() => {
+            if (expandOnHover) setExpanded(false)
+            patchAppConfig({ expandSidebarOnHover: !expandOnHover })
+          }}
+          className={`${railRow} text-vl-faint hover:text-vl-text`}
+        >
+          <span className={iconSlot}>
+            {expandOnHover ? (
+              <Unlock className="size-[18px]" strokeWidth={1.6} />
+            ) : (
+              <Lock className="size-[18px]" strokeWidth={1.6} />
+            )}
+          </span>
+          <span className={rowLabel}>{t(expandOnHover ? 'sider.lockSidebar' : 'sider.unlockSidebar')}</span>
+        </button>
 
         {platform !== 'darwin' && (
           <button

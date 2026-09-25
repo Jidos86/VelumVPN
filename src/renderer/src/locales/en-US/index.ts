@@ -93,6 +93,8 @@ export default {
     diagnostics: 'Diagnostics',
     shop: 'Shop',
     support: 'Support',
+    lockSidebar: 'Collapse sidebar',
+    unlockSidebar: 'Expand sidebar',
     domainSniffing: 'Domain Sniffing',
     coreSettings: 'Core Settings',
     systemProxy: 'System Proxy',
@@ -452,6 +454,7 @@ export default {
       expertModeDesc: 'Shows advanced menus for debugging the application',
       autoCheckUpdate: 'Auto Check Updates',
       useTrayCard: 'Compact tray menu',
+      trayServerFlyout: 'Server list flyout in the tray',
       autoUpdate: 'Install updates automatically',
       disableGPU: 'Disable GPU Acceleration',
       disableGPUHelp:

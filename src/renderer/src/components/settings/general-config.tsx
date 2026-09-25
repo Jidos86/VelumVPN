@@ -34,6 +34,7 @@ const GeneralConfig: React.FC<GeneralConfigProps> = (props) => {
     autoCheckUpdate,
     // the tray card is on unless the user turned it off; Linux only has the native tray menu
     useTrayCard = true,
+    trayServerFlyout = true,
     autoUpdate = true,
     disableGPU = false
   } = appConfig || {}
@@ -136,11 +137,24 @@ const GeneralConfig: React.FC<GeneralConfigProps> = (props) => {
           </SettingItem>
         )}
         {showTrayCard && (
-          <SettingItem title={t('settings.general.useTrayCard')} divider={showHiddenSettings}>
+          <SettingItem
+            title={t('settings.general.useTrayCard')}
+            divider={useTrayCard || showHiddenSettings}
+          >
             <Switch
               checked={useTrayCard}
               onCheckedChange={(value) => {
                 patchAppConfig({ useTrayCard: value })
+              }}
+            />
+          </SettingItem>
+        )}
+        {showTrayCard && useTrayCard && (
+          <SettingItem title={t('settings.general.trayServerFlyout')} divider={showHiddenSettings}>
+            <Switch
+              checked={trayServerFlyout}
+              onCheckedChange={(value) => {
+                patchAppConfig({ trayServerFlyout: value })
               }}
             />
           </SettingItem>

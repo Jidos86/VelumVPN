@@ -46,7 +46,12 @@ const TrayMenuApp: React.FC = () => {
   const { appConfig, mutateAppConfig, patchAppConfig } = useAppConfig()
   const { controledMihomoConfig, mutateControledMihomoConfig } = useControledMihomoConfig()
   const { mutate: mutateGroups } = useGroups()
-  const { mainSwitchMode = 'tun', proxyMode = false, routeMode = 'blocked' } = appConfig || {}
+  const {
+    mainSwitchMode = 'tun',
+    proxyMode = false,
+    routeMode = 'blocked',
+    trayServerFlyout = true
+  } = appConfig || {}
 
   const enabled = mainSwitchMode === 'tun' ? (controledMihomoConfig?.tun?.enable ?? false) : proxyMode
   // Show the result of a click right away; the real value replaces it once the core has answered.
@@ -75,6 +80,7 @@ const TrayMenuApp: React.FC = () => {
   }, [mutateAppConfig, mutateControledMihomoConfig, mutateGroups])
 
   const openFlyout = (): void => {
+    if (!trayServerFlyout) return
     clearTimeout(closeTimer.current)
     setFlyoutOpen(true)
   }
@@ -255,21 +261,23 @@ const TrayMenuApp: React.FC = () => {
           <div className="mb-1 text-[11px] text-vl-faint">{t('velumUi.tray.server')}</div>
           <button
             type="button"
-            onMouseEnter={openFlyout}
-            onMouseLeave={scheduleCloseFlyout}
-            onClick={openFlyout}
-            className={`-mx-1.5 mb-2.5 flex w-[calc(100%+12px)] cursor-pointer items-center justify-between gap-2 rounded-md px-1.5 py-1 text-left transition-colors ${
-              flyoutOpen ? 'bg-white/6' : 'hover:bg-white/5'
-            }`}
+            onMouseEnter={trayServerFlyout ? openFlyout : undefined}
+            onMouseLeave={trayServerFlyout ? scheduleCloseFlyout : undefined}
+            onClick={trayServerFlyout ? openFlyout : undefined}
+            className={`-mx-1.5 mb-2.5 flex w-[calc(100%+12px)] items-center justify-between gap-2 rounded-md px-1.5 py-1 text-left transition-colors ${
+              trayServerFlyout ? 'cursor-pointer' : 'cursor-default'
+            } ${flyoutOpen ? 'bg-white/6' : trayServerFlyout ? 'hover:bg-white/5' : ''}`}
           >
             <span className="truncate text-[12.5px] font-semibold">
               {servers.current?.label ?? t('velumUi.server.choose')}
             </span>
-            <ChevronRight
-              className={`size-3.5 shrink-0 text-vl-faint transition-transform ${
-                flyoutOpen ? (side === 'left' ? 'rotate-180' : '') : ''
-              }`}
-            />
+            {trayServerFlyout && (
+              <ChevronRight
+                className={`size-3.5 shrink-0 text-vl-faint transition-transform ${
+                  flyoutOpen ? (side === 'left' ? 'rotate-180' : '') : ''
+                }`}
+              />
+            )}
           </button>
 
           <div className="mb-3 flex gap-[5px]">

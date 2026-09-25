@@ -168,6 +168,8 @@ export default {
     diagnostics: '诊断',
     shop: '商店',
     support: '支持',
+    lockSidebar: '收起侧边栏',
+    unlockSidebar: '展开侧边栏',
     domainSniffing: '域名嗅探',
     coreSettings: '内核设置',
     systemProxy: '系统代理',

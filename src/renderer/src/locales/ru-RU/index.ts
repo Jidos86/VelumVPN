@@ -94,6 +94,8 @@ export default {
     diagnostics: 'Диагностика',
     shop: 'Магазин',
     support: 'Поддержка',
+    lockSidebar: 'Свернуть панель',
+    unlockSidebar: 'Развернуть панель',
     domainSniffing: 'Определение доменов',
     coreSettings: 'Настройки ядра',
     systemProxy: 'Системный прокси',
@@ -452,6 +454,7 @@ export default {
       expertModeDesc: 'Открывает дополнительное меню для отладки приложения',
       autoCheckUpdate: 'Автоматическая проверка обновлений',
       useTrayCard: 'Компактное меню в трее',
+      trayServerFlyout: 'Выезжающий список серверов в трее',
       autoUpdate: 'Устанавливать обновления автоматически',
       disableGPU: 'Отключить ускорение GPU',
       disableGPUHelp:

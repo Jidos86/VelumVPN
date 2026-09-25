@@ -89,6 +89,12 @@ interface AppConfig {
   useCustomTrayMenu?: boolean
   // The compact tray card instead of the native tray menu (default: on, except on Linux)
   useTrayCard?: boolean
+  // The server list that slides out from the tray card on hover (see TrayMenuApp.tsx); off just
+  // makes the server row a plain, non-expanding label.
+  trayServerFlyout?: boolean
+  // The left sidebar (nav-rail.tsx) expanding into a labeled drawer on hover; off keeps it
+  // permanently collapsed to just icons.
+  expandSidebarOnHover?: boolean
   // Download new versions in the background and install them on exit or at the next launch
   // (Windows installer build only; default: on)
   autoUpdate?: boolean
