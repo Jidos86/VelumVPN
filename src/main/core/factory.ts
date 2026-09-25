@@ -354,26 +354,23 @@ function injectCustomRules(template: MihomoConfig, rules: { domains: string[]; p
   if (!Array.isArray(template.rules)) return
   const rulesArr = template.rules as unknown as string[]
 
-  // Исключения (DIRECT) — в самое начало, они должны перекрывать любые гео-правила
-  const directEntries = [
+  // All custom rules go at the very front, so they always override the template's own geo rules -
+  // but ordered by specificity within that block: an exact domain always outranks a process name,
+  // which always outranks an IP range, regardless of which side (VPN or bypass) each one is on. A
+  // domain can never appear in both the VPN and bypass lists at once (the UI rejects that), so the
+  // order between the two sides of the same type does not matter, only domain-before-process does:
+  // e.g. "this app goes direct" plus "but this one domain goes through the VPN" needs the domain
+  // rule to win even though the app rule was added first.
+  const entries = [
+    ...rules.domains.map((d) => `DOMAIN-SUFFIX,${d},→ VelumVPN`),
     ...(rules.excluded ?? []).map((d) => `DOMAIN-SUFFIX,${d},DIRECT`),
+    ...rules.processes.map((p) => `PROCESS-NAME,${p},→ VelumVPN`),
     ...(rules.excludedProcesses ?? []).map((p) => `PROCESS-NAME,${p},DIRECT`),
+    ...(rules.ips ?? []).map((ip) => ipCidrRule(ip, '→ VelumVPN')),
     ...(rules.excludedIPs ?? []).map((ip) => ipCidrRule(ip, 'DIRECT'))
   ]
-  if (directEntries.length > 0) {
-    rulesArr.unshift(...directEntries)
-  }
-
-  // VPN-правила — перед MATCH, чтобы не потеряться в DIRECT-фолбэке
-  const matchIndex = rulesArr.findIndex((r) => r.startsWith('MATCH,'))
-  const insertAt = matchIndex >= 0 ? matchIndex : rulesArr.length
-  const vpnEntries = [
-    ...rules.domains.map((d) => `DOMAIN-SUFFIX,${d},→ VelumVPN`),
-    ...rules.processes.map((p) => `PROCESS-NAME,${p},→ VelumVPN`),
-    ...(rules.ips ?? []).map((ip) => ipCidrRule(ip, '→ VelumVPN'))
-  ]
-  if (vpnEntries.length > 0) {
-    rulesArr.splice(insertAt, 0, ...vpnEntries)
+  if (entries.length > 0) {
+    rulesArr.unshift(...entries)
   }
 }
 
