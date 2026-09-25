@@ -7,6 +7,8 @@ import { ArrowDown, ArrowUp, CheckSquare, GripVertical, Pencil, ListTree, Plus, 
 import { CustomRules, getCustomRules, setCustomRules } from '@renderer/utils/ipc'
 import { applyRulesChange } from '@renderer/velum/rules/apply-rules'
 import { useConnectionsStore } from '@renderer/store/connections-store'
+import { useIconsStore } from '@renderer/store/icons-store'
+import { useFaviconStore } from '@renderer/store/favicon-store'
 import {
   GhostButton,
   IconButton,
@@ -143,6 +145,40 @@ const readSortDir = (): SortDir => {
 const badgeText = (kind: Kind, name: string): string =>
   kind === 'ip' ? 'IP' : (name.trim()[0] ?? '?').toUpperCase()
 
+// Small icon slot next to each row: a real favicon for domains, a real app icon for processes
+// (only while that process shows up in an active connection - a bare exe name has no path to pull
+// an icon from otherwise), and the plain letter badge everywhere else, including while loading.
+const EntryIcon: React.FC<{ kind: Kind; item: string; processPath?: string }> = ({
+  kind,
+  item,
+  processPath
+}) => {
+  const requestFavicon = useFaviconStore((s) => s.requestFavicon)
+  const favicon = useFaviconStore((s) => s.favicons[item])
+  const faviconFailed = useFaviconStore((s) => s.failed.has(item))
+  const requestIcon = useIconsStore((s) => s.requestIcon)
+  const appIcon = useIconsStore((s) => (processPath ? s.icons[processPath] : undefined))
+
+  useEffect(() => {
+    if (kind === 'domain') requestFavicon(item)
+    else if (kind === 'app' && processPath) requestIcon(processPath)
+  }, [kind, item, processPath, requestFavicon, requestIcon])
+
+  const src = kind === 'domain' ? (!faviconFailed ? favicon : undefined) : appIcon
+  if (src) {
+    return (
+      <span className="flex size-7 shrink-0 overflow-hidden rounded-md">
+        <img src={src} alt="" className="size-full object-cover" draggable={false} />
+      </span>
+    )
+  }
+  return (
+    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/6 text-[11px] font-bold text-vl-muted">
+      {badgeText(kind, item)}
+    </span>
+  )
+}
+
 const ProcessPicker: React.FC<{ onSelect: (name: string) => void; onClose: () => void }> = ({
   onSelect,
   onClose
@@ -274,6 +310,20 @@ const RulesPage: React.FC = () => {
   const [editing, setEditing] = useState<{ side: Side; item: string } | null>(null)
   const [editValue, setEditValue] = useState('')
   const editDone = useRef(false)
+
+  // Bare exe names have no path of their own; borrow one from a currently active connection with
+  // the same process name so an app icon can be pulled for it. Apps that never connected stay
+  // as a letter badge - there is no path to ask Electron for an icon.
+  const active = useConnectionsStore((s) => s.active)
+  const processPathByName = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const c of active) {
+      const path = c.metadata?.processPath
+      const name = c.metadata?.process || path?.split(/[\\/]/).pop()
+      if (name && path && !map.has(name.toLowerCase())) map.set(name.toLowerCase(), path)
+    }
+    return map
+  }, [active])
 
   useEffect(() => {
     getCustomRules().then((r) => setRules({ ...EMPTY, ...r }))
@@ -594,9 +644,7 @@ const RulesPage: React.FC = () => {
                 ) : (
                   <>
                     <GripVertical className="-ml-1.5 -mr-1 size-3.5 shrink-0 text-vl-faint opacity-40 transition-opacity group-hover:opacity-100" />
-                    <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/6 text-[11px] font-bold text-vl-muted">
-                      {badgeText(kind, item)}
-                    </span>
+                    <EntryIcon kind={kind} item={item} processPath={processPathByName.get(item.toLowerCase())} />
                   </>
                 )}
                 {isEditing ? (
