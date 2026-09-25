@@ -1,6 +1,6 @@
 {
   "name": "velumvpn",
-  "version": "1.3.6",
+  "version": "1.3.7",
   "description": "VelumVPN",
   "main": "./out/main/index.js",
   "author": "VelumVPN",
