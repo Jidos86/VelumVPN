@@ -469,7 +469,6 @@ export default {
       showDockIcon: 'Показать иконку в Dock',
       alwaysOnTop: 'Поверх всех окон',
       delayDisplayMode: 'Показывать пинг в мс (вместо меток)',
-      useSystemTitleBar: 'Использовать системную строку заголовка',
       backgroundColor: 'Цвет фона',
       theme: 'Тема',
       auto: 'Авто',

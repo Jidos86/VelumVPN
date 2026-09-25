@@ -21,7 +21,6 @@ import {
   getFilePath,
   importThemes,
   isAlwaysOnTop,
-  relaunchApp,
   resolveThemes,
   setAlwaysOnTop,
   setDockVisible,
@@ -52,7 +51,6 @@ const AppearanceConfig: React.FC<AppearanceConfigProps> = (props) => {
     disableTray = false,
     showFloatingWindow: showFloating = false,
     spinFloatingIcon = true,
-    useWindowFrame = false,
     customTheme = 'default.css',
     delayDisplayMode = 'text'
   } = appConfig || {}
@@ -192,15 +190,6 @@ const AppearanceConfig: React.FC<AppearanceConfigProps> = (props) => {
             checked={delayDisplayMode === 'number'}
             onCheckedChange={async (value) => {
               await patchAppConfig({ delayDisplayMode: value ? 'number' : 'text' })
-            }}
-          />
-        </SettingItem>
-        <SettingItem title={t('settings.appearance.useSystemTitleBar')} divider>
-          <Switch
-            checked={useWindowFrame}
-            onCheckedChange={async (value) => {
-              await patchAppConfig({ useWindowFrame: value })
-              await relaunchApp()
             }}
           />
         </SettingItem>

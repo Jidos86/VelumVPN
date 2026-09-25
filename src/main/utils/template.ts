@@ -3,7 +3,6 @@ export const defaultConfig: AppConfig = {
   core: 'mihomo',
   silentStart: false,
   appTheme: 'system',
-  useWindowFrame: false,
   proxyInTray: true,
   useCustomTrayMenu: false,
   maxLogDays: 7,

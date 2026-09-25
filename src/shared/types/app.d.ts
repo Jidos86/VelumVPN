@@ -65,7 +65,6 @@ interface AppConfig {
   diffWorkDir?: boolean
   autoSetDNSMode?: 'none' | 'exec' | 'service'
   originDNS?: string
-  useWindowFrame: boolean
   proxyInTray: boolean
   appTheme: AppTheme
   customTheme?: string

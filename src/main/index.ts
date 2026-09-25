@@ -325,7 +325,7 @@ app.whenReady().then(async () => {
     }
   }
 
-  const createWindowPromise = createWindow(appConfig)
+  const createWindowPromise = createWindow()
 
   let coreStarted = false
 
@@ -480,7 +480,7 @@ function parseFilename(str: string): string {
   }
 }
 
-export async function createWindow(appConfig?: AppConfig): Promise<void> {
+export async function createWindow(): Promise<void> {
   if (isCreatingWindow) {
     if (createWindowPromise) {
       await createWindowPromise
@@ -492,9 +492,6 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
     createWindowPromiseResolve = resolve
   })
   try {
-    const config = appConfig ?? (await getAppConfig())
-    const { useWindowFrame = false } = config
-
     const [mainWindowState] = await Promise.all([
       Promise.resolve(
         windowStateKeeper({
@@ -515,9 +512,9 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
       x: mainWindowState.x,
       y: mainWindowState.y,
       show: false,
-      frame: useWindowFrame,
+      frame: false,
       fullscreenable: false,
-      titleBarStyle: useWindowFrame ? 'default' : 'hidden',
+      titleBarStyle: 'hidden',
       titleBarOverlay: false,
       autoHideMenuBar: true,
       ...(process.platform === 'linux' ? { icon: icon } : {}),
@@ -528,7 +525,7 @@ export async function createWindow(appConfig?: AppConfig): Promise<void> {
       }
     })
     mainWindowState.manage(mainWindow)
-    if (process.platform === 'darwin' && !useWindowFrame) {
+    if (process.platform === 'darwin') {
       mainWindow.setWindowButtonVisibility(false)
     }
     mainWindow.on('maximize', () => {

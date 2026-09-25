@@ -1,17 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { platform } from '@renderer/utils/init'
-import { useAppConfig } from '@renderer/hooks/use-app-config'
 
 const WindowControls: React.FC = () => {
-  const { appConfig } = useAppConfig()
-  const { useWindowFrame = false } = appConfig || {}
   const [isMaximized, setIsMaximized] = useState(false)
   const [isFocused, setIsFocused] = useState(document.hasFocus())
   const isMac = platform === 'darwin'
 
   useEffect(() => {
-    if (useWindowFrame) return
-
     window.electron.ipcRenderer.invoke('windowIsMaximized').then(setIsMaximized)
 
     const onMaximize = (): void => setIsMaximized(true)
@@ -31,9 +26,7 @@ const WindowControls: React.FC = () => {
       window.removeEventListener('focus', onFocus)
       window.removeEventListener('blur', onBlur)
     }
-  }, [useWindowFrame])
-
-  if (useWindowFrame) return null
+  }, [])
 
   const handleMinimize = (): void => {
     window.electron.ipcRenderer.invoke('windowMinimize')
