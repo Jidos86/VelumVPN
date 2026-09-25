@@ -121,8 +121,15 @@ const Home: React.FC = () => {
   const [rknFiring, setRknFiring] = useState(false)
   const rknNonce = useRknPeekStore((s) => s.nonce)
   const setPowerButtonOrigin = useRknPeekStore((s) => s.setPowerButtonOrigin)
+  // Home remounts on every page switch (see the route transition in App.tsx), while the nonce
+  // lives in a store that outlives that remount - without this, navigating back to Home would
+  // replay a trigger from long ago just because the effect below runs again on mount. Seeding the
+  // ref with whatever the nonce already is means only a genuinely new peek() call (while this page
+  // is mounted) looks "new".
+  const seenNonce = useRef(rknNonce)
   useEffect(() => {
-    if (rknNonce === 0) return undefined
+    if (rknNonce === seenNonce.current) return undefined
+    seenNonce.current = rknNonce
     const toFire = setTimeout(() => {
       const rect = powerButtonRef.current?.getBoundingClientRect()
       if (!rect) return

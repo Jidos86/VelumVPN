@@ -115,16 +115,34 @@ rules:
   # RadminVPN — виртуальная сеть напрямую
   - IP-CIDR,26.0.0.0/8,DIRECT,no-resolve
   - GEOSITE,category-ads-all,REJECT
-  # Торрент-клиенты — напрямую
+  # Торрент-клиенты — напрямую. Регулярка ловит по имени процесса любой клиент со словом
+  # "torrent" (в любом регистре), даже если его тут нет явно; остальные — по именам ниже,
+  # так как их названия этого слова не содержат.
+  - PROCESS-NAME-REGEX,(?i).*torrent.*,DIRECT
   - PROCESS-NAME,qbittorrent.exe,DIRECT
   - PROCESS-NAME,qbittorrent,DIRECT
+  - PROCESS-NAME,qbittorrent-nox,DIRECT
   - PROCESS-NAME,utorrent.exe,DIRECT
   - PROCESS-NAME,bittorrent.exe,DIRECT
   - PROCESS-NAME,transmission-qt.exe,DIRECT
   - PROCESS-NAME,transmission-gtk,DIRECT
   - PROCESS-NAME,transmission-daemon,DIRECT
+  - PROCESS-NAME,transmission-remote,DIRECT
+  - PROCESS-NAME,Transmission,DIRECT
   - PROCESS-NAME,deluge.exe,DIRECT
   - PROCESS-NAME,deluged,DIRECT
+  - PROCESS-NAME,deluge-gtk,DIRECT
+  - PROCESS-NAME,tixati.exe,DIRECT
+  - PROCESS-NAME,Vuze.exe,DIRECT
+  - PROCESS-NAME,vuze,DIRECT
+  - PROCESS-NAME,azureus.exe,DIRECT
+  - PROCESS-NAME,BitComet.exe,DIRECT
+  - PROCESS-NAME,bitcomet.exe,DIRECT
+  - PROCESS-NAME,FrostWire.exe,DIRECT
+  - PROCESS-NAME,Motrix.exe,DIRECT
+  - PROCESS-NAME,motrix,DIRECT
+  - PROCESS-NAME,Folx,DIRECT
+  - PROCESS-NAME,rtorrent,DIRECT
 
   # Игровые сервисы — CDN и загрузки напрямую
   - DOMAIN-SUFFIX,steampowered.com,DIRECT
