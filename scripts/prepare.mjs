@@ -19,61 +19,18 @@ if (process.env.SKIP_PREPARE === '1') {
   process.exit(0)
 }
 
-/* ======= mihomo alpha======= */
-const MIHOMO_ALPHA_VERSION_URL =
-  'https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha/version.txt'
-const MIHOMO_ALPHA_URL_PREFIX = `https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha`
-let MIHOMO_ALPHA_VERSION
+/* ======= mihomo (both channels come from our own patched fork, not official upstream, so the
+   BitTorrent sniffer - see patches/mihomo/bittorrent_sniffer.go - is always present; its release
+   workflow publishes assets with no version suffix, so unlike upstream there is no version.txt
+   lookup needed before building the download URL) ======= */
+const MIHOMO_FORK_REPO = 'Jidos86/mihomo'
+const MIHOMO_ALPHA_URL_PREFIX = `https://github.com/${MIHOMO_FORK_REPO}/releases/download/Prerelease-Alpha`
+const MIHOMO_URL_PREFIX = `https://github.com/${MIHOMO_FORK_REPO}/releases/latest/download`
 
 const MIHOMO_ALPHA_MAP = JSON.parse(
   fs.readFileSync(path.join(cwd, 'src/main/core/mihomo-alpha-platform-map.json'), 'utf8')
 )
-
-// Fetch the latest alpha release version from the version.txt file
-async function getLatestAlphaVersion() {
-  try {
-    const response = await fetch(MIHOMO_ALPHA_VERSION_URL, {
-      method: 'GET'
-    })
-    let v = await response.text()
-    MIHOMO_ALPHA_VERSION = v.trim() // Trim to remove extra whitespaces
-    console.log(`Latest alpha version: ${MIHOMO_ALPHA_VERSION}`)
-  } catch (error) {
-    console.error('Error fetching latest alpha version:', error.message)
-    process.exit(1)
-  }
-}
-
-/* ======= mihomo release ======= */
-const MIHOMO_VERSION_URL =
-  'https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt'
-const MIHOMO_URL_PREFIX = `https://github.com/MetaCubeX/mihomo/releases/download`
-let MIHOMO_VERSION
-
-const MIHOMO_MAP = {
-  'win32-x64': 'mihomo-windows-amd64-v1',
-  'win32-ia32': 'mihomo-windows-386',
-  'win32-arm64': 'mihomo-windows-arm64',
-  'darwin-x64': 'mihomo-darwin-amd64-v1',
-  'darwin-arm64': 'mihomo-darwin-arm64',
-  'linux-x64': 'mihomo-linux-amd64-v1',
-  'linux-arm64': 'mihomo-linux-arm64'
-}
-
-// Fetch the latest release version from the version.txt file
-async function getLatestReleaseVersion() {
-  try {
-    const response = await fetch(MIHOMO_VERSION_URL, {
-      method: 'GET'
-    })
-    let v = await response.text()
-    MIHOMO_VERSION = v.trim() // Trim to remove extra whitespaces
-    console.log(`Latest release version: ${MIHOMO_VERSION}`)
-  } catch (error) {
-    console.error('Error fetching latest release version:', error.message)
-    process.exit(1)
-  }
-}
+const MIHOMO_MAP = MIHOMO_ALPHA_MAP
 
 /*
  * check available
@@ -106,9 +63,9 @@ function MihomoAlpha() {
   const name = MIHOMO_ALPHA_MAP[`${platform}-${arch}`]
   const isWin = platform === 'win32'
   const urlExt = isWin ? 'zip' : 'gz'
-  const downloadURL = `${MIHOMO_ALPHA_URL_PREFIX}/${name}-${MIHOMO_ALPHA_VERSION}.${urlExt}`
+  const downloadURL = `${MIHOMO_ALPHA_URL_PREFIX}/${name}.${urlExt}`
   const exeFile = `${name}${isWin ? '.exe' : ''}`
-  const zipFile = `${name}-${MIHOMO_ALPHA_VERSION}.${urlExt}`
+  const zipFile = `${name}.${urlExt}`
 
   return {
     name: 'mihomo-alpha',
@@ -123,9 +80,9 @@ function mihomo() {
   const name = MIHOMO_MAP[`${platform}-${arch}`]
   const isWin = platform === 'win32'
   const urlExt = isWin ? 'zip' : 'gz'
-  const downloadURL = `${MIHOMO_URL_PREFIX}/${MIHOMO_VERSION}/${name}-${MIHOMO_VERSION}.${urlExt}`
+  const downloadURL = `${MIHOMO_URL_PREFIX}/${name}.${urlExt}`
   const exeFile = `${name}${isWin ? '.exe' : ''}`
-  const zipFile = `${name}-${MIHOMO_VERSION}.${urlExt}`
+  const zipFile = `${name}.${urlExt}`
 
   return {
     name: 'mihomo',
@@ -135,6 +92,7 @@ function mihomo() {
     downloadURL
   }
 }
+
 /**
  * download sidecar and rename
  */
@@ -247,6 +205,9 @@ async function downloadFile(url, path) {
     method: 'GET',
     headers: { 'Content-Type': 'application/octet-stream' }
   })
+  if (!response.ok) {
+    throw new Error(`download failed ${response.status} "${url}"`)
+  }
   const buffer = await response.arrayBuffer()
   fs.writeFileSync(path, new Uint8Array(buffer))
 
@@ -338,15 +299,15 @@ const tasks = [
     ? [
         {
           name: 'mihomo-alpha',
-          func: () => getLatestAlphaVersion().then(() => resolveSidecar(MihomoAlpha())),
+          func: () => resolveSidecar(MihomoAlpha()),
           retry: 5
         }
       ]
     : []),
   {
     name: 'mihomo',
-    func: () => getLatestReleaseVersion().then(() => resolveSidecar(mihomo())),
-    retry: 5
+    func: () => resolveSidecar(mihomo()),
+    retry: 3
   },
   { name: 'mmdb', func: resolveMmdb, retry: 5 },
   { name: 'metadb', func: resolveMetadb, retry: 5 },

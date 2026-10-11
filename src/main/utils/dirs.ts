@@ -112,9 +112,15 @@ export function mihomoCorePath(core: string): string {
   if (core === 'mihomo' || core === 'mihomo-alpha') {
     const isWin = process.platform === 'win32'
     const fileName = `${core}${isWin ? '.exe' : ''}`
+    // A core pulled from our own fork's releases (see src/main/core/downloadCore.ts) always
+    // wins over the bundled sidecar, so "Update core" in Settings has somewhere durable to put
+    // a newer build - the bundled file in resourcesDir is reset on every app reinstall/update,
+    // so preferring it would make "Update" silently undo itself on the next app update.
+    const downloaded = path.join(downloadedCoreDir(), fileName)
+    if (existsSync(downloaded)) return downloaded
     const bundled = path.join(mihomoCoreDir(), fileName)
     if (existsSync(bundled)) return bundled
-    return path.join(downloadedCoreDir(), fileName)
+    return downloaded
   }
   if (core === 'system') {
     const sysPath = systemCorePath()

@@ -88,6 +88,17 @@ export async function mihomoUpgrade(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoUpgrade'))
 }
 
+// Pulls the newest build from our own patched mihomo fork (github.com/Jidos86/mihomo) instead
+// of calling mihomoUpgrade() above, which would self-update the stable/alpha core from the
+// official unpatched upstream and silently drop the BitTorrent sniffer.
+export async function downloadLatestStableCore(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('downloadLatestStableCore'))
+}
+
+export async function downloadLatestAlphaCore(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('downloadLatestAlphaCore'))
+}
+
 export async function mihomoHotReloadConfig(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoHotReloadConfig'))
 }
@@ -525,13 +536,18 @@ async function alert<T>(msg: T): Promise<void> {
 
 window.alert = alert
 
+export interface CustomRuleItem {
+  value: string
+  proxy?: string
+}
+
 export interface CustomRules {
-  domains: string[]
-  processes: string[]
-  excluded: string[]
-  excludedProcesses: string[]
-  ips: string[]
-  excludedIPs: string[]
+  domains: CustomRuleItem[]
+  processes: CustomRuleItem[]
+  excluded: CustomRuleItem[]
+  excludedProcesses: CustomRuleItem[]
+  ips: CustomRuleItem[]
+  excludedIPs: CustomRuleItem[]
 }
 
 export async function getCustomRules(): Promise<CustomRules> {

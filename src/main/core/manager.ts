@@ -10,7 +10,7 @@ import {
   mihomoWorkConfigPath,
   mihomoWorkDir
 } from '../utils/dirs'
-import { generateProfile, getRuntimeConfig } from './factory'
+import { generateProfile, getRuntimeConfig, stripBittorrentSnifferIfPresent } from './factory'
 import {
   getAppConfig,
   getControledMihomoConfig,
@@ -171,6 +171,11 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
   if (core === 'mihomo-alpha' && !existsSync(corePath)) {
     const { ensureAlphaCore } = await import('./downloadCore')
     await ensureAlphaCore()
+    corePath = mihomoCorePath(core)
+  }
+  if (core === 'mihomo' && !existsSync(corePath)) {
+    const { ensureStableCore } = await import('./downloadCore')
+    await ensureStableCore()
     corePath = mihomoCorePath(core)
   }
 
@@ -513,7 +518,7 @@ export async function quitWithoutCore(): Promise<void> {
   app.exit()
 }
 
-async function checkProfile(): Promise<void> {
+async function checkProfile(retried = false): Promise<void> {
   const { core = 'mihomo', diffWorkDir = false, safePaths = [] } = await getAppConfig()
   const { current } = await getProfileConfig()
   const corePath = mihomoCorePath(core)
@@ -534,8 +539,15 @@ async function checkProfile(): Promise<void> {
       { env }
     )
   } catch (error) {
+    const stdout = error instanceof Error && 'stdout' in error ? String((error as { stdout: string }).stdout) : ''
+    const stderr = error instanceof Error && 'stderr' in error ? String((error as { stderr: string }).stderr) : ''
+    const combined = `${stdout}\n${stderr}\n${error instanceof Error ? error.message : ''}`
+    if (!retried && /BITTORRENT|not find the sniffer/i.test(combined)) {
+      if (await stripBittorrentSnifferIfPresent()) {
+        return checkProfile(true)
+      }
+    }
     if (error instanceof Error && 'stdout' in error) {
-      const { stdout } = error as { stdout: string }
       const errorLines = stdout
         .split('\n')
         .filter((line) => line.includes('level=error'))
