@@ -427,19 +427,14 @@ function ensureRuleFallbackGroups(template: MihomoConfig, proxyNames: string[], 
   return targets
 }
 
-function torrentRuleEntries(includeGeosite = true): string[] {
+function torrentRuleEntries(): string[] {
   const target = 'DIRECT'
+  // Trackers are matched by the BitTorrent sniffer (DOMAIN,bittorrent.invalid),
+  // not GEOSITE lists — those names are absent from runetfreedom geosite.dat.
   return [
     `DOMAIN,${TORRENT_SNIFF_HOST},${target}`,
     `PROCESS-NAME-REGEX,(?i).*torrent.*,${target}`,
     ...TORRENT_PROCESSES.map((p) => `PROCESS-NAME,${p},${target}`),
-    ...(includeGeosite
-      ? [
-          `GEOSITE,category-public-tracker,${target}`,
-          `GEOSITE,category-private-tracker,${target}`,
-          `GEOSITE,category-pt,${target}`
-        ]
-      : []),
     `DST-PORT,6881-6889,${target}`,
     `DST-PORT,51413,${target}`
   ]
@@ -478,7 +473,7 @@ async function ensureBittorrentSniffer(profile: MihomoConfig): Promise<void> {
   }
 }
 
-function injectCustomRules(template: MihomoConfig, rules: CustomRules, includeTorrentGeosite = true): void {
+function injectCustomRules(template: MihomoConfig, rules: CustomRules): void {
   if (!Array.isArray(template.rules)) return
   const fallbackGroup =
     (template['proxy-groups'] as Array<{ name: string }>)?.[0]?.name || '→ VelumVPN'
@@ -503,7 +498,7 @@ function injectCustomRules(template: MihomoConfig, rules: CustomRules, includeTo
     ...rules.domains.map((d) => `DOMAIN-SUFFIX,${d.value},${vpnTarget(d)}`),
     ...(rules.excluded ?? []).map((d) => `DOMAIN-SUFFIX,${d.value},DIRECT`)
   ]
-  const torrentEntries = torrentRuleEntries(includeTorrentGeosite)
+  const torrentEntries = torrentRuleEntries()
   const processEntries = [
     ...rules.processes.map((p) => `PROCESS-NAME,${p.value},${vpnTarget(p)}`),
     ...(rules.excludedProcesses ?? []).map((p) => `PROCESS-NAME,${p.value},DIRECT`)
@@ -692,7 +687,7 @@ async function generateFromTemplate(
   }
 
   const customRules = await getCustomRules()
-  injectCustomRules(template, customRules, geoReady)
+  injectCustomRules(template, customRules)
   await ensureBittorrentSniffer(template)
 
   // Google/Cloudflare DoH/DoT is blocked in RU; node hostnames must resolve
