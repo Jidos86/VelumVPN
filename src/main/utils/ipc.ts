@@ -168,6 +168,20 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('mihomoUpgradeGeo', ipcErrorWrapper(mihomoUpgradeGeo))
   ipcMain.handle('mihomoUpgradeUI', ipcErrorWrapper(mihomoUpgradeUI))
   ipcMain.handle('mihomoUpgrade', ipcErrorWrapper(mihomoUpgrade))
+  ipcMain.handle(
+    'downloadLatestStableCore',
+    ipcErrorWrapper(async () => {
+      const { downloadLatestStableCore } = await import('../core/downloadCore')
+      return downloadLatestStableCore()
+    })
+  )
+  ipcMain.handle(
+    'downloadLatestAlphaCore',
+    ipcErrorWrapper(async () => {
+      const { downloadLatestAlphaCore } = await import('../core/downloadCore')
+      return downloadLatestAlphaCore()
+    })
+  )
   ipcMain.handle('mihomoHotReloadConfig', ipcErrorWrapper(mihomoHotReloadConfig))
   ipcMain.handle('mihomoProxyDelay', (_e, proxy, url) =>
     ipcErrorWrapper(mihomoProxyDelay)(proxy, url)

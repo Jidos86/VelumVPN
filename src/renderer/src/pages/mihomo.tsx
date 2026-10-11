@@ -24,7 +24,8 @@ import { platform } from '@renderer/utils/init'
 import PubSub from 'pubsub-js'
 import {
   manualGrantCorePermition,
-  mihomoUpgrade,
+  downloadLatestStableCore,
+  downloadLatestAlphaCore,
   restartCore,
   revokeCorePermission,
   findSystemMihomo,
@@ -107,9 +108,13 @@ const Mihomo: React.FC = () => {
         setTimeout(() => setAlphaProgress(null), 400)
       }
     }
+    // Both the alpha channel's lazy first-download and the stable channel's "Update core" button
+    // (downloadLatestStableCore) report through this same progress bar - only one ever runs at once.
     window.electron.ipcRenderer.on('alphaCoreProgress', handler)
+    window.electron.ipcRenderer.on('stableCoreProgress', handler)
     return () => {
       window.electron.ipcRenderer.removeListener('alphaCoreProgress', handler)
+      window.electron.ipcRenderer.removeListener('stableCoreProgress', handler)
     }
   }, [])
 
@@ -130,14 +135,17 @@ const Mihomo: React.FC = () => {
   const handleCoreUpgrade = async (): Promise<void> => {
     try {
       setUpgrading(true)
-      await mihomoUpgrade()
-      setTimeout(() => PubSub.publish('mihomo-core-changed'), 2000)
-    } catch (e) {
-      if (typeof e === 'string' && e.includes('already using latest version')) {
-        new Notification(t('pages.mihomo.alreadyLatest'))
+      // Pulls the newest build from our own patched mihomo fork instead of calling mihomoUpgrade(),
+      // which would self-update from the official unpatched upstream and drop the BitTorrent sniffer.
+      if (core === 'mihomo-alpha') {
+        await downloadLatestAlphaCore()
       } else {
-        toast.error(`${e}`)
+        await downloadLatestStableCore()
       }
+      await restartCore()
+      PubSub.publish('mihomo-core-changed')
+    } catch (e) {
+      toast.error(`${e}`)
     } finally {
       setUpgrading(false)
     }
