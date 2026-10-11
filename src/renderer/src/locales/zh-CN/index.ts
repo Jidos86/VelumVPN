@@ -1030,6 +1030,8 @@ export default {
     emptyIPs: '未添加任何 IP',
     emptyExcludedIPs: '无排除 IP',
     conflictWarning: '"{{item}}" 已在 "{{section}}" 中 — 请先从那里删除',
-    conflictBulkWarning: '已跳过 {{count}} 项 — 它们已存在于 "{{section}}" 中'
+    conflictBulkWarning: '已跳过 {{count}} 项 — 它们已存在于 "{{section}}" 中',
+    serverAuto: '当前服务器',
+    serverFallback: '若该节点不可用，流量会回退到应用中当前选择的服务器'
   }
 }

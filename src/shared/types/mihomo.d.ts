@@ -129,6 +129,10 @@ interface MihomoSnifferConfig {
     QUIC?: {
       ports: (number | string)[]
     }
+    BITTORRENT?: {
+      ports: (number | string)[]
+      'override-destination'?: boolean
+    }
   }
 }
 

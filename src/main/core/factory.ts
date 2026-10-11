@@ -8,8 +8,11 @@ import {
   getAppConfig,
   getCustomRules
 } from '../config'
+import type { CustomRuleItem, CustomRules } from '../config/customRules'
+import { execFileSync } from 'child_process'
 import {
   logPath,
+  mihomoCorePath,
   mihomoProfileWorkDir,
   mihomoWorkConfigPath,
   mihomoWorkDir,
@@ -350,31 +353,163 @@ function ipCidrRule(ip: string, target: string): string {
   return isV6 ? `IP-CIDR6,${clean}/128,${target},no-resolve` : `IP-CIDR,${clean}/32,${target},no-resolve`
 }
 
-function injectCustomRules(template: MihomoConfig, rules: { domains: string[]; processes: string[]; excluded: string[]; excludedProcesses: string[]; ips: string[]; excludedIPs: string[] }): void {
+const RULE_FALLBACK_PREFIX = '↳ '
+const TORRENT_SNIFF_HOST = 'bittorrent.invalid'
+const TORRENT_PROCESSES = [
+  'qbittorrent.exe',
+  'qbittorrent',
+  'utorrent.exe',
+  'uTorrent.exe',
+  'bittorrent.exe',
+  'BitTorrent.exe',
+  'BitComet.exe',
+  'bitcomet.exe',
+  'transmission-qt.exe',
+  'transmission-gtk',
+  'transmission-daemon',
+  'transmission.exe',
+  'deluge.exe',
+  'deluged',
+  'tixati.exe',
+  'WebTorrent.exe',
+  'FrostWire.exe',
+  'aria2c.exe',
+  'aria2c',
+  'BiglyBT.exe',
+  'PicoTorrent.exe',
+  'vuze.exe',
+  'azureus.exe',
+  'rtorrent',
+  'flood'
+]
+
+function ruleFallbackGroupName(proxyName: string): string {
+  return `${RULE_FALLBACK_PREFIX}${proxyName}`
+}
+
+function knownOutboundNames(template: MihomoConfig): Set<string> {
+  const names = new Set<string>()
+  for (const p of (template.proxies as Array<{ name: string }>) || []) {
+    if (p?.name) names.add(p.name)
+  }
+  for (const g of (template['proxy-groups'] as Array<{ name: string }>) || []) {
+    if (g?.name) names.add(g.name)
+  }
+  names.add('DIRECT')
+  return names
+}
+
+function ensureRuleFallbackGroups(template: MihomoConfig, proxyNames: string[], fallback: string): Map<string, string> {
+  const known = knownOutboundNames(template)
+  const groups = ((template['proxy-groups'] as Array<Record<string, unknown>>) || []).slice()
+  const existing = new Set(groups.map((g) => String(g.name ?? '')))
+  const targets = new Map<string, string>()
+
+  for (const proxy of proxyNames) {
+    if (!proxy || proxy === fallback || !known.has(proxy)) continue
+    const groupName = ruleFallbackGroupName(proxy)
+    targets.set(proxy, groupName)
+    if (existing.has(groupName)) continue
+    groups.push({
+      name: groupName,
+      type: 'fallback',
+      url: 'https://www.gstatic.com/generate_204',
+      interval: 30,
+      timeout: 5000,
+      lazy: false,
+      'max-failed-times': 2,
+      proxies: [proxy, fallback]
+    })
+    existing.add(groupName)
+  }
+
+  template['proxy-groups'] = groups as unknown as []
+  return targets
+}
+
+function torrentRuleEntries(includeGeosite = true): string[] {
+  const target = 'DIRECT'
+  return [
+    `DOMAIN,${TORRENT_SNIFF_HOST},${target}`,
+    ...TORRENT_PROCESSES.map((p) => `PROCESS-NAME,${p},${target}`),
+    ...(includeGeosite
+      ? [
+          `GEOSITE,category-public-tracker,${target}`,
+          `GEOSITE,category-private-tracker,${target}`,
+          `GEOSITE,category-pt,${target}`
+        ]
+      : []),
+    `DST-PORT,6881-6889,${target}`,
+    `DST-PORT,51413,${target}`
+  ]
+}
+
+function stripBundledTorrentProcessRules(rules: string[]): string[] {
+  const names = new Set(TORRENT_PROCESSES.map((p) => p.toLowerCase()))
+  return rules.filter((r) => {
+    if (r.toLowerCase().startsWith(`domain,${TORRENT_SNIFF_HOST},`)) return false
+    const m = /^PROCESS-NAME,([^,]+),/i.exec(r)
+    return !m || !names.has(m[1].toLowerCase())
+  })
+}
+
+function coreHasBittorrentSniffer(core: string): boolean {
+  try {
+    const out = execFileSync(mihomoCorePath(core), ['-v'], {
+      encoding: 'utf8',
+      timeout: 5000
+    })
+    return out.includes('velum-bt')
+  } catch {
+    return false
+  }
+}
+
+async function ensureBittorrentSniffer(profile: MihomoConfig): Promise<void> {
+  if (!profile.sniffer?.enable) return
+  const { core = 'mihomo' } = await getAppConfig()
+  if (!coreHasBittorrentSniffer(core)) return
+  const sniff = (profile.sniffer.sniff ??= {}) as NonNullable<MihomoSnifferConfig['sniff']>
+  sniff.BITTORRENT = {
+    ports: ['1-65535'],
+    'override-destination': false
+  }
+}
+
+function injectCustomRules(template: MihomoConfig, rules: CustomRules, includeTorrentGeosite = true): void {
   if (!Array.isArray(template.rules)) return
-  const rulesArr = template.rules as unknown as string[]
+  const fallbackGroup =
+    (template['proxy-groups'] as Array<{ name: string }>)?.[0]?.name || '→ VelumVPN'
+  const pinned = [
+    ...rules.domains,
+    ...rules.processes,
+    ...(rules.ips ?? [])
+  ]
+    .map((item) => item.proxy?.trim())
+    .filter((name): name is string => Boolean(name))
+  const fallbackTargets = ensureRuleFallbackGroups(template, pinned, fallbackGroup)
 
-  // Исключения (DIRECT) — в самое начало, они должны перекрывать любые гео-правила
+  const vpnTarget = (item: CustomRuleItem): string => {
+    const proxy = item.proxy?.trim()
+    if (!proxy) return fallbackGroup
+    return fallbackTargets.get(proxy) ?? fallbackGroup
+  }
+
   const directEntries = [
-    ...(rules.excluded ?? []).map((d) => `DOMAIN-SUFFIX,${d},DIRECT`),
-    ...(rules.excludedProcesses ?? []).map((p) => `PROCESS-NAME,${p},DIRECT`),
-    ...(rules.excludedIPs ?? []).map((ip) => ipCidrRule(ip, 'DIRECT'))
+    ...(rules.excluded ?? []).map((d) => `DOMAIN-SUFFIX,${d.value},DIRECT`),
+    ...(rules.excludedProcesses ?? []).map((p) => `PROCESS-NAME,${p.value},DIRECT`),
+    ...(rules.excludedIPs ?? []).map((ip) => ipCidrRule(ip.value, 'DIRECT'))
   ]
-  if (directEntries.length > 0) {
-    rulesArr.unshift(...directEntries)
-  }
-
-  // VPN-правила — перед MATCH, чтобы не потеряться в DIRECT-фолбэке
-  const matchIndex = rulesArr.findIndex((r) => r.startsWith('MATCH,'))
-  const insertAt = matchIndex >= 0 ? matchIndex : rulesArr.length
   const vpnEntries = [
-    ...rules.domains.map((d) => `DOMAIN-SUFFIX,${d},→ VelumVPN`),
-    ...rules.processes.map((p) => `PROCESS-NAME,${p},→ VelumVPN`),
-    ...(rules.ips ?? []).map((ip) => ipCidrRule(ip, '→ VelumVPN'))
+    ...rules.domains.map((d) => `DOMAIN-SUFFIX,${d.value},${vpnTarget(d)}`),
+    ...rules.processes.map((p) => `PROCESS-NAME,${p.value},${vpnTarget(p)}`),
+    ...(rules.ips ?? []).map((ip) => ipCidrRule(ip.value, vpnTarget(ip)))
   ]
-  if (vpnEntries.length > 0) {
-    rulesArr.splice(insertAt, 0, ...vpnEntries)
-  }
+  const torrentEntries = torrentRuleEntries(includeTorrentGeosite)
+
+  const rest = stripBundledTorrentProcessRules(template.rules as unknown as string[])
+  // Torrent DIRECT sits above user VPN rules so swarm traffic never follows the selected node.
+  template.rules = [...directEntries, ...torrentEntries, ...vpnEntries, ...rest] as unknown as []
 }
 
 // 辅助函数：处理带偏移量的规则
@@ -501,6 +636,7 @@ export async function generateProfile(): Promise<void> {
   const proxyGroup =
     (profile['proxy-groups'] as Array<{ name: string }>)?.[0]?.name || '→ VelumVPN'
   applyRouteMode(profile, routeMode, proxyGroup)
+  await ensureBittorrentSniffer(profile)
 
   const tunEnabled = profile.tun?.enable ?? false
   if (!tunEnabled && !proxyModeEnabled) {
@@ -552,7 +688,8 @@ async function generateFromTemplate(
   }
 
   const customRules = await getCustomRules()
-  injectCustomRules(template, customRules)
+  injectCustomRules(template, customRules, geoReady)
+  await ensureBittorrentSniffer(template)
 
   // Google/Cloudflare DoH/DoT is blocked in RU; node hostnames must resolve
   // via system or Yandex DNS or every domain lookup fails (couldn't find ip).
@@ -886,6 +1023,20 @@ export async function getRuntimeConfig(): Promise<MihomoConfig> {
   return runtimeConfig
 }
 
+export async function stripBittorrentSnifferIfPresent(): Promise<boolean> {
+  const sniff = runtimeConfig?.sniffer?.sniff as Record<string, unknown> | undefined
+  if (!sniff || !('BITTORRENT' in sniff)) return false
+  delete sniff.BITTORRENT
+  runtimeConfigStr = stringifyYaml(runtimeConfig)
+  const { diffWorkDir = false } = await getAppConfig()
+  const { current } = await getProfileConfig()
+  await writeFile(
+    diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work'),
+    runtimeConfigStr
+  )
+  return true
+}
+
 function applyRouteMode(
   profile: MihomoConfig,
   routeMode: string,
@@ -897,21 +1048,7 @@ function applyRouteMode(
     'GEOSITE,category-ads-all,REJECT'
   ]
 
-  const torrentDirect = [
-    'PROCESS-NAME,qbittorrent.exe,DIRECT',
-    'PROCESS-NAME,qbittorrent,DIRECT',
-    'PROCESS-NAME,utorrent.exe,DIRECT',
-    'PROCESS-NAME,bittorrent.exe,DIRECT',
-    'PROCESS-NAME,BitTorrent.exe,DIRECT',
-    'PROCESS-NAME,transmission-qt.exe,DIRECT',
-    'PROCESS-NAME,transmission-gtk,DIRECT',
-    'PROCESS-NAME,transmission-daemon,DIRECT',
-    'PROCESS-NAME,deluge.exe,DIRECT',
-    'PROCESS-NAME,deluged,DIRECT',
-    'PROCESS-NAME,tixati.exe,DIRECT',
-    'PROCESS-NAME,WebTorrent.exe,DIRECT',
-    'PROCESS-NAME,FrostWire.exe,DIRECT'
-  ]
+  const torrentDirect = torrentRuleEntries()
 
   if (routeMode === 'blocked') {
     profile.rules = [

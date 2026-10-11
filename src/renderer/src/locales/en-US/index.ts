@@ -1054,7 +1054,9 @@ export default {
     emptyIPs: 'No IPs added',
     emptyExcludedIPs: 'No excluded IPs',
     conflictWarning: '"{{item}}" is already in "{{section}}" — remove it there first',
-    conflictBulkWarning: '{{count}} items skipped — already present in "{{section}}"'
+    conflictBulkWarning: '{{count}} items skipped — already present in "{{section}}"',
+    serverAuto: 'Current server',
+    serverFallback: 'If this server is down, traffic falls back to the server selected in the app'
   },
   velumUi: {
     nav: { quit: 'Quit' },
