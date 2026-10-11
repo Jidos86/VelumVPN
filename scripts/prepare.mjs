@@ -122,7 +122,18 @@ async function resolveSidecar(binInfo) {
         console.log(`[DEBUG]: "${name}" entry name`, entry.entryName)
       })
       zip.extractAllTo(tempDir, true)
-      fs.renameSync(tempExe, sidecarPath)
+      const extractedExe =
+        [tempExe, path.join(tempDir, targetFile), path.join(tempDir, 'mihomo.exe')].find((p) =>
+          fs.existsSync(p)
+        ) ||
+        (() => {
+          const found = fs.readdirSync(tempDir).find((f) => /\.exe$/i.test(f) || f === 'mihomo')
+          return found ? path.join(tempDir, found) : ''
+        })()
+      if (!extractedExe) {
+        throw new Error(`Expected binary not found in ${tempDir}: ${fs.readdirSync(tempDir)}`)
+      }
+      fs.renameSync(extractedExe, sidecarPath)
       console.log(`[INFO]: "${name}" unzip finished`)
     } else if (zipFile.endsWith('.tgz')) {
       // tgz
@@ -165,8 +176,9 @@ async function resolveSidecar(binInfo) {
       })
     }
   } catch (err) {
-    // 需要删除文件
-    fs.rmSync(sidecarPath)
+    if (fs.existsSync(sidecarPath)) {
+      fs.rmSync(sidecarPath)
+    }
     throw err
   } finally {
     fs.rmSync(tempDir, { recursive: true })
