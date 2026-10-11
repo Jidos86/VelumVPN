@@ -4,11 +4,12 @@ import { useSWRConfig } from 'swr'
 import { AnimatePresence, motion } from 'motion/react'
 import { toast } from 'sonner'
 import { ArrowDown, ArrowUp, CheckSquare, GripVertical, Pencil, ListTree, Plus, Square, Trash2, Upload, X } from 'lucide-react'
-import { CustomRules, getCustomRules, setCustomRules } from '@renderer/utils/ipc'
+import { CustomRuleItem, CustomRules, getCustomRules, setCustomRules } from '@renderer/utils/ipc'
 import { applyRulesChange } from '@renderer/velum/rules/apply-rules'
 import { useConnectionsStore } from '@renderer/store/connections-store'
 import { useIconsStore } from '@renderer/store/icons-store'
 import { useFaviconStore } from '@renderer/store/favicon-store'
+import { useServers } from '@renderer/velum/servers/use-servers'
 import {
   GhostButton,
   IconButton,
@@ -53,6 +54,11 @@ const EMPTY: CustomRules = {
   ips: [],
   excludedIPs: []
 }
+
+const asItem = (value: string, proxy?: string): CustomRuleItem =>
+  proxy ? { value, proxy } : { value }
+
+const hasValue = (list: CustomRuleItem[], value: string): boolean => list.some((x) => x.value === value)
 
 const IPV4 = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/
 const IPV6 = /^[0-9a-f:]*:[0-9a-f:.]*$/i
@@ -277,6 +283,7 @@ const ImportModal: React.FC<{
 const RulesPage: React.FC = () => {
   const { t } = useTranslation()
   const { mutate } = useSWRConfig()
+  const servers = useServers()
   const [rules, setRules] = useState<CustomRules>(EMPTY)
   const [kind, setKind] = useState<Kind>('app')
   // Display order only: the stored lists keep the order entries were added in.
@@ -358,7 +365,7 @@ const RulesPage: React.FC = () => {
       )
     }
     const cleaned = [...new Set(normalized.filter((v): v is string => v !== null))]
-    const conflicts = cleaned.filter((x) => rules[opp].includes(x))
+    const conflicts = cleaned.filter((x) => hasValue(rules[opp], x))
     if (conflicts.length > 0) {
       const section = t(SECTION_KEY[kind][otherSide(side)])
       toast.warning(
@@ -367,23 +374,34 @@ const RulesPage: React.FC = () => {
           : t('customRules.conflictBulkWarning', { count: conflicts.length, section })
       )
     }
-    const fresh = cleaned.filter((x) => !rules[opp].includes(x) && !rules[own].includes(x))
+    const fresh = cleaned.filter((x) => !hasValue(rules[opp], x) && !hasValue(rules[own], x)).map((x) => asItem(x))
     if (fresh.length === 0) return
     persist({ ...rules, [own]: [...rules[own], ...fresh] })
   }
 
   const removeItems = (side: Side, items: string[]): void => {
     const own = FIELD[kind][side]
-    persist({ ...rules, [own]: rules[own].filter((x) => !items.includes(x)) })
+    persist({ ...rules, [own]: rules[own].filter((x) => !items.includes(x.value)) })
   }
 
-  const moveItem = (side: Side, item: string): void => {
+  const moveItem = (side: Side, value: string): void => {
     const own = FIELD[kind][side]
     const opp = FIELD[kind][otherSide(side)]
+    const moving = rules[own].find((x) => x.value === value)
+    if (!moving) return
+    const dest = otherSide(side) === 'direct' ? asItem(moving.value) : moving
     persist({
       ...rules,
-      [own]: rules[own].filter((x) => x !== item),
-      [opp]: [...new Set([...rules[opp], item])]
+      [own]: rules[own].filter((x) => x.value !== value),
+      [opp]: hasValue(rules[opp], value) ? rules[opp] : [...rules[opp], dest]
+    })
+  }
+
+  const setItemProxy = (value: string, proxy: string): void => {
+    const own = FIELD[kind].vpn
+    persist({
+      ...rules,
+      [own]: rules[own].map((x) => (x.value === value ? asItem(x.value, proxy || undefined) : x))
     })
   }
 
@@ -408,17 +426,20 @@ const RulesPage: React.FC = () => {
     if (next === item) return
     const own = FIELD[kind][side]
     const opp = FIELD[kind][otherSide(side)]
-    if (rules[opp].includes(next)) {
+    if (hasValue(rules[opp], next)) {
       toast.warning(
         t('customRules.conflictWarning', { item: next, section: t(SECTION_KEY[kind][otherSide(side)]) })
       )
       return
     }
-    if (rules[own].includes(next)) {
+    if (hasValue(rules[own], next)) {
       toast.info(`${next}: ${t('velumUi.rules.alreadyThere')}`)
       return
     }
-    persist({ ...rules, [own]: rules[own].map((x) => (x === item ? next : x)) })
+    persist({
+      ...rules,
+      [own]: rules[own].map((x) => (x.value === item ? { ...x, value: next } : x))
+    })
   }
 
   const exitSelect = (): void => {
@@ -456,11 +477,14 @@ const RulesPage: React.FC = () => {
     // "added" keeps the stored order (oldest first); "name" is A-Z; "desc" flips either one.
     const ordered =
       sort === 'name'
-        ? [...items].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }))
+        ? [...items].sort((a, b) =>
+            a.value.localeCompare(b.value, undefined, { sensitivity: 'base', numeric: true })
+          )
         : items
     const shown = sortDir === 'desc' ? [...ordered].reverse() : ordered
     const isSelecting = selecting === side
     const allSelected = items.length > 0 && selected.size === items.length
+    const itemValues = items.map((x) => x.value)
     return (
       <div
         className={`${panelClass} flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-shadow ${
@@ -558,7 +582,7 @@ const RulesPage: React.FC = () => {
             <button
               type="button"
               className="flex cursor-pointer items-center gap-1.5 text-xs text-vl-muted transition-colors hover:text-vl-text"
-              onClick={() => setSelected(allSelected ? new Set() : new Set(items))}
+              onClick={() => setSelected(allSelected ? new Set() : new Set(itemValues))}
             >
               {allSelected ? <CheckSquare className="size-3.5" /> : <Square className="size-3.5" />}
               {allSelected ? t('customRules.deselectAll') : t('customRules.selectAll')}
@@ -592,7 +616,8 @@ const RulesPage: React.FC = () => {
           {/* The motion wrapper animates entering, leaving and neighbours sliding into place;
               the HTML5 drag & drop stays on the inner row so the two do not fight over drag events. */}
           <AnimatePresence initial={false} mode="popLayout">
-          {shown.map((item) => {
+          {shown.map((entry) => {
+            const item = entry.value
             const checked = selected.has(item)
             const isEditing = editing?.side === side && editing.item === item
             const canDrag = !isSelecting && !isEditing && !saving
@@ -672,6 +697,27 @@ const RulesPage: React.FC = () => {
                 )}
                 {!isSelecting && !isEditing && (
                   <>
+                    {side === 'vpn' && (
+                      <select
+                        value={entry.proxy ?? ''}
+                        title={t('customRules.serverFallback')}
+                        disabled={saving}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => setItemProxy(item, e.target.value)}
+                        className="max-w-[8.5rem] shrink-0 cursor-pointer truncate rounded-lg border border-vl-line bg-vl-bg px-1.5 py-1 text-[11px] font-medium text-vl-muted outline-none hover:border-vl-accent/40 hover:text-vl-text disabled:cursor-default"
+                      >
+                        <option value="">{t('customRules.serverAuto')}</option>
+                        {entry.proxy && !servers.entries.some((s) => s.name === entry.proxy) && (
+                          <option value={entry.proxy}>{entry.proxy}</option>
+                        )}
+                        {servers.entries.map((s) => (
+                          <option key={s.name} value={s.name}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                     <IconButton
                       title={t('velumUi.rules.edit')}
                       aria-label={t('velumUi.rules.edit')}

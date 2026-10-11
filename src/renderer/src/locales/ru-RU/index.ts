@@ -1061,7 +1061,9 @@ export default {
     emptyIPs: 'Нет добавленных IP',
     emptyExcludedIPs: 'Нет исключённых IP',
     conflictWarning: '«{{item}}» уже есть в разделе "{{section}}" — сначала удалите его оттуда',
-    conflictBulkWarning: '{{count}} пунктов пропущено — они уже есть в разделе "{{section}}"'
+    conflictBulkWarning: '{{count}} пунктов пропущено — они уже есть в разделе "{{section}}"',
+    serverAuto: 'Как выбран',
+    serverFallback: 'Если этот сервер недоступен, трафик пойдёт через сервер, выбранный в приложении'
   },
   velumUi: {
     nav: { quit: 'Выход', github: 'GitHub' },

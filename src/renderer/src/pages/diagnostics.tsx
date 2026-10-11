@@ -131,11 +131,11 @@ const Diagnostics: React.FC = () => {
     run(value, async () => {
       const current = await getCustomRules()
       const list = current[field] ?? []
-      if (list.includes(value)) {
+      if (list.some((item) => item.value === value)) {
         toast.info(`${value} ${TARGETS[field].vpn ? 'уже в VPN' : 'уже в обходе'}`)
         return
       }
-      await setCustomRules({ ...current, [field]: [...list, value] })
+      await setCustomRules({ ...current, [field]: [...list, { value }] })
       await applyRulesChange()
       toast.success(`${value} → ${TARGETS[field].label}`, {
         action: { label: 'Мои правила →', onClick: () => navigate('/custom-rules') }
@@ -229,12 +229,16 @@ const Diagnostics: React.FC = () => {
 
           // Cross-reference with current rules
           const ip = hostIsIP ? stripPort(host) : null
-          const procRuleVpn = rules?.processes?.includes(process) ?? false
-          const procRuleDirect = rules?.excludedProcesses?.includes(process) ?? false
+          const procRuleVpn = rules?.processes?.some((item) => item.value === process) ?? false
+          const procRuleDirect = rules?.excludedProcesses?.some((item) => item.value === process) ?? false
           const hostRuleVpn =
-            rules?.domains?.includes(host) || (ip ? rules?.ips?.includes(ip) : false) || false
+            rules?.domains?.some((item) => item.value === host) ||
+            (ip ? rules?.ips?.some((item) => item.value === ip) : false) ||
+            false
           const hostRuleDirect =
-            rules?.excluded?.includes(host) || (ip ? rules?.excludedIPs?.includes(ip) : false) || false
+            rules?.excluded?.some((item) => item.value === host) ||
+            (ip ? rules?.excludedIPs?.some((item) => item.value === ip) : false) ||
+            false
 
           const actionsFor = (
             ruleVpn: boolean,
