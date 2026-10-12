@@ -1,7 +1,8 @@
 import { FLAVOR } from './flavor'
 import { is } from '@electron-toolkit/utils'
-import { existsSync, mkdirSync, readdirSync, readFileSync } from 'fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, cpSync, writeFileSync } from 'fs'
 import { app } from 'electron'
+import os from 'os'
 import path from 'path'
 import { execSync } from 'child_process'
 import { getAppConfigSync } from '../config/app'
@@ -14,9 +15,47 @@ export function isPortable(): boolean {
   return existsSync(path.join(exeDir(), 'PORTABLE'))
 }
 
+let portableDataDirCache: string | null = null
+
+// The portable build keeps its data next to the exe so the whole thing stays one movable folder
+// (e.g. on a USB stick) - but when two Windows accounts on the same PC both launch that same exe,
+// an un-partitioned "data" folder means they share one set of profiles/subscriptions and can see
+// each other's. Partitioning by OS username keeps it portable while isolating accounts.
+function portableDataDir(): string {
+  if (portableDataDirCache) return portableDataDirCache
+  const legacyDir = path.join(exeDir(), 'data')
+  const username = (os.userInfo().username || 'default').replace(/[\\/:*?"<>|]/g, '_')
+  const perUserDir = path.join(legacyDir, username)
+  if (!existsSync(perUserDir) && existsSync(legacyDir)) {
+    // One-time, non-destructive migration: copy (not move) whatever was there into this user's
+    // own folder. The legacy flat folder is left in place rather than renamed away, so a second
+    // account opening the app afterward still finds something to migrate too, instead of landing
+    // on an empty profile list just because another account happened to update first.
+    try {
+      mkdirSync(perUserDir, { recursive: true })
+      for (const entry of readdirSync(legacyDir, { withFileTypes: true })) {
+        // Skip other accounts' already-migrated per-user folders - only copy what was there from
+        // before this partitioning existed.
+        if (entry.isDirectory() && existsSync(path.join(legacyDir, entry.name, '.portable-user-data'))) {
+          continue
+        }
+        cpSync(path.join(legacyDir, entry.name), path.join(perUserDir, entry.name), { recursive: true })
+      }
+      writeFileSync(path.join(perUserDir, '.portable-user-data'), '')
+    } catch {
+      // Migration is best-effort; worst case this account starts with an empty profile list
+      // instead of inheriting the shared one, which is still strictly better than leaking it.
+    }
+  } else if (!existsSync(perUserDir)) {
+    mkdirSync(perUserDir, { recursive: true })
+  }
+  portableDataDirCache = perUserDir
+  return perUserDir
+}
+
 export function dataDir(): string {
   if (isPortable()) {
-    return path.join(exeDir(), 'data')
+    return portableDataDir()
   } else {
     return app.getPath('userData')
   }
