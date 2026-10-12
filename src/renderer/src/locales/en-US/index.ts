@@ -1034,6 +1034,8 @@ export default {
     importHintProcesses: 'Paste process names — one per line or comma-separated.',
     cancel: 'Cancel',
     add: 'Add',
+    save: 'Save',
+    editTitle: 'Edit rule',
     selectFromActive: 'Select from active processes',
     importBulk: 'Import list',
     selectToDelete: 'Select items to delete',
@@ -1060,7 +1062,13 @@ export default {
     emptyExcludedIPs: 'No excluded IPs',
     conflictWarning: '"{{item}}" is already in "{{section}}" — remove it there first',
     conflictBulkWarning: '{{count}} items skipped — already present in "{{section}}"',
-    serverAuto: 'Current server',
+    serverAuto: 'Follow the app',
+    serverAutoNow: 'Now: {{server}}',
+    serverAutoHint: 'Whatever server is selected on the home screen',
+    serverChoose: 'Destination country',
+    serverEditHint: 'Leave this unset to use the server currently selected in the app.',
+    serverPageHint:
+      'In the “Through VPN” column you can pick a country for each rule: tap the pencil and choose a server. If you don’t, the rule uses the server selected in the app.',
     serverFallback: 'If this server is down, traffic falls back to the server selected in the app'
   },
   velumUi: {

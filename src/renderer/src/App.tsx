@@ -28,6 +28,9 @@ import { attachConnectionsStore } from '@renderer/store/connections-store'
 import { attachTrafficStore } from '@renderer/store/traffic-store'
 import { attachUpdaterStore } from '@renderer/store/updater-store'
 import { attachCoreLifecycleStore } from '@renderer/store/core-lifecycle-store'
+// Side-effect import: subscribes to connections app-wide at module load, independent of whether
+// the Custom Rules page is ever mounted - see app-path-cache.ts for why that matters.
+import '@renderer/store/app-path-cache'
 
 let navigate: NavigateFunction
 

@@ -5,6 +5,8 @@ directories:
 files:
   - '!**/.vscode/*'
   - '!src/*'
+  - '!dist{,/**/*}'
+  - '!dist-beta{,/**/*}'
   - '!aur/*'
   - '!images/*'
   - '!scripts/*'

@@ -3,13 +3,16 @@ import { useTranslation } from 'react-i18next'
 import { useSWRConfig } from 'swr'
 import { AnimatePresence, motion } from 'motion/react'
 import { toast } from 'sonner'
-import { ArrowDown, ArrowUp, CheckSquare, GripVertical, Pencil, ListTree, Plus, Square, Trash2, Upload, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, CheckSquare, Globe, GripVertical, Pencil, ListTree, Plus, Square, Trash2, Upload, X } from 'lucide-react'
 import { CustomRuleItem, CustomRules, getCustomRules, setCustomRules } from '@renderer/utils/ipc'
 import { applyRulesChange } from '@renderer/velum/rules/apply-rules'
 import { useConnectionsStore } from '@renderer/store/connections-store'
+import { useAppPathCacheStore } from '@renderer/store/app-path-cache'
 import { useIconsStore } from '@renderer/store/icons-store'
 import { useFaviconStore } from '@renderer/store/favicon-store'
 import { useServers } from '@renderer/velum/servers/use-servers'
+import { FlagMark, RuleServerList } from '@renderer/velum/servers/rule-server-select'
+import { parseServerName } from '@renderer/velum/servers/server-utils'
 import {
   GhostButton,
   IconButton,
@@ -173,8 +176,8 @@ const EntryIcon: React.FC<{ kind: Kind; item: string; processPath?: string }> = 
   const src = kind === 'domain' ? (!faviconFailed ? favicon : undefined) : appIcon
   if (src) {
     return (
-      <span className="flex size-7 shrink-0 overflow-hidden rounded-md">
-        <img src={src} alt="" className="size-full object-cover" draggable={false} />
+      <span className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-md">
+        <img src={src} alt="" className="size-5 object-contain" draggable={false} />
       </span>
     )
   }
@@ -311,26 +314,19 @@ const RulesPage: React.FC = () => {
   const [importSide, setImportSide] = useState<Side | null>(null)
   const [selecting, setSelecting] = useState<Side | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  // Drag & drop between the two columns, and inline editing of a single entry.
+  // Drag & drop between the two columns; editing opens a modal (value + optional server).
   const [dragging, setDragging] = useState<{ side: Side; item: string } | null>(null)
   const [dropSide, setDropSide] = useState<Side | null>(null)
   const [editing, setEditing] = useState<{ side: Side; item: string } | null>(null)
   const [editValue, setEditValue] = useState('')
-  const editDone = useRef(false)
+  const [editProxy, setEditProxy] = useState('')
 
-  // Bare exe names have no path of their own; borrow one from a currently active connection with
-  // the same process name so an app icon can be pulled for it. Apps that never connected stay
-  // as a letter badge - there is no path to ask Electron for an icon.
-  const active = useConnectionsStore((s) => s.active)
-  const processPathByName = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const c of active) {
-      const path = c.metadata?.processPath
-      const name = c.metadata?.process || path?.split(/[\\/]/).pop()
-      if (name && path && !map.has(name.toLowerCase())) map.set(name.toLowerCase(), path)
-    }
-    return map
-  }, [active])
+  // Bare exe names have no path of their own; borrow one from a connection with the same process
+  // name so an app icon can be pulled for it. The name->path pairing is learned and persisted
+  // app-wide (see store/app-path-cache.ts) regardless of whether this page happens to be open
+  // when that app connects.
+  const appPathCache = useAppPathCacheStore((s) => s.paths)
+  const processPathByName = useMemo(() => new Map(Object.entries(appPathCache)), [appPathCache])
 
   useEffect(() => {
     getCustomRules().then((r) => setRules({ ...EMPTY, ...r }))
@@ -397,49 +393,56 @@ const RulesPage: React.FC = () => {
     })
   }
 
-  const setItemProxy = (value: string, proxy: string): void => {
-    const own = FIELD[kind].vpn
-    persist({
-      ...rules,
-      [own]: rules[own].map((x) => (x.value === value ? asItem(x.value, proxy || undefined) : x))
-    })
-  }
-
   const startEdit = (side: Side, item: string): void => {
-    editDone.current = false
+    const entry = rules[FIELD[kind][side]].find((x) => x.value === item)
     setEditing({ side, item })
     setEditValue(item)
+    setEditProxy(entry?.proxy ?? '')
+  }
+
+  const cancelEdit = (): void => {
+    setEditing(null)
   }
 
   // Replace an entry in place, keeping its position. Same validation as adding a new one.
   const commitEdit = (): void => {
-    if (!editing || editDone.current) return
-    editDone.current = true
+    if (!editing) return
     const { side, item } = editing
-    setEditing(null)
-    if (!editValue.trim()) return
+    if (!editValue.trim()) {
+      cancelEdit()
+      return
+    }
     const next = normalize(kind, editValue)
     if (next === null) {
       toast.error(t('velumUi.rules.invalid', { item: editValue.trim() }))
       return
     }
-    if (next === item) return
     const own = FIELD[kind][side]
     const opp = FIELD[kind][otherSide(side)]
-    if (hasValue(rules[opp], next)) {
-      toast.warning(
-        t('customRules.conflictWarning', { item: next, section: t(SECTION_KEY[kind][otherSide(side)]) })
-      )
-      return
+    if (next !== item) {
+      if (hasValue(rules[opp], next)) {
+        toast.warning(
+          t('customRules.conflictWarning', { item: next, section: t(SECTION_KEY[kind][otherSide(side)]) })
+        )
+        return
+      }
+      if (hasValue(rules[own], next)) {
+        toast.info(`${next}: ${t('velumUi.rules.alreadyThere')}`)
+        return
+      }
     }
-    if (hasValue(rules[own], next)) {
-      toast.info(`${next}: ${t('velumUi.rules.alreadyThere')}`)
+    const proxy = side === 'vpn' ? editProxy || undefined : undefined
+    const same =
+      next === item && (rules[own].find((x) => x.value === item)?.proxy ?? '') === (proxy ?? '')
+    if (same) {
+      cancelEdit()
       return
     }
     persist({
       ...rules,
-      [own]: rules[own].map((x) => (x.value === item ? { ...x, value: next } : x))
+      [own]: rules[own].map((x) => (x.value === item ? asItem(next, proxy) : x))
     })
+    cancelEdit()
   }
 
   const exitSelect = (): void => {
@@ -619,8 +622,11 @@ const RulesPage: React.FC = () => {
           {shown.map((entry) => {
             const item = entry.value
             const checked = selected.has(item)
-            const isEditing = editing?.side === side && editing.item === item
-            const canDrag = !isSelecting && !isEditing && !saving
+            const canDrag = !isSelecting && !saving
+            const pinned = side === 'vpn' ? parseServerName(entry.proxy ?? '') : null
+            const pinnedEntry = entry.proxy
+              ? servers.entries.find((s) => s.name === entry.proxy)
+              : undefined
             return (
               <motion.div
                 key={item}
@@ -672,52 +678,45 @@ const RulesPage: React.FC = () => {
                     <EntryIcon kind={kind} item={item} processPath={processPathByName.get(item.toLowerCase())} />
                   </>
                 )}
-                {isEditing ? (
-                  <TextInput
-                    autoFocus
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') commitEdit()
-                      if (e.key === 'Escape') {
-                        editDone.current = true
-                        setEditing(null)
-                      }
-                    }}
-                    onBlur={commitEdit}
-                    className="h-7 min-w-0 flex-1 px-2 py-0 font-mono"
-                  />
-                ) : (
-                  <span
-                    className="min-w-0 flex-1 truncate font-mono text-sm text-vl-text"
-                    onDoubleClick={() => !isSelecting && !saving && startEdit(side, item)}
-                  >
-                    {item}
-                  </span>
-                )}
-                {!isSelecting && !isEditing && (
+                <span
+                  className="min-w-0 flex-1 truncate font-mono text-sm text-vl-text"
+                  onDoubleClick={() => !isSelecting && !saving && startEdit(side, item)}
+                >
+                  {item}
+                </span>
+                {!isSelecting && (
                   <>
-                    {side === 'vpn' && (
-                      <select
-                        value={entry.proxy ?? ''}
-                        title={t('customRules.serverFallback')}
-                        disabled={saving}
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => setItemProxy(item, e.target.value)}
-                        className="max-w-[8.5rem] shrink-0 cursor-pointer truncate rounded-lg border border-vl-line bg-vl-bg px-1.5 py-1 text-[11px] font-medium text-vl-muted outline-none hover:border-vl-accent/40 hover:text-vl-text disabled:cursor-default"
-                      >
-                        <option value="">{t('customRules.serverAuto')}</option>
-                        {entry.proxy && !servers.entries.some((s) => s.name === entry.proxy) && (
-                          <option value={entry.proxy}>{entry.proxy}</option>
-                        )}
-                        {servers.entries.map((s) => (
-                          <option key={s.name} value={s.name}>
-                            {s.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
+                    {side === 'vpn' &&
+                      (entry.proxy ? (
+                        <button
+                          type="button"
+                          title={(pinnedEntry?.label ?? pinned?.label ?? '').replace(/\s*\|\s*[A-Za-z]{2}\s*$/, '')}
+                          disabled={saving}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onClick={() => startEdit(side, item)}
+                          className="shrink-0 cursor-pointer"
+                        >
+                          {/* "bare": a flag glyph transformed/centered inside this Framer-Motion-animated
+                              row used to get promoted to its own compositing layer in Chromium and
+                              ignore the row's clip, rendering full-size - fixed by flex-centering the
+                              glyph instead of absolute-positioning + translate()'ing it (see FlagMark). */}
+                          <FlagMark
+                            flag={pinnedEntry?.flag ?? pinned?.flag}
+                            code={pinnedEntry?.code ?? pinned?.code}
+                            auto={pinnedEntry?.isAuto}
+                            bare
+                          />
+                        </button>
+                      ) : (
+                        <IconButton
+                          title={t('customRules.serverChoose')}
+                          aria-label={t('customRules.serverChoose')}
+                          disabled={saving}
+                          onClick={() => startEdit(side, item)}
+                        >
+                          <Globe className="size-3.5" />
+                        </IconButton>
+                      ))}
                     <IconButton
                       title={t('velumUi.rules.edit')}
                       aria-label={t('velumUi.rules.edit')}
@@ -779,6 +778,7 @@ const RulesPage: React.FC = () => {
           </div>
       </div>
       <span className="-mt-2 text-xs text-vl-faint">{t('velumUi.rules.dragHint')}</span>
+      <span className="-mt-3 text-xs text-vl-faint">{t('customRules.serverPageHint')}</span>
       <div className="flex min-h-0 flex-1 gap-4">
         {renderColumn('vpn')}
         {renderColumn('direct')}
@@ -799,6 +799,47 @@ const RulesPage: React.FC = () => {
           }}
           onClose={() => setImportSide(null)}
         />
+      )}
+      {editing && (
+        <Modal
+          title={t('customRules.editTitle')}
+          onClose={cancelEdit}
+          widthClass="max-w-lg"
+          footer={
+            <>
+              <GhostButton onClick={cancelEdit}>{t('customRules.cancel')}</GhostButton>
+              <PrimaryButton onClick={commitEdit}>{t('customRules.save')}</PrimaryButton>
+            </>
+          }
+        >
+          <label className="mb-1 block text-xs font-semibold text-vl-muted">
+            {kind === 'app'
+              ? t('velumUi.rules.tabApps')
+              : kind === 'domain'
+                ? t('velumUi.rules.tabDomains')
+                : t('velumUi.rules.tabIPs')}
+          </label>
+          <TextInput
+            autoFocus
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && editing.side !== 'vpn' && commitEdit()}
+            placeholder={PLACEHOLDER[kind][editing.side]}
+            className="mb-4 font-mono"
+          />
+          {editing.side === 'vpn' && (
+            <>
+              <p className="mb-1 text-xs font-semibold text-vl-muted">{t('customRules.serverChoose')}</p>
+              <p className="mb-2 text-xs text-vl-faint">{t('customRules.serverEditHint')}</p>
+              <RuleServerList
+                value={editProxy}
+                entries={servers.entries}
+                current={servers.current}
+                onChange={setEditProxy}
+              />
+            </>
+          )}
+        </Modal>
       )}
     </PageShell>
   )

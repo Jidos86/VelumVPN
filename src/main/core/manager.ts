@@ -10,7 +10,12 @@ import {
   mihomoWorkConfigPath,
   mihomoWorkDir
 } from '../utils/dirs'
-import { generateProfile, getRuntimeConfig, stripBittorrentSnifferIfPresent } from './factory'
+import {
+  generateProfile,
+  getRuntimeConfig,
+  stripBittorrentSnifferIfPresent,
+  stripMissingGeositeRule
+} from './factory'
 import {
   getAppConfig,
   getControledMihomoConfig,
@@ -518,7 +523,7 @@ export async function quitWithoutCore(): Promise<void> {
   app.exit()
 }
 
-async function checkProfile(retried = false): Promise<void> {
+async function checkProfile(retried = 0): Promise<void> {
   const { core = 'mihomo', diffWorkDir = false, safePaths = [] } = await getAppConfig()
   const { current } = await getProfileConfig()
   const corePath = mihomoCorePath(core)
@@ -542,9 +547,15 @@ async function checkProfile(retried = false): Promise<void> {
     const stdout = error instanceof Error && 'stdout' in error ? String((error as { stdout: string }).stdout) : ''
     const stderr = error instanceof Error && 'stderr' in error ? String((error as { stderr: string }).stderr) : ''
     const combined = `${stdout}\n${stderr}\n${error instanceof Error ? error.message : ''}`
-    if (!retried && /BITTORRENT|not find the sniffer/i.test(combined)) {
+    if (retried < 5 && /BITTORRENT|not find the sniffer/i.test(combined)) {
       if (await stripBittorrentSnifferIfPresent()) {
-        return checkProfile(true)
+        return checkProfile(retried + 1)
+      }
+    }
+    const missingGeosite = combined.match(/list ([^\s]+) not found in geosite\.dat/i)
+    if (retried < 5 && missingGeosite?.[1]) {
+      if (await stripMissingGeositeRule(missingGeosite[1])) {
+        return checkProfile(retried + 1)
       }
     }
     if (error instanceof Error && 'stdout' in error) {

@@ -4,6 +4,7 @@ resources/sidecar
 extra/files
 extra/sidecar
 dist
+dist-beta
 out
 .DS_Store
 *.log*

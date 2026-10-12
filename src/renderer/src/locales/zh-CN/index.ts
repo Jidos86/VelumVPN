@@ -1007,6 +1007,8 @@ export default {
     importHintProcesses: '粘贴进程名——每行一个或用逗号分隔。',
     cancel: '取消',
     add: '添加',
+    save: '保存',
+    editTitle: '编辑规则',
     selectFromActive: '从活跃进程中选择',
     importBulk: '导入列表',
     selectToDelete: '选择要删除的项目',
@@ -1033,7 +1035,13 @@ export default {
     emptyExcludedIPs: '无排除 IP',
     conflictWarning: '"{{item}}" 已在 "{{section}}" 中 — 请先从那里删除',
     conflictBulkWarning: '已跳过 {{count}} 项 — 它们已存在于 "{{section}}" 中',
-    serverAuto: '当前服务器',
+    serverAuto: '跟随当前服务器',
+    serverAutoNow: '当前：{{server}}',
+    serverAutoHint: '使用主屏幕上当前选择的服务器',
+    serverChoose: '目标国家',
+    serverEditHint: '不选择时，规则走应用中当前选中的服务器。',
+    serverPageHint:
+      '在「通过 VPN」一栏可以为每条规则指定国家：点铅笔，再选服务器。不指定则使用应用中当前选择的服务器。',
     serverFallback: '若该节点不可用，流量会回退到应用中当前选择的服务器'
   }
 }

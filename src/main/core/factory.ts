@@ -418,7 +418,11 @@ function ensureRuleFallbackGroups(template: MihomoConfig, proxyNames: string[], 
       timeout: 5000,
       lazy: false,
       'max-failed-times': 2,
-      proxies: [proxy, fallback]
+      proxies: [proxy, fallback],
+      // Purely an internal routing detail for the per-rule server pin - the app already excludes
+      // hidden groups from the home selector and the Proxies page (see mihomoGroups()), so this
+      // keeps it out of both instead of leaking into the UI as a confusing "Germany: Fallback" row.
+      hidden: true
     })
     existing.add(groupName)
   }
@@ -445,6 +449,8 @@ function stripBundledTorrentProcessRules(rules: string[]): string[] {
   return rules.filter((r) => {
     if (r.toLowerCase().startsWith(`domain,${TORRENT_SNIFF_HOST},`)) return false
     if (/^PROCESS-NAME-REGEX,\(\?i\)\.\*torrent\.\*,/i.test(r)) return false
+    // Leftovers from an earlier beta that injected runetfreedom-missing tracker lists.
+    if (/^GEOSITE,category-(?:public-tracker|private-tracker|pt),/i.test(r)) return false
     const m = /^PROCESS-NAME,([^,]+),/i.exec(r)
     return !m || !names.has(m[1].toLowerCase())
   })
@@ -1026,6 +1032,24 @@ export async function stripBittorrentSnifferIfPresent(): Promise<boolean> {
   const sniff = runtimeConfig?.sniffer?.sniff as Record<string, unknown> | undefined
   if (!sniff || !('BITTORRENT' in sniff)) return false
   delete sniff.BITTORRENT
+  runtimeConfigStr = stringifyYaml(runtimeConfig)
+  const { diffWorkDir = false } = await getAppConfig()
+  const { current } = await getProfileConfig()
+  await writeFile(
+    diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work'),
+    runtimeConfigStr
+  )
+  return true
+}
+
+export async function stripMissingGeositeRule(listName: string): Promise<boolean> {
+  const name = listName.trim().toLowerCase()
+  if (!name || !Array.isArray(runtimeConfig?.rules)) return false
+  const before = runtimeConfig.rules.length
+  runtimeConfig.rules = (runtimeConfig.rules as unknown as string[]).filter(
+    (r) => !r.toLowerCase().startsWith(`geosite,${name},`)
+  ) as unknown as []
+  if (runtimeConfig.rules.length === before) return false
   runtimeConfigStr = stringifyYaml(runtimeConfig)
   const { diffWorkDir = false } = await getAppConfig()
   const { current } = await getProfileConfig()
