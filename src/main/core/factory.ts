@@ -355,6 +355,34 @@ function ipCidrRule(ip: string, target: string): string {
 
 const RULE_FALLBACK_PREFIX = '↳ '
 const TORRENT_SNIFF_HOST = 'bittorrent.invalid'
+// Gemini / AI Studio / Bard check the real client IP. Not GEOSITE,google — search, Gmail
+// and Drive stay DIRECT in "blocked only". clients6 covers *.clients6.google.com (waa-pa, makersuite).
+// geosite:google-gemini is absent from runetfreedom geosite.dat; do not add it.
+const GEMINI_VPN_SUFFIXES = [
+  'gemini.google.com',
+  'generativelanguage.googleapis.com',
+  'alkalimats-pa.googleapis.com',
+  'proactivebackend-pa.googleapis.com',
+  'assistant-s3-pa.googleapis.com',
+  'alkaliminer-pa.googleapis.com',
+  'robinfrontend-pa.googleapis.com',
+  'clients6.google.com',
+  'generativeai.google',
+  'makersuite.google.com',
+  'aistudio.google.com',
+  'bard.google.com',
+  'ai.google.dev',
+  'ogs.google.com',
+  'lh3.googleusercontent.com',
+  'lh3.google.com',
+  'accounts.google.com',
+  'ssl.gstatic.com',
+  'apis.google.com',
+  'play.google.com',
+  'oauthaccountmanager.googleapis.com',
+  'myaccount.google.com',
+  'people-pa.googleapis.com'
+]
 const TORRENT_PROCESSES = [
   'qbittorrent.exe',
   'qbittorrent',
@@ -456,6 +484,23 @@ function stripBundledTorrentProcessRules(rules: string[]): string[] {
   })
 }
 
+function geminiVpnRuleEntries(target: string): string[] {
+  return GEMINI_VPN_SUFFIXES.map((d) => `DOMAIN-SUFFIX,${d},${target}`)
+}
+
+function stripBundledGeminiRules(rules: string[]): string[] {
+  const suffixes = new Set(GEMINI_VPN_SUFFIXES.map((d) => d.toLowerCase()))
+  return rules.filter((r) => {
+    const m = /^DOMAIN-SUFFIX,([^,]+),/i.exec(r)
+    if (!m) return true
+    const host = m[1].toLowerCase()
+    if (suffixes.has(host)) return false
+    // Specific *.clients6.google.com hosts from older copies of this list.
+    if (host === 'clients6.google.com' || host.endsWith('.clients6.google.com')) return false
+    return true
+  })
+}
+
 function coreHasBittorrentSniffer(core: string): boolean {
   try {
     const out = execFileSync(mihomoCorePath(core), ['-v'], {
@@ -505,6 +550,7 @@ function injectCustomRules(template: MihomoConfig, rules: CustomRules): void {
     ...(rules.excluded ?? []).map((d) => `DOMAIN-SUFFIX,${d.value},DIRECT`)
   ]
   const torrentEntries = torrentRuleEntries()
+  const geminiEntries = geminiVpnRuleEntries(fallbackGroup)
   const processEntries = [
     ...rules.processes.map((p) => `PROCESS-NAME,${p.value},${vpnTarget(p)}`),
     ...(rules.excludedProcesses ?? []).map((p) => `PROCESS-NAME,${p.value},DIRECT`)
@@ -513,8 +559,17 @@ function injectCustomRules(template: MihomoConfig, rules: CustomRules): void {
     ...(rules.ips ?? []).map((ip) => ipCidrRule(ip.value, vpnTarget(ip))),
     ...(rules.excludedIPs ?? []).map((ip) => ipCidrRule(ip.value, 'DIRECT'))
   ]
-  const rest = stripBundledTorrentProcessRules(template.rules as unknown as string[])
-  template.rules = [...domainEntries, ...torrentEntries, ...processEntries, ...ipEntries, ...rest] as unknown as []
+  const rest = stripBundledGeminiRules(
+    stripBundledTorrentProcessRules(template.rules as unknown as string[])
+  )
+  template.rules = [
+    ...domainEntries,
+    ...torrentEntries,
+    ...geminiEntries,
+    ...processEntries,
+    ...ipEntries,
+    ...rest
+  ] as unknown as []
 }
 
 // 辅助函数：处理带偏移量的规则
@@ -1072,11 +1127,13 @@ function applyRouteMode(
   ]
 
   const torrentDirect = torrentRuleEntries()
+  const geminiVpn = geminiVpnRuleEntries(proxyGroup)
 
   if (routeMode === 'blocked') {
     profile.rules = [
       ...base,
       ...torrentDirect,
+      ...geminiVpn,
       `AND,((NETWORK,UDP),(DST-PORT,50000-65535)),${proxyGroup}`,
       `GEOSITE,youtube,${proxyGroup}`,
       `GEOSITE,telegram,${proxyGroup}`,
@@ -1091,6 +1148,7 @@ function applyRouteMode(
     profile.rules = [
       ...base,
       ...torrentDirect,
+      ...geminiVpn,
       'GEOIP,ru,DIRECT',
       `MATCH,${proxyGroup}`
     ] as unknown as []

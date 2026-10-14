@@ -160,6 +160,30 @@ rules:
   - DOMAIN-SUFFIX,githubassets.com,→ VelumVPN
   - DOMAIN-SUFFIX,github.io,→ VelumVPN
   - DOMAIN-SUFFIX,githubcopilot.com,→ VelumVPN
+  # Gemini / AI Studio — geo-check of the real IP. Not all of Google (search, Gmail, Drive stay DIRECT).
+  - DOMAIN-SUFFIX,gemini.google.com,→ VelumVPN
+  - DOMAIN-SUFFIX,generativelanguage.googleapis.com,→ VelumVPN
+  - DOMAIN-SUFFIX,alkalimats-pa.googleapis.com,→ VelumVPN
+  - DOMAIN-SUFFIX,proactivebackend-pa.googleapis.com,→ VelumVPN
+  - DOMAIN-SUFFIX,assistant-s3-pa.googleapis.com,→ VelumVPN
+  - DOMAIN-SUFFIX,alkaliminer-pa.googleapis.com,→ VelumVPN
+  - DOMAIN-SUFFIX,robinfrontend-pa.googleapis.com,→ VelumVPN
+  - DOMAIN-SUFFIX,clients6.google.com,→ VelumVPN
+  - DOMAIN-SUFFIX,generativeai.google,→ VelumVPN
+  - DOMAIN-SUFFIX,makersuite.google.com,→ VelumVPN
+  - DOMAIN-SUFFIX,aistudio.google.com,→ VelumVPN
+  - DOMAIN-SUFFIX,bard.google.com,→ VelumVPN
+  - DOMAIN-SUFFIX,ai.google.dev,→ VelumVPN
+  - DOMAIN-SUFFIX,ogs.google.com,→ VelumVPN
+  - DOMAIN-SUFFIX,lh3.googleusercontent.com,→ VelumVPN
+  - DOMAIN-SUFFIX,lh3.google.com,→ VelumVPN
+  - DOMAIN-SUFFIX,accounts.google.com,→ VelumVPN
+  - DOMAIN-SUFFIX,ssl.gstatic.com,→ VelumVPN
+  - DOMAIN-SUFFIX,apis.google.com,→ VelumVPN
+  - DOMAIN-SUFFIX,play.google.com,→ VelumVPN
+  - DOMAIN-SUFFIX,oauthaccountmanager.googleapis.com,→ VelumVPN
+  - DOMAIN-SUFFIX,myaccount.google.com,→ VelumVPN
+  - DOMAIN-SUFFIX,people-pa.googleapis.com,→ VelumVPN
   - MATCH,DIRECT
 
 # Пользовательская зона — правила здесь сохраняются при обновлении приложения.
