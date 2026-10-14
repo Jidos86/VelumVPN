@@ -524,7 +524,7 @@ async function ensureBittorrentSniffer(profile: MihomoConfig): Promise<void> {
   }
 }
 
-function injectCustomRules(template: MihomoConfig, rules: CustomRules): void {
+function injectCustomRules(template: MihomoConfig, rules: CustomRules, routeMode: string): void {
   if (!Array.isArray(template.rules)) return
   const fallbackGroup =
     (template['proxy-groups'] as Array<{ name: string }>)?.[0]?.name || '→ VelumVPN'
@@ -550,7 +550,10 @@ function injectCustomRules(template: MihomoConfig, rules: CustomRules): void {
     ...(rules.excluded ?? []).map((d) => `DOMAIN-SUFFIX,${d.value},DIRECT`)
   ]
   const torrentEntries = torrentRuleEntries()
-  const geminiEntries = geminiVpnRuleEntries(fallbackGroup)
+  // Gemini/AI Studio check the real client IP, so only "blocked only" needs an explicit VPN rule
+  // for it — "all except RU" and "all" already send it through VPN via their own MATCH catch-all,
+  // since Gemini's IP isn't RU; adding it there too would just be redundant no-op lines.
+  const geminiEntries = routeMode === 'blocked' ? geminiVpnRuleEntries(fallbackGroup) : []
   const processEntries = [
     ...rules.processes.map((p) => `PROCESS-NAME,${p.value},${vpnTarget(p)}`),
     ...(rules.excludedProcesses ?? []).map((p) => `PROCESS-NAME,${p.value},DIRECT`)
@@ -626,6 +629,7 @@ export async function generateProfile(): Promise<void> {
       controledMihomoConfig,
       controlTun,
       proxyModeEnabled,
+      routeMode,
       diffWorkDir,
       current
     )
@@ -726,6 +730,7 @@ async function generateFromTemplate(
   controledMihomoConfig: Partial<MihomoConfig>,
   controlTun: boolean,
   proxyModeEnabled: boolean,
+  routeMode: string,
   diffWorkDir: boolean,
   current: string | undefined
 ): Promise<void> {
@@ -748,7 +753,7 @@ async function generateFromTemplate(
   }
 
   const customRules = await getCustomRules()
-  injectCustomRules(template, customRules)
+  injectCustomRules(template, customRules, routeMode)
   await ensureBittorrentSniffer(template)
 
   // Google/Cloudflare DoH/DoT is blocked in RU; node hostnames must resolve
