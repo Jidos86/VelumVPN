@@ -496,8 +496,7 @@ async function liveNow(name: string): Promise<string | undefined> {
   return undefined
 }
 
-// Follow select/url-test `now` down to a real node so "follow the app" locks a country
-// instead of riding the whole auto group (which would jump IPs on url-test).
+// Follow select/url-test `now` down to a real node. Used when a preset pins a country.
 function isPassthroughOutbound(name: string): boolean {
   const n = name.trim().toUpperCase()
   return n === 'DIRECT' || n === 'REJECT' || n === 'PASS' || n === 'COMPATIBLE'
@@ -705,13 +704,16 @@ async function injectAiPresetRules(
   extraKeys: string[] = []
 ): Promise<{ entries: string[]; targets: Map<string, string> }> {
   const enabled = enabledAiPresets(ai)
-  const keys = [...new Set([...enabled.map((p) => p.proxy?.trim() || ''), ...extraKeys])]
-  if (keys.length === 0) return { entries: [], targets: new Map() }
-  const targets = await ensureAiRejectGroups(template, keys, defaultGroup)
+  const pinned = enabled.map((p) => p.proxy?.trim()).filter((name): name is string => Boolean(name))
+  const keys = [...new Set([...pinned, ...extraKeys])]
+  const targets =
+    keys.length > 0 ? await ensureAiRejectGroups(template, keys, defaultGroup) : new Map<string, string>()
   const entries: string[] = []
   const seen = new Set<string>()
   for (const preset of enabled) {
-    const target = targets.get(preset.proxy?.trim() || '') ?? 'REJECT'
+    const pin = preset.proxy?.trim()
+    // No pin: follow the app selector (country may change). Pin: that country, then REJECT.
+    const target = pin ? (targets.get(pin) ?? 'REJECT') : defaultGroup
     for (const host of preset.domains) {
       const key = host.toLowerCase()
       if (seen.has(key)) continue

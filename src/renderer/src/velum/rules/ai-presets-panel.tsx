@@ -156,12 +156,16 @@ export const AiPresetsPanel: React.FC = () => {
     }
   }
 
-  const persist = async (next: AiPresets): Promise<void> => {
+  const persist = async (next: AiPresets, notice: 'apply' | 'enable' = 'apply'): Promise<void> => {
     setData(next)
     setSaving(true)
     try {
       await applyRulesChange()
-      toast.success(t('customRules.rulesApplied'))
+      if (notice === 'enable') {
+        toast.success(t('customRules.ai.enabledTitle'), { description: t('customRules.ai.enabledHint') })
+      } else {
+        toast.success(t('customRules.rulesApplied'))
+      }
     } catch (err) {
       toast.error(String(err))
     } finally {
@@ -171,7 +175,7 @@ export const AiPresetsPanel: React.FC = () => {
 
   const toggle = async (preset: AiPreset, enabled: boolean): Promise<void> => {
     try {
-      await persist(await setAiPreset(preset.id, { enabled }))
+      await persist(await setAiPreset(preset.id, { enabled }), enabled ? 'enable' : 'apply')
     } catch (err) {
       toast.error(String(err))
     }

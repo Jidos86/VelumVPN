@@ -1045,7 +1045,7 @@ export default {
     serverFallback: '若该节点不可用，流量会回退到应用中当前选择的服务器',
     ai: {
       tab: 'AI',
-      hint: '开启服务后，其网站走所选国家。若不选国家，则使用应用当前所选服务器并固定在它上面：自动优选不会把该服务换到别的国家。关闭 VPN、该服务器不可用或隧道断开时，只要应用还在运行，这些网站会被阻断。域名列表从 GitHub 下载，无需更新应用。',
+      hint: '开启服务后，其网站走 VPN。不选国家则跟随应用当前服务器，可随应用一起更换。若指定国家且该国家不可用，连接会断开，不会跳到别国。关闭 VPN 时，只要应用还在运行，这些网站会被阻断。域名列表从 GitHub 下载，无需更新应用。',
       refresh: '更新列表',
       updated: '域名列表已更新',
       updatedAt: 'GitHub 列表：{{time}}',
@@ -1054,7 +1054,10 @@ export default {
       layoutList: '列表',
       layoutGrid: '三列网格',
       domainsHint: '这些主机走所选国家。列表在 GitHub 的 extra/ai-presets.json。',
-      serverHint: '选择国家，或不选则使用应用当前服务器并固定。自动优选不会把该服务换到别的国家。若该服务器或 VPN 不可用，将阻断访问，而不是换到别国。',
+      enabledTitle: '预设已开启',
+      enabledHint: '该服务走 VPN。不选国家则跟随应用，可更换。指定国家后仅走该国；不可用时连接断开。',
+      serverHint:
+        '不选国家时跟随应用当前服务器，并随它更换。若指定国家且该国家不可用，连接会断开，不会换到别国。',
       presets: {
         openai: 'ChatGPT / OpenAI',
         anthropic: 'Claude',

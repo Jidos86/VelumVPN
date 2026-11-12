@@ -1072,7 +1072,7 @@ export default {
     serverFallback: 'If this server is down, traffic falls back to the server selected in the app',
     ai: {
       tab: 'AI',
-      hint: 'Turn a service on to send its sites through the chosen country. If you do not pick a country, it uses the server currently selected in the app and stays on it — auto-select will not move that service to another country. If VPN is off, that server is down, or the tunnel drops, those sites stay blocked while the app is running. Domain lists download from GitHub — no app update needed.',
+      hint: 'Turn a service on to send its sites through the VPN. With no country picked, it follows the app’s current server and can change with it. If you pin a country and that country goes down, access is cut — it will not hop elsewhere. With VPN off, those sites stay blocked while the app is running. Domain lists download from GitHub — no app update needed.',
       refresh: 'Update list',
       updated: 'Domain list updated',
       updatedAt: 'GitHub list: {{time}}',
@@ -1081,8 +1081,11 @@ export default {
       layoutList: 'List',
       layoutGrid: '3-up grid',
       domainsHint: 'These hosts go through the chosen country. The list is extra/ai-presets.json on GitHub.',
+      enabledTitle: 'Preset on',
+      enabledHint:
+        'This service goes through the VPN. No country: it follows the app and can change. A pinned country: only that one; if it is down, the connection drops.',
       serverHint:
-        'Pick a country, or leave “follow the app” to use the server currently selected in the app and stay on it. Auto-select will not move this service to another country. If that server or the VPN goes down, access is blocked instead of moving elsewhere.',
+        'With no country, the service follows the server selected in the app and changes with it. If you pin a country and it goes down, access is cut — it will not switch to another country.',
       presets: {
         openai: 'ChatGPT / OpenAI',
         anthropic: 'Claude',
