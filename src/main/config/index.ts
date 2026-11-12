@@ -1,5 +1,6 @@
 export { getAppConfig, patchAppConfig } from './app'
 export { getCustomRules, setCustomRules } from './customRules'
+export { getAiPresets, setAiPreset, refreshAiPresetDomains, maybeRefreshAiPresetDomains } from './aiPresets'
 export { getControledMihomoConfig, patchControledMihomoConfig } from './controledMihomo'
 export {
   getProfile,

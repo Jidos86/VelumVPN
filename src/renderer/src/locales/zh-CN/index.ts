@@ -1042,6 +1042,32 @@ export default {
     serverEditHint: '不选择时，规则走应用中当前选中的服务器。',
     serverPageHint:
       '在「通过 VPN」一栏可以为每条规则指定国家：点铅笔，再选服务器。不指定则使用应用中当前选择的服务器。',
-    serverFallback: '若该节点不可用，流量会回退到应用中当前选择的服务器'
+    serverFallback: '若该节点不可用，流量会回退到应用中当前选择的服务器',
+    ai: {
+      tab: 'AI',
+      hint: '开启服务后，其域名走所选国家。不选国家时锁定应用当前国家，自动优选不会跳到别国。在应用里关掉 VPN、国家或隧道不可用时，只要应用还在运行，这些域名会被阻断。域名列表从 GitHub 下载，无需更新应用。',
+      refresh: '更新列表',
+      updated: '域名列表已更新',
+      updatedAt: 'GitHub 列表：{{time}}',
+      domainCount: '{{count}} 个域名',
+      viewDomains: '域名',
+      layoutList: '列表',
+      layoutGrid: '三列网格',
+      domainsHint: '这些主机走所选国家。列表在 GitHub 的 extra/ai-presets.json。',
+      serverHint: '选择国家，或不选以锁定应用当前国家（不是整个自动组）。若该国家或 VPN 不可用，将阻断这些域名，而不是换到别的国家。',
+      presets: {
+        openai: 'ChatGPT / OpenAI',
+        anthropic: 'Claude',
+        'google-gemini': 'Google AI / Gemini',
+        xai: 'Grok',
+        perplexity: 'Perplexity',
+        'github-copilot': 'GitHub Copilot',
+        huggingface: 'Hugging Face',
+        deepseek: 'DeepSeek',
+        groq: 'Groq',
+        mistral: 'Mistral',
+        'meta-ai': 'Meta AI'
+      }
+    }
   }
 }

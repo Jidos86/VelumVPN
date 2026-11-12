@@ -1,0 +1,108 @@
+{
+  "url": "https://raw.githubusercontent.com/Jidos86/VelumVPN/main/extra/ai-presets.json",
+  "presets": [
+    {
+      "id": "openai",
+      "domains": [
+        "openai.com",
+        "chatgpt.com",
+        "chat.com",
+        "sora.com",
+        "oaistatic.com",
+        "oaiusercontent.com",
+        "openai.org",
+        "chatgpt.openai.com",
+        "auth.openai.com",
+        "api.openai.com",
+        "platform.openai.com",
+        "ab.chatgpt.com"
+      ]
+    },
+    {
+      "id": "anthropic",
+      "domains": [
+        "anthropic.com",
+        "claude.ai",
+        "claude.com",
+        "claudeusercontent.com",
+        "claude.dev",
+        "claude.app",
+        "claude.site",
+        "claude.new",
+        "anthropic.team"
+      ]
+    },
+    {
+      "id": "google-gemini",
+      "domains": [
+        "gemini.google.com",
+        "generativelanguage.googleapis.com",
+        "alkalimats-pa.googleapis.com",
+        "proactivebackend-pa.googleapis.com",
+        "assistant-s3-pa.googleapis.com",
+        "alkaliminer-pa.googleapis.com",
+        "robinfrontend-pa.googleapis.com",
+        "clients6.google.com",
+        "generativeai.google",
+        "makersuite.google.com",
+        "aistudio.google.com",
+        "bard.google.com",
+        "ai.google.dev",
+        "ogs.google.com",
+        "lh3.googleusercontent.com",
+        "lh3.google.com",
+        "accounts.google.com",
+        "ssl.gstatic.com",
+        "apis.google.com",
+        "play.google.com",
+        "oauthaccountmanager.googleapis.com",
+        "myaccount.google.com",
+        "people-pa.googleapis.com",
+        "notebooklm.google.com",
+        "notebooklm.google",
+        "deepmind.google",
+        "deepmind.com",
+        "jules.google.com",
+        "flow.google.com"
+      ]
+    },
+    {
+      "id": "xai",
+      "domains": ["grok.com", "x.ai", "grok.x.com", "grokipedia.com"]
+    },
+    {
+      "id": "perplexity",
+      "domains": ["perplexity.ai", "perplexity.com", "pplx.ai"]
+    },
+    {
+      "id": "github-copilot",
+      "domains": [
+        "githubcopilot.com",
+        "copilot.microsoft.com",
+        "copilot.cloud.microsoft",
+        "api.githubcopilot.com",
+        "copilot-proxy.githubusercontent.com"
+      ]
+    },
+    {
+      "id": "huggingface",
+      "domains": ["huggingface.co", "hf.co", "hf.space"]
+    },
+    {
+      "id": "deepseek",
+      "domains": ["deepseek.com", "deepseeksvc.com"]
+    },
+    {
+      "id": "groq",
+      "domains": ["groq.com"]
+    },
+    {
+      "id": "mistral",
+      "domains": ["mistral.ai"]
+    },
+    {
+      "id": "meta-ai",
+      "domains": ["meta.ai", "llama.com", "metaaivm.com", "metaaiusercontent.com"]
+    }
+  ]
+}

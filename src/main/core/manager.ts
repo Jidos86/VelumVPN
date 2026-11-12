@@ -1,4 +1,5 @@
 import { FLAVOR } from '../utils/flavor'
+import { runDarwinAdmin } from '../utils/elevation'
 import { ChildProcess, execFile, execFileSync, spawn } from 'child_process'
 import {
   dataDir,
@@ -13,6 +14,7 @@ import {
 import {
   generateProfile,
   getRuntimeConfig,
+  reloadAiRuntime,
   stripBittorrentSnifferIfPresent,
   stripMissingGeositeRule
 } from './factory'
@@ -337,6 +339,18 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
 
                 await waitForMihomoReady()
                 signalCoreReady()
+                // Do not hot-reload here: PUT /configs resets `initialized` and the core
+                // logs "provider default" again, which would loop and kill ping tests.
+                void (async (): Promise<void> => {
+                  try {
+                    const { maybeRefreshAiPresetDomains } = await import('../config/aiPresets')
+                    if (await maybeRefreshAiPresetDomains()) {
+                      await reloadAiRuntime(true)
+                    }
+                  } catch {
+                    // Bundled domain lists and the first profile are already in place.
+                  }
+                })()
                 Promise.all([
                   new Promise((r) => setTimeout(r, 100)).then(() => {
                     mainWindow?.webContents.send('groupsUpdated')
@@ -579,10 +593,8 @@ export async function manualGrantCorePermition(
     const corePath = mihomoCorePath(coreName)
     try {
       if (process.platform === 'darwin') {
-        const escapedPath = corePath.replace(/"/g, '\\"')
-        const shell = `chown root:admin \\"${escapedPath}\\" && chmod +sx \\"${escapedPath}\\"`
-        const command = `do shell script "${shell}" with administrator privileges`
-        await execFilePromise('osascript', ['-e', command])
+        const quoted = `'${corePath.replace(/'/g, `'\\''`)}'`
+        await runDarwinAdmin(`chown root:admin ${quoted} && chmod +sx ${quoted}`)
       }
       if (process.platform === 'linux') {
         await execFilePromise('pkexec', [
@@ -650,10 +662,8 @@ export async function revokeCorePermission(cores?: ('mihomo' | 'mihomo-alpha')[]
     const corePath = mihomoCorePath(coreName)
     try {
       if (process.platform === 'darwin') {
-        const escapedPath = corePath.replace(/"/g, '\\"')
-        const shell = `chmod a-s \\"${escapedPath}\\"`
-        const command = `do shell script "${shell}" with administrator privileges`
-        await execFilePromise('osascript', ['-e', command])
+        const quoted = `'${corePath.replace(/'/g, `'\\''`)}'`
+        await runDarwinAdmin(`chmod a-s ${quoted}`)
       }
       if (process.platform === 'linux') {
         await execFilePromise('pkexec', ['bash', '-c', `chmod a-s "${corePath}"`])
@@ -727,7 +737,8 @@ async function setPublicDNS(): Promise<void> {
     const { originDNS, autoSetDNSMode = 'none' } = await getAppConfig()
     if (!originDNS) {
       await getOriginDNS()
-      await setDNS('1.1.1.1', autoSetDNSMode)
+      // Cloudflare is blocked or unusable in RU; same resolvers as the core profile.
+      await setDNS('77.88.8.8 77.88.1.1', autoSetDNSMode)
     }
   } else {
     if (setPublicDNSTimer) clearTimeout(setPublicDNSTimer)

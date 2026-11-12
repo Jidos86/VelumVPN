@@ -558,6 +558,33 @@ export async function setCustomRules(rules: CustomRules): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setCustomRules', rules))
 }
 
+export interface AiPreset {
+  id: string
+  enabled: boolean
+  proxy?: string
+  domains: string[]
+}
+
+export interface AiPresets {
+  updatedAt?: string
+  presets: AiPreset[]
+}
+
+export async function getAiPresets(): Promise<AiPresets> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getAiPresets'))
+}
+
+export async function setAiPreset(
+  id: string,
+  patch: { enabled?: boolean; proxy?: string }
+): Promise<AiPresets> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setAiPreset', id, patch))
+}
+
+export async function refreshAiPresetDomains(): Promise<AiPresets> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('refreshAiPresetDomains'))
+}
+
 export async function openExternal(url: string): Promise<void> {
   await window.electron.ipcRenderer.invoke('openExternal', url)
 }

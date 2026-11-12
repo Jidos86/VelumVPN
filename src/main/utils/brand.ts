@@ -4,6 +4,7 @@ import { existsSync, readFileSync } from 'fs'
 interface BrandConfig {
   geositeUrl?: string
   geoipUrl?: string
+  aiPresetsUrl?: string
 }
 
 let cached: BrandConfig | null = null

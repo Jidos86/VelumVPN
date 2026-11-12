@@ -6,9 +6,12 @@ import {
   getProfile,
   getProfileStr,
   getAppConfig,
-  getCustomRules
+  getCustomRules,
+  getAiPresets,
+  maybeRefreshAiPresetDomains
 } from '../config'
 import type { CustomRuleItem, CustomRules } from '../config/customRules'
+import type { AiPresets } from '../config/aiPresets'
 import { execFileSync } from 'child_process'
 import {
   logPath,
@@ -124,7 +127,27 @@ export async function forceUpdateGeodata(): Promise<void> {
     await copyFile(dest, testDest)
   }
 
+  const catalogChanged = await maybeRefreshAiPresetDomains()
+  if (catalogChanged) {
+    try {
+      await reloadAiRuntime(true)
+    } catch {
+      // Core may still be starting; the next generateProfile will pick up the catalog.
+    }
+  }
+
   mainWindow?.webContents.send('geodataProgress', { file: '', progress: 100, fileIndex: totalFiles, totalFiles })
+}
+
+export async function reloadAiRuntime(closeConnections: boolean): Promise<void> {
+  const { mihomoHotReloadConfig, mihomoCloseAllConnections } = await import('./mihomoApi')
+  await mihomoHotReloadConfig()
+  if (!closeConnections) return
+  try {
+    await mihomoCloseAllConnections()
+  } catch {
+    // Rules are already loaded; leftover flows follow them on reconnect.
+  }
 }
 
 async function geoFileNeedsUpdate(filePath: string): Promise<boolean> {
@@ -354,6 +377,7 @@ function ipCidrRule(ip: string, target: string): string {
 }
 
 const RULE_FALLBACK_PREFIX = '↳ '
+const AI_REJECT_PREFIX = 'AI · '
 const TORRENT_SNIFF_HOST = 'bittorrent.invalid'
 // Gemini / AI Studio / Bard check the real client IP. Not GEOSITE,google — search, Gmail
 // and Drive stay DIRECT in "blocked only". clients6 covers *.clients6.google.com (waa-pa, makersuite).
@@ -424,7 +448,128 @@ function knownOutboundNames(template: MihomoConfig): Set<string> {
     if (g?.name) names.add(g.name)
   }
   names.add('DIRECT')
+  names.add('REJECT')
   return names
+}
+
+function countryCodeFromProxyName(name: string): string {
+  const flag = name.match(/[\u{1F1E6}-\u{1F1FF}]{2}/u)
+  if (flag) {
+    return [...flag[0]]
+      .map((ch) => String.fromCharCode((ch.codePointAt(0) ?? 0) - 0x1f1e6 + 65))
+      .join('')
+  }
+  const tail = name.replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, '').match(/\|\s*([A-Za-z]{2})\b/)
+  return tail ? tail[1].toUpperCase() : ''
+}
+
+function sameCountryProxyNames(template: MihomoConfig, selected: string): string[] {
+  const names = ((template.proxies as Array<{ name: string }>) || []).map((p) => p.name).filter(Boolean)
+  if (!names.includes(selected)) return []
+  const code = countryCodeFromProxyName(selected)
+  if (!code) return [selected]
+  const same = names.filter((n) => countryCodeFromProxyName(n) === code)
+  return [selected, ...same.filter((n) => n !== selected)]
+}
+
+function aiRejectGroupName(key: string): string {
+  return `${AI_REJECT_PREFIX}${key}`
+}
+
+function proxyGroups(template: MihomoConfig): Array<Record<string, unknown>> {
+  return ((template['proxy-groups'] as Array<Record<string, unknown>>) || []).slice()
+}
+
+function groupMembers(group: Record<string, unknown> | undefined): string[] {
+  const proxies = group?.proxies
+  return Array.isArray(proxies) ? proxies.filter((n): n is string => typeof n === 'string') : []
+}
+
+async function liveNow(name: string): Promise<string | undefined> {
+  try {
+    const { mihomoProxies } = await import('./mihomoApi')
+    const detail = (await mihomoProxies()).proxies[name]
+    if (detail && 'now' in detail && typeof detail.now === 'string' && detail.now) return detail.now
+  } catch {
+    // Core is not up yet (first generateProfile) — fall back to the YAML group.
+  }
+  return undefined
+}
+
+// Follow select/url-test `now` down to a real node so "follow the app" locks a country
+// instead of riding the whole auto group (which would jump IPs on url-test).
+function isPassthroughOutbound(name: string): boolean {
+  const n = name.trim().toUpperCase()
+  return n === 'DIRECT' || n === 'REJECT' || n === 'PASS' || n === 'COMPATIBLE'
+}
+
+async function resolveAiAnchor(
+  template: MihomoConfig,
+  selected: string,
+  leaf: Set<string>
+): Promise<string | undefined> {
+  const groups = proxyGroups(template)
+  let current = selected
+  const seen = new Set<string>()
+  while (current && !seen.has(current)) {
+    seen.add(current)
+    if (isPassthroughOutbound(current)) return undefined
+    if (leaf.has(current)) return current
+    const group = groups.find((g) => g.name === current)
+    const yamlNow = typeof group?.now === 'string' ? group.now : ''
+    const next = (await liveNow(current)) || yamlNow || groupMembers(group)[0]
+    if (!next || next === current || isPassthroughOutbound(next)) return undefined
+    current = next
+  }
+  return undefined
+}
+
+// AI presets never fall through to another country or DIRECT. If the chosen country
+// is down, those domains are REJECT so the account IP does not jump.
+async function ensureAiRejectGroups(
+  template: MihomoConfig,
+  keys: string[],
+  defaultGroup: string
+): Promise<Map<string, string>> {
+  const known = knownOutboundNames(template)
+  const leaf = new Set(((template.proxies as Array<{ name: string }>) || []).map((p) => p.name))
+  const groups = proxyGroups(template)
+  const existing = new Set(groups.map((g) => String(g.name ?? '')))
+  const targets = new Map<string, string>()
+
+  for (const key of keys) {
+    const requested = key || defaultGroup
+    const anchor = await resolveAiAnchor(template, requested, leaf)
+    // Never put → VelumVPN / url-test / DIRECT first: that hops country or leaks. No leaf → block.
+    if (!anchor || !leaf.has(anchor)) {
+      targets.set(key, 'REJECT')
+      continue
+    }
+    const chain = [...sameCountryProxyNames(template, anchor).filter((n) => known.has(n)), 'REJECT']
+    const unique = [...new Set(chain)]
+    if (unique.length === 1 && unique[0] === 'REJECT') {
+      targets.set(key, 'REJECT')
+      continue
+    }
+    const groupName = aiRejectGroupName(anchor)
+    targets.set(key, groupName)
+    if (existing.has(groupName)) continue
+    groups.push({
+      name: groupName,
+      type: 'fallback',
+      url: 'https://www.gstatic.com/generate_204',
+      interval: 30,
+      timeout: 5000,
+      lazy: false,
+      'max-failed-times': 2,
+      proxies: unique,
+      hidden: true
+    })
+    existing.add(groupName)
+  }
+
+  template['proxy-groups'] = groups as unknown as []
+  return targets
 }
 
 function ensureRuleFallbackGroups(template: MihomoConfig, proxyNames: string[], fallback: string): Map<string, string> {
@@ -484,18 +629,22 @@ function stripBundledTorrentProcessRules(rules: string[]): string[] {
   })
 }
 
-function geminiVpnRuleEntries(target: string): string[] {
-  return GEMINI_VPN_SUFFIXES.map((d) => `DOMAIN-SUFFIX,${d},${target}`)
+function geminiLockSuffixes(ai: AiPresets): string[] {
+  const fromCatalog = ai.presets.find((p) => p.id === 'google-gemini')?.domains ?? []
+  return fromCatalog.length > 0 ? fromCatalog : GEMINI_VPN_SUFFIXES
 }
 
-function stripBundledGeminiRules(rules: string[]): string[] {
-  const suffixes = new Set(GEMINI_VPN_SUFFIXES.map((d) => d.toLowerCase()))
+function geminiVpnRuleEntries(target: string, suffixes: string[]): string[] {
+  return suffixes.map((d) => `DOMAIN-SUFFIX,${d},${target}`)
+}
+
+function stripBundledGeminiRules(rules: string[], suffixes: string[]): string[] {
+  const extra = new Set(suffixes.map((d) => d.toLowerCase()))
   return rules.filter((r) => {
     const m = /^DOMAIN-SUFFIX,([^,]+),/i.exec(r)
     if (!m) return true
     const host = m[1].toLowerCase()
-    if (suffixes.has(host)) return false
-    // Specific *.clients6.google.com hosts from older copies of this list.
+    if (extra.has(host)) return false
     if (host === 'clients6.google.com' || host.endsWith('.clients6.google.com')) return false
     return true
   })
@@ -524,7 +673,62 @@ async function ensureBittorrentSniffer(profile: MihomoConfig): Promise<void> {
   }
 }
 
-function injectCustomRules(template: MihomoConfig, rules: CustomRules, routeMode: string): void {
+function enabledAiPresets(ai: AiPresets): AiPresets['presets'] {
+  return ai.presets.filter((p) => p.enabled && p.domains.length > 0)
+}
+
+function aiRejectOnlyEntries(ai: AiPresets): string[] {
+  const entries: string[] = []
+  const seen = new Set<string>()
+  for (const preset of enabledAiPresets(ai)) {
+    for (const host of preset.domains) {
+      const key = host.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      entries.push(`DOMAIN-SUFFIX,${host},REJECT`)
+    }
+  }
+  return entries
+}
+
+function forceMatchDirect(profile: MihomoConfig): void {
+  if (!Array.isArray(profile.rules)) return
+  profile.rules = (profile.rules as unknown as string[]).map((rule) =>
+    rule.startsWith('MATCH,') ? 'MATCH,DIRECT' : rule
+  ) as unknown as []
+}
+
+async function injectAiPresetRules(
+  template: MihomoConfig,
+  ai: AiPresets,
+  defaultGroup: string,
+  extraKeys: string[] = []
+): Promise<{ entries: string[]; targets: Map<string, string> }> {
+  const enabled = enabledAiPresets(ai)
+  const keys = [...new Set([...enabled.map((p) => p.proxy?.trim() || ''), ...extraKeys])]
+  if (keys.length === 0) return { entries: [], targets: new Map() }
+  const targets = await ensureAiRejectGroups(template, keys, defaultGroup)
+  const entries: string[] = []
+  const seen = new Set<string>()
+  for (const preset of enabled) {
+    const target = targets.get(preset.proxy?.trim() || '') ?? 'REJECT'
+    for (const host of preset.domains) {
+      const key = host.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      entries.push(`DOMAIN-SUFFIX,${host},${target}`)
+    }
+  }
+  return { entries, targets }
+}
+
+async function injectCustomRules(
+  template: MihomoConfig,
+  rules: CustomRules,
+  routeMode: string,
+  ai: AiPresets,
+  protectionOn: boolean
+): Promise<void> {
   if (!Array.isArray(template.rules)) return
   const fallbackGroup =
     (template['proxy-groups'] as Array<{ name: string }>)?.[0]?.name || '→ VelumVPN'
@@ -550,10 +754,27 @@ function injectCustomRules(template: MihomoConfig, rules: CustomRules, routeMode
     ...(rules.excluded ?? []).map((d) => `DOMAIN-SUFFIX,${d.value},DIRECT`)
   ]
   const torrentEntries = torrentRuleEntries()
-  // Gemini/AI Studio check the real client IP, so only "blocked only" needs an explicit VPN rule
-  // for it — "all except RU" and "all" already send it through VPN via their own MATCH catch-all,
-  // since Gemini's IP isn't RU; adding it there too would just be redundant no-op lines.
-  const geminiEntries = routeMode === 'blocked' ? geminiVpnRuleEntries(fallbackGroup) : []
+  const googleAiOn = ai.presets.some((p) => p.id === 'google-gemini' && p.enabled)
+  const geminiNeedsLock = protectionOn && !googleAiOn && routeMode === 'blocked'
+  const geminiHosts = geminiLockSuffixes(ai)
+  let aiEntries: string[] = []
+  let geminiEntries: string[] = []
+  if (!protectionOn) {
+    // App is open but the user turned protection off: keep capturing via TUN and REJECT
+    // enabled AI presets so the account cannot fall back to the real IP.
+    aiEntries = aiRejectOnlyEntries(ai)
+  } else {
+    const injected = await injectAiPresetRules(
+      template,
+      ai,
+      fallbackGroup,
+      geminiNeedsLock ? [''] : []
+    )
+    aiEntries = injected.entries
+    geminiEntries = geminiNeedsLock
+      ? geminiVpnRuleEntries(injected.targets.get('') ?? 'REJECT', geminiHosts)
+      : []
+  }
   const processEntries = [
     ...rules.processes.map((p) => `PROCESS-NAME,${p.value},${vpnTarget(p)}`),
     ...(rules.excludedProcesses ?? []).map((p) => `PROCESS-NAME,${p.value},DIRECT`)
@@ -563,10 +784,12 @@ function injectCustomRules(template: MihomoConfig, rules: CustomRules, routeMode
     ...(rules.excludedIPs ?? []).map((ip) => ipCidrRule(ip.value, 'DIRECT'))
   ]
   const rest = stripBundledGeminiRules(
-    stripBundledTorrentProcessRules(template.rules as unknown as string[])
+    stripBundledTorrentProcessRules(template.rules as unknown as string[]),
+    geminiHosts
   )
   template.rules = [
     ...domainEntries,
+    ...aiEntries,
     ...torrentEntries,
     ...geminiEntries,
     ...processEntries,
@@ -699,7 +922,7 @@ export async function generateProfile(): Promise<void> {
 
   const proxyGroup =
     (profile['proxy-groups'] as Array<{ name: string }>)?.[0]?.name || '→ VelumVPN'
-  applyRouteMode(profile, routeMode, proxyGroup)
+  await applyRouteMode(profile, routeMode, proxyGroup)
   await ensureBittorrentSniffer(profile)
 
   const tunEnabled = profile.tun?.enable ?? false
@@ -753,7 +976,13 @@ async function generateFromTemplate(
   }
 
   const customRules = await getCustomRules()
-  injectCustomRules(template, customRules, routeMode)
+  const aiPresets = await getAiPresets()
+  const userWantsVpn = (controledMihomoConfig.tun?.enable ?? false) || proxyModeEnabled
+  await injectCustomRules(template, customRules, routeMode, aiPresets, userWantsVpn)
+  const aiKillSwitch = enabledAiPresets(aiPresets).length > 0
+  if (!userWantsVpn && aiKillSwitch) {
+    forceMatchDirect(template)
+  }
   await ensureBittorrentSniffer(template)
 
   // Google/Cloudflare DoH/DoT is blocked in RU; node hostnames must resolve
@@ -762,9 +991,14 @@ async function generateFromTemplate(
 
   // Apply TUN enable state and platform-specific settings from controlled config
   if (template.tun) {
-    template.tun.enable = controledMihomoConfig.tun?.enable ?? false
-    if (process.platform === 'linux') {
+    template.tun.enable = (controledMihomoConfig.tun?.enable ?? false) || aiKillSwitch
+    if (process.platform === 'linux' || process.platform === 'darwin') {
+      // macOS rejects a TUN device that is not utunN. gvisor does not need one;
+      // the Windows "mixed" stack and the name "velumvpn" fail to come up there.
       template.tun.stack = 'gvisor'
+      if (process.platform === 'darwin') {
+        delete template.tun.device
+      }
       if (!template.tun['inet4-address']) {
         template.tun['inet4-address'] = ['198.18.0.1/16']
       }
@@ -1120,11 +1354,11 @@ export async function stripMissingGeositeRule(listName: string): Promise<boolean
   return true
 }
 
-function applyRouteMode(
+async function applyRouteMode(
   profile: MihomoConfig,
   routeMode: string,
   proxyGroup: string
-): void {
+): Promise<void> {
   const base = [
     'GEOIP,private,DIRECT,no-resolve',
     'GEOSITE,private,DIRECT',
@@ -1132,13 +1366,11 @@ function applyRouteMode(
   ]
 
   const torrentDirect = torrentRuleEntries()
-  const geminiVpn = geminiVpnRuleEntries(proxyGroup)
 
   if (routeMode === 'blocked') {
     profile.rules = [
       ...base,
       ...torrentDirect,
-      ...geminiVpn,
       `AND,((NETWORK,UDP),(DST-PORT,50000-65535)),${proxyGroup}`,
       `GEOSITE,youtube,${proxyGroup}`,
       `GEOSITE,telegram,${proxyGroup}`,
@@ -1153,7 +1385,6 @@ function applyRouteMode(
     profile.rules = [
       ...base,
       ...torrentDirect,
-      ...geminiVpn,
       'GEOIP,ru,DIRECT',
       `MATCH,${proxyGroup}`
     ] as unknown as []
@@ -1163,5 +1394,15 @@ function applyRouteMode(
       ...torrentDirect,
       `MATCH,${proxyGroup}`
     ] as unknown as []
+  }
+
+  const customRules = await getCustomRules()
+  const aiPresets = await getAiPresets()
+  const { proxyMode = false } = await getAppConfig()
+  const protectionOn = (profile.tun?.enable ?? false) || proxyMode
+  await injectCustomRules(profile, customRules, routeMode, aiPresets, protectionOn)
+  if (!protectionOn && enabledAiPresets(aiPresets).length > 0) {
+    forceMatchDirect(profile)
+    if (profile.tun) profile.tun.enable = true
   }
 }

@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { ArrowDown, ArrowUp, CheckSquare, Globe, GripVertical, Pencil, ListTree, Plus, Square, Trash2, Upload, X } from 'lucide-react'
 import { CustomRuleItem, CustomRules, getCustomRules, setCustomRules } from '@renderer/utils/ipc'
 import { applyRulesChange } from '@renderer/velum/rules/apply-rules'
+import { AiPresetsPanel } from '@renderer/velum/rules/ai-presets-panel'
 import { useConnectionsStore } from '@renderer/store/connections-store'
 import { useAppPathCacheStore } from '@renderer/store/app-path-cache'
 import { useIconsStore } from '@renderer/store/icons-store'
@@ -25,6 +26,7 @@ import {
 } from '@renderer/velum/ui/primitives'
 
 type Kind = 'app' | 'domain' | 'ip'
+type Tab = Kind | 'ai'
 type Side = 'vpn' | 'direct'
 
 const otherSide = (s: Side): Side => (s === 'vpn' ? 'direct' : 'vpn')
@@ -288,7 +290,8 @@ const RulesPage: React.FC = () => {
   const { mutate } = useSWRConfig()
   const servers = useServers()
   const [rules, setRules] = useState<CustomRules>(EMPTY)
-  const [kind, setKind] = useState<Kind>('app')
+  const [tab, setTab] = useState<Tab>('app')
+  const kind: Kind = tab === 'ai' ? 'domain' : tab
   // Display order only: the stored lists keep the order entries were added in.
   const [sort, setSort] = useState<SortMode>(readSort)
   const [sortDir, setSortDir] = useState<SortDir>(readSortDir)
@@ -459,7 +462,8 @@ const RulesPage: React.FC = () => {
   const tabs = [
     { key: 'app' as const, label: t('velumUi.rules.tabApps') },
     { key: 'domain' as const, label: t('velumUi.rules.tabDomains') },
-    { key: 'ip' as const, label: t('velumUi.rules.tabIPs') }
+    { key: 'ip' as const, label: t('velumUi.rules.tabIPs') },
+    { key: 'ai' as const, label: t('customRules.ai.tab') }
   ]
   // Tooltip for the selected sort: what the arrow means right now.
   const sortHint =
@@ -745,13 +749,13 @@ const RulesPage: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <Segmented
             items={tabs}
-            value={kind}
+            value={tab}
             onChange={(k) => {
-              setKind(k)
+              setTab(k)
               exitSelect()
             }}
           />
-          {/* Click a sort to select it; click the selected one again to flip its direction. */}
+          {tab !== 'ai' && (
           <div className="inline-flex gap-1 rounded-xl border border-vl-line bg-vl-panel p-1">
             {sortTabs.map((item) => {
               const active = sort === item.key
@@ -776,13 +780,20 @@ const RulesPage: React.FC = () => {
               )
             })}
           </div>
+          )}
       </div>
+      {tab === 'ai' ? (
+        <AiPresetsPanel />
+      ) : (
+        <>
       <span className="-mt-2 text-xs text-vl-faint">{t('velumUi.rules.dragHint')}</span>
       <span className="-mt-3 text-xs text-vl-faint">{t('customRules.serverPageHint')}</span>
       <div className="flex min-h-0 flex-1 gap-4">
         {renderColumn('vpn')}
         {renderColumn('direct')}
       </div>
+        </>
+      )}
 
       {picker && (
         <ProcessPicker

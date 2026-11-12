@@ -36,6 +36,9 @@ import {
   removeProfileItem,
   getCustomRules,
   setCustomRules,
+  getAiPresets,
+  setAiPreset,
+  refreshAiPresetDomains,
   changeCurrentProfile,
   getProfileStr,
   getFileStr,
@@ -202,6 +205,9 @@ ipcMain.handle('patchMihomoConfig', (_e, patch) => ipcErrorWrapper(patchMihomoCo
   ipcMain.handle('patchAppConfig', (_e, config) => ipcErrorWrapper(patchAppConfig)(config))
   ipcMain.handle('getCustomRules', ipcErrorWrapper(getCustomRules))
   ipcMain.handle('setCustomRules', (_e, rules) => ipcErrorWrapper(setCustomRules)(rules))
+  ipcMain.handle('getAiPresets', ipcErrorWrapper(getAiPresets))
+  ipcMain.handle('setAiPreset', (_e, id, patch) => ipcErrorWrapper(setAiPreset)(id, patch))
+  ipcMain.handle('refreshAiPresetDomains', ipcErrorWrapper(refreshAiPresetDomains))
   ipcMain.handle('getControledMihomoConfig', (_e, force) =>
     ipcErrorWrapper(getControledMihomoConfig)(force)
   )

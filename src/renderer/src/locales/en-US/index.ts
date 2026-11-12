@@ -1069,7 +1069,34 @@ export default {
     serverEditHint: 'Leave this unset to use the server currently selected in the app.',
     serverPageHint:
       'In the “Through VPN” column you can pick a country for each rule: tap the pencil and choose a server. If you don’t, the rule uses the server selected in the app.',
-    serverFallback: 'If this server is down, traffic falls back to the server selected in the app'
+    serverFallback: 'If this server is down, traffic falls back to the server selected in the app',
+    ai: {
+      tab: 'AI',
+      hint: 'Turn a service on to send its domains through the chosen country. If you leave the country unset, the app’s current country is locked — auto-select will not hop to another. If you turn VPN off in the app, or that country/tunnel is down, those domains stay blocked while the app is running. Domain lists download from GitHub — no app update needed.',
+      refresh: 'Update list',
+      updated: 'Domain list updated',
+      updatedAt: 'GitHub list: {{time}}',
+      domainCount: '{{count}} domains',
+      viewDomains: 'Domains',
+      layoutList: 'List',
+      layoutGrid: '3-up grid',
+      domainsHint: 'These hosts go through the chosen country. The list is extra/ai-presets.json on GitHub.',
+      serverHint:
+        'Pick a country, or leave “follow the app” to lock the current country (not the whole auto group). If it or the VPN goes down, those domains are blocked instead of moving to another country.',
+      presets: {
+        openai: 'ChatGPT / OpenAI',
+        anthropic: 'Claude',
+        'google-gemini': 'Google AI / Gemini',
+        xai: 'Grok',
+        perplexity: 'Perplexity',
+        'github-copilot': 'GitHub Copilot',
+        huggingface: 'Hugging Face',
+        deepseek: 'DeepSeek',
+        groq: 'Groq',
+        mistral: 'Mistral',
+        'meta-ai': 'Meta AI'
+      }
+    }
   },
   velumUi: {
     nav: { quit: 'Quit', github: 'GitHub' },
