@@ -16,8 +16,8 @@ on:
 #      - '.github/ISSUE_TEMPLATE/**'
 #      - '.github/workflows/issues.yml'
 
-# Windows and Linux are separate jobs in the same workflow. fail-fast is off, and
-# release/pre-release run even if one platform fails, so the other can still ship.
+# Windows, Linux and macOS are separate jobs in the same workflow. fail-fast is off,
+# and release/pre-release run even if one platform fails, so the others can still ship.
 
 jobs:
   build-windows:
@@ -200,17 +200,91 @@ jobs:
             latest.yml
             changelog.md
 
-  # build-macos:
-  #   runs-on: macos-latest
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       arch: [x64, arm64]
-  #   name: macOS ${{ matrix.arch }}
-  #   steps: ...
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, arm64]
+    name: macOS ${{ matrix.arch }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        run: npm install -g pnpm
+
+      - name: Determine and Update Version
+        shell: bash
+        run: |
+          GIT_COMMIT_HASH=$(git rev-parse --short HEAD)
+          VERSION=$(jq -r '.version' package.json)
+
+          if [ "${{ github.event.inputs.version }}" == "" ]; then
+            BASE_VERSION=$(echo $VERSION | awk -F. '{print $1"."$2"."$3+1}')
+            VERSION_PREFIX=${VERSION_PREFIX:-beta}
+            RELEASE_VERSION="${BASE_VERSION}-${VERSION_PREFIX}-${GIT_COMMIT_HASH}"
+          else
+            INPUT_VERSION="${{ github.event.inputs.version }}"
+            CLEAN_VERSION=$(echo "$INPUT_VERSION" | sed 's/^v//')
+            if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+              echo "Invalid version format: $INPUT_VERSION"
+              exit 1
+            fi
+            RELEASE_VERSION="$CLEAN_VERSION"
+          fi
+
+          jq --arg version "$RELEASE_VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json
+
+      - name: Install Dependencies and Prepare
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          SKIP_PREPARE=1 pnpm install
+          pnpm prepare --${{ matrix.arch }}
+
+      - name: Create Apple API Key file
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "${{ secrets.APPLE_API_KEY_CONTENT }}" > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8
+
+      - name: Build
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          CSC_LINK: ${{ secrets.APPLE_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          CSC_NAME: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ format('~/.appstoreconnect/private_keys/AuthKey_{0}.p8', secrets.APPLE_API_KEY) }}
+        shell: bash
+        run: |
+          if [[ "${{ matrix.arch }}" == "x64" ]]; then
+            pnpm build:mac:x64
+          else
+            pnpm build:mac
+          fi
+
+      - name: Generate latest.yml
+        shell: bash
+        run: SKIP_CHANGELOG=1 pnpm updater
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: |
+            dist/VelumVPN*
+            !dist/*.plist
+            !dist/*blockmap*
+            latest.yml
+            changelog.md
 
   pre-release:
-    needs: [build-windows, build-linux]
+    needs: [build-windows, build-linux, build-macos]
     if: always() && !cancelled()
     runs-on: ubuntu-latest
     steps:
@@ -258,7 +332,7 @@ jobs:
           prerelease: true
 
   release:
-    needs: [build-windows, build-linux]
+    needs: [build-windows, build-linux, build-macos]
     if: always() && !cancelled() && (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''))
     runs-on: ubuntu-latest
     steps:
