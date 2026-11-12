@@ -21,6 +21,23 @@ async function isRunningAsAdmin(): Promise<boolean> {
   }
 }
 
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`
+}
+
+function appleScriptString(value: string): string {
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+}
+
+// osascript's `do shell script` breaks on spaces in Application Support paths
+// when the command is pasted in with backslash-escaped quotes.
+export async function runDarwinAdmin(shellCommand: string): Promise<void> {
+  await execFilePromise('osascript', [
+    '-e',
+    `do shell script ${appleScriptString(shellCommand)} with administrator privileges`
+  ])
+}
+
 export async function execWithElevation(command: string, args: string[]): Promise<void> {
   if (process.platform === 'win32') {
     try {
@@ -59,12 +76,8 @@ export async function execWithElevation(command: string, args: string[]): Promis
       )
     }
   } else if (process.platform === 'darwin') {
-    const cmd = `${command} ${args.join(' ')}`
     try {
-      await execFilePromise('osascript', [
-        '-e',
-        `do shell script "${cmd}" with administrator privileges`
-      ])
+      await runDarwinAdmin([command, ...args].map(shellQuote).join(' '))
     } catch (error) {
       throw new Error(
         `${t('error.macosElevationFailed')}：${error instanceof Error ? error.message : String(error)}`
