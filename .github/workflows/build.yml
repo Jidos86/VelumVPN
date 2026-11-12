@@ -16,58 +16,117 @@ on:
 #      - '.github/ISSUE_TEMPLATE/**'
 #      - '.github/workflows/issues.yml'
 
+# Windows and Linux are separate jobs in the same workflow. fail-fast is off, and
+# release/pre-release run even if one platform fails, so the other can still ship.
+
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
+  build-windows:
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            arch: x64
+          - arch: x64
             format: 7z
-          - os: windows-latest
-            arch: x64
+          - arch: x64
             format: nsis
-          - os: windows-latest
-            arch: arm64
+          - arch: arm64
             format: 7z
-          - os: windows-latest
-            arch: arm64
+          - arch: arm64
             format: nsis
+    name: Windows ${{ matrix.arch }}-${{ matrix.format }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-          # - os: macos-latest
-          #   arch: x64
-          # - os: macos-latest
-          #   arch: arm64
+      - name: Setup pnpm
+        run: npm install -g pnpm
 
-          - os: ubuntu-latest
-            arch: x64
+      - name: Determine and Update Version
+        shell: bash
+        run: |
+          GIT_COMMIT_HASH=$(git rev-parse --short HEAD)
+          VERSION=$(jq -r '.version' package.json)
+
+          if [ "${{ github.event.inputs.version }}" == "" ]; then
+            BASE_VERSION=$(echo $VERSION | awk -F. '{print $1"."$2"."$3+1}')
+            VERSION_PREFIX=${VERSION_PREFIX:-beta}
+            RELEASE_VERSION="${BASE_VERSION}-${VERSION_PREFIX}-${GIT_COMMIT_HASH}"
+          else
+            INPUT_VERSION="${{ github.event.inputs.version }}"
+            CLEAN_VERSION=$(echo "$INPUT_VERSION" | sed 's/^v//')
+            if [[ ! "$CLEAN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+              echo "Invalid version format: $INPUT_VERSION"
+              exit 1
+            fi
+            RELEASE_VERSION="$CLEAN_VERSION"
+          fi
+
+          jq --arg version "$RELEASE_VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json
+
+      - name: Install Dependencies and Prepare
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          SKIP_PREPARE=1 pnpm install
+          pnpm prepare --${{ matrix.arch }}
+
+      - name: Build
+        env:
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+        shell: bash
+        run: pnpm build:win ${{ matrix.format }} --${{ matrix.arch }}
+
+      - name: Add Portable Flag
+        if: matrix.format == '7z'
+        shell: pwsh
+        run: |
+          New-Item -Path "PORTABLE" -ItemType File
+          Get-ChildItem dist/*portable.7z | ForEach-Object {
+            7z a $_.FullName PORTABLE
+          }
+
+      - name: Generate latest.yml
+        shell: bash
+        run: SKIP_CHANGELOG=1 pnpm updater
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.arch }}-${{ matrix.format }}
+          path: |
+            dist/VelumVPN*
+            !dist/*.plist
+            !dist/*blockmap*
+            latest.yml
+            changelog.md
+
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
             format: deb
-          - os: ubuntu-latest
-            arch: x64
+          - arch: x64
             format: rpm
-          - os: ubuntu-latest
-            arch: x64
+          - arch: x64
             format: pacman
-          - os: ubuntu-latest
-            arch: x64
+          - arch: x64
             format: AppImage
-          - os: ubuntu-latest
-            arch: x64
+          - arch: x64
             format: flatpak
-          - os: ubuntu-latest
-            arch: arm64
+          - arch: arm64
             format: deb
-          - os: ubuntu-latest
-            arch: arm64
+          - arch: arm64
             format: rpm
-          - os: ubuntu-latest
-            arch: arm64
+          - arch: arm64
             format: AppImage
-
-    name: Build ${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
-
+    name: Linux ${{ matrix.arch }}-${{ matrix.format }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -98,7 +157,7 @@ jobs:
           jq --arg version "$RELEASE_VERSION" '.version = $version' package.json > tmp.json && mv tmp.json package.json
 
       - name: Install Build Tools
-        if: matrix.os == 'ubuntu-latest' && (matrix.format == 'pacman' || matrix.format == 'flatpak')
+        if: matrix.format == 'pacman' || matrix.format == 'flatpak'
         run: |
           sudo apt-get update
           if [ "${{ matrix.format }}" == "pacman" ]; then
@@ -119,42 +178,12 @@ jobs:
           SKIP_PREPARE=1 pnpm install
           pnpm prepare --${{ matrix.arch }}
 
-      - name: Create Apple API Key file
-        if: matrix.os == 'macos-latest'
-        run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo "${{ secrets.APPLE_API_KEY_CONTENT }}" > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPLE_API_KEY }}.p8
-
       - name: Build
         env:
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
-          CSC_LINK: ${{ matrix.os == 'macos-latest' && secrets.APPLE_CERTIFICATE || '' }}
-          CSC_KEY_PASSWORD: ${{ matrix.os == 'macos-latest' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
-          CSC_NAME: ${{ matrix.os == 'macos-latest' && secrets.APPLE_SIGNING_IDENTITY || '' }}
-          APPLE_API_KEY_ID: ${{ matrix.os == 'macos-latest' && secrets.APPLE_API_KEY || '' }}
-          APPLE_API_ISSUER: ${{ matrix.os == 'macos-latest' && secrets.APPLE_API_ISSUER || '' }}
-          APPLE_API_KEY: ${{ matrix.os == 'macos-latest' && format('~/.appstoreconnect/private_keys/AuthKey_{0}.p8', secrets.APPLE_API_KEY) || '' }}
         shell: bash
-        run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            pnpm build:win ${{ matrix.format }} --${{ matrix.arch }}
-          elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            pnpm build:linux ${{ matrix.format }} --${{ matrix.arch }}
-          elif [[ "${{ matrix.arch }}" == "x64" ]]; then
-            pnpm build:mac:x64
-          else
-            pnpm build:mac
-          fi
-
-      - name: Add Portable Flag
-        if: matrix.os == 'windows-latest' && matrix.format == '7z'
-        shell: pwsh
-        run: |
-          New-Item -Path "PORTABLE" -ItemType File
-          Get-ChildItem dist/*portable.7z | ForEach-Object {
-            7z a $_.FullName PORTABLE
-          }
+        run: pnpm build:linux ${{ matrix.format }} --${{ matrix.arch }}
 
       - name: Generate latest.yml
         shell: bash
@@ -163,7 +192,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-${{ matrix.arch }}${{ matrix.format && '-' || '' }}${{ matrix.format || '' }}
+          name: linux-${{ matrix.arch }}-${{ matrix.format }}
           path: |
             dist/VelumVPN*
             !dist/*.plist
@@ -171,8 +200,18 @@ jobs:
             latest.yml
             changelog.md
 
+  # build-macos:
+  #   runs-on: macos-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       arch: [x64, arm64]
+  #   name: macOS ${{ matrix.arch }}
+  #   steps: ...
+
   pre-release:
-    needs: [build]
+    needs: [build-windows, build-linux]
+    if: always() && !cancelled()
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -183,6 +222,16 @@ jobs:
         with:
           path: bin/
           merge-multiple: true
+
+      - name: Require at least one package
+        run: |
+          shopt -s nullglob
+          files=(bin/dist/VelumVPN* bin/VelumVPN*)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No packages were built"
+            exit 1
+          fi
+          printf '%s\n' "${files[@]}"
 
       - name: Delete current release assets
         uses: 8Mi-Tech/delete-release-assets-action@main
@@ -199,7 +248,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish Prerelease
-        if: success()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: pre-release
@@ -210,8 +258,8 @@ jobs:
           prerelease: true
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.version != '')
-    needs: [build]
+    needs: [build-windows, build-linux]
+    if: always() && !cancelled() && (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.version != ''))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -246,6 +294,16 @@ jobs:
           path: bin/
           merge-multiple: true
 
+      - name: Require at least one package
+        run: |
+          shopt -s nullglob
+          files=(bin/dist/VelumVPN* bin/VelumVPN*)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No packages were built"
+            exit 1
+          fi
+          printf '%s\n' "${files[@]}"
+
       - name: Delete Current
         uses: 8Mi-Tech/delete-release-assets-action@main
         with:
@@ -254,7 +312,6 @@ jobs:
           deleteOnlyFromDrafts: false
 
       - name: Publish Release
-        if: success()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref }}
@@ -264,7 +321,6 @@ jobs:
             bin/dist/*
 
       - name: Telegram Alert
-        if: success()
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           GROUP_ID: ${{ secrets.TELEGRAM_TO_GROUP }}
