@@ -10,7 +10,8 @@ import {
   updateGeodata,
   mihomoCloseAllConnections,
   getCustomRules,
-  checkUpdate
+  checkUpdate,
+  getTunHealth
 } from '@renderer/utils/ipc'
 import NumberFlow from '@number-flow/react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -18,7 +19,18 @@ import { useTranslation } from 'react-i18next'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import dayjs from 'dayjs'
-import { ArrowDown, ArrowUp, ChevronRight, InfinityIcon, LifeBuoy, PlusCircle, RefreshCcw, WifiOff } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronRight,
+  InfinityIcon,
+  LifeBuoy,
+  PlusCircle,
+  RefreshCcw,
+  ShieldAlert,
+  ShieldCheck,
+  WifiOff
+} from 'lucide-react'
 import { SiGithub, SiTelegram } from 'react-icons/si'
 import EditInfoModal from '@renderer/components/profiles/edit-info-modal'
 import ChangelogModal from '@renderer/components/updater/changelog-modal'
@@ -297,6 +309,7 @@ const Home: React.FC = () => {
     expireTimestamp > 0 ? Math.max(0, dayjs.unix(expireTimestamp).diff(dayjs(), 'day')) : 0
 
   const { data: customRules } = useSWR('customRulesCount', getCustomRules)
+  const { data: tunHealth } = useSWR('tunHealth', getTunHealth, { refreshInterval: 30000 })
 
   // App update: reuse the shared cache the app-level auto check fills; a manual check refreshes it.
   const { mutate } = useSWRConfig()
@@ -463,6 +476,43 @@ const Home: React.FC = () => {
         <div className="col-span-2 row-start-1 flex items-center justify-between gap-4">
           <h1 className="text-xl font-extrabold text-vl-text">{t('sider.home')}</h1>
           <div className="flex items-center gap-1">
+            {(() => {
+              const fails = tunHealth?.checks.filter((c) => c.level === 'fail').length ?? 0
+              const warns = tunHealth?.checks.filter((c) => c.level === 'warn').length ?? 0
+              const tone = !tunHealth
+                ? 'muted'
+                : fails
+                  ? 'fail'
+                  : warns
+                    ? 'warn'
+                    : 'ok'
+              const Icon = tone === 'fail' || tone === 'warn' ? ShieldAlert : ShieldCheck
+              return (
+                <button
+                  type="button"
+                  title={t('velumUi.settings.tabDiagnostics')}
+                  onClick={() => navigate('/settings', { state: { tab: 'diagnostics' } })}
+                  className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors hover:bg-white/6 ${
+                    tone === 'ok'
+                      ? 'text-vl-accent'
+                      : tone === 'fail'
+                        ? 'text-vl-danger'
+                        : tone === 'warn'
+                          ? 'text-vl-warn'
+                          : 'text-vl-muted'
+                  }`}
+                >
+                  <Icon className="size-3.5" />
+                  {!tunHealth
+                    ? t('velumUi.health.homeChecking')
+                    : fails
+                      ? t('velumUi.health.homeFail', { count: fails })
+                      : warns
+                        ? t('velumUi.health.homeWarn', { count: warns })
+                        : t('velumUi.health.homeOk')}
+                </button>
+              )
+            })()}
             <button
               type="button"
               onClick={() => open('https://github.com/Jidos86/VelumVPN')}

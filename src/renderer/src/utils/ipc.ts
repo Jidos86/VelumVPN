@@ -265,6 +265,14 @@ export async function serviceStatus(): Promise<
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('serviceStatus'))
 }
 
+export async function getTunHealth(): Promise<TunHealthReport> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getTunHealth'))
+}
+
+export async function startWindowsService(id: string): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('startWindowsService', id))
+}
+
 export async function testServiceConnection(): Promise<boolean> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('testServiceConnection'))
 }

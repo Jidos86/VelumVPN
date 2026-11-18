@@ -1212,7 +1212,96 @@ export default {
     settings: {
       tabConnection: 'Connection',
       tabApp: 'App',
+      tabDiagnostics: 'App diagnostics',
       tabAdvanced: 'Advanced'
+    },
+    health: {
+      title: 'App diagnostics',
+      subtitle:
+        'Checks privileges, Windows services and network adapters. You can start a stopped service from here.',
+      summaryOk: 'Everything the tunnel needs is in place',
+      summaryWarn: 'Notes: {{count}}',
+      summaryFail: 'The tunnel is likely broken: {{count}} errors',
+      sectionStatus: 'Status',
+      sectionServices: 'Windows services',
+      colService: 'Service',
+      colStatus: 'Status',
+      required: 'needed for TUN',
+      optional: 'optional',
+      start: 'Turn on',
+      starting: 'Turning on…',
+      started: 'Service turned on',
+      install: 'Install',
+      installed: 'Service installed',
+      init: 'Initialize',
+      restartAdmin: 'Restart as administrator',
+      restarting: 'Restarting…',
+      homeOk: 'All good',
+      homeWarn: 'Notes: {{count}}',
+      homeFail: 'Errors: {{count}}',
+      homeChecking: 'Checking…',
+      layoutBlocks: 'Blocks',
+      layoutTable: 'Table',
+      adapters: 'Network adapters',
+      adaptersEmpty: 'No adapters found',
+      up: 'up',
+      down: 'down',
+      state: {
+        running: 'running',
+        stopped: 'stopped',
+        missing: 'missing',
+        disabled: 'disabled',
+        unknown: 'unknown'
+      },
+      svc: {
+        BFE: 'Base Filtering Engine (BFE)',
+        MpsSvc: 'Windows Firewall',
+        nsi: 'Network Store Interface (NSI)',
+        Dhcp: 'DHCP Client',
+        Dnscache: 'DNS Client',
+        PlugPlay: 'Plug and Play',
+        netman: 'Network Connections'
+      },
+      kind: { tun: 'Our TUN', vpn: 'Other VPN', other: 'Network' },
+      checks: {
+        admin: 'Administrator rights',
+        service: 'Windows service',
+        helper: 'Velum service (optional)',
+        'runtime-tun': 'Core tunnel',
+        'ai-tun': 'AI presets holding the tunnel',
+        'tun-adapter': 'Wintun adapter',
+        'competing-vpn': 'Other VPNs',
+        'tun-dev': '/dev/net/tun device',
+        'core-perm': 'Core permissions'
+      },
+      details: {
+        admin: {
+          yes: 'The app is running as administrator',
+          no: 'No admin rights — TUN will not start'
+        },
+        helper: {
+          running: 'Running',
+          stopped: 'Stopped',
+          'not-installed': 'Not installed — the tunnel can still work without it',
+          paused: 'Paused',
+          unknown: 'Could not check',
+          'need-init': 'Needs initialization'
+        },
+        'runtime-tun': {
+          offline: 'Core is not responding',
+          held: 'The button is off, but the core still holds TUN',
+          missing: 'Protection is on, but TUN is off in the core',
+          on: 'On',
+          off: 'Off'
+        },
+        'ai-tun': {
+          vpn: 'Presets are on; traffic goes through the VPN',
+          reject: 'VPN is off — AI sites are blocked and the adapter stays up'
+        },
+        'tun-adapter': { none: 'Adapter not found', idle: 'Not needed right now' },
+        'competing-vpn': { none: 'No conflicting adapters' },
+        'core-perm': { suid: 'Present', none: 'No setuid' }
+      }
     }
   }
 }

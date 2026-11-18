@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'motion/react'
 import { Github } from 'lucide-react'
@@ -10,13 +11,23 @@ import AppearanceConfig from '@renderer/components/settings/appearance-confis'
 import LanguageConfig from '@renderer/components/settings/language-config'
 import ProxySwitches from '@renderer/components/settings/proxy-switches'
 import GeoAndTemplatesConfig from '@renderer/components/settings/geo-templates-config'
+import TunHealthPanel from '@renderer/components/settings/tun-health'
 import { IconButton, PageShell, Segmented } from '@renderer/velum/ui/primitives'
 
-type Tab = 'connection' | 'app' | 'advanced'
+type Tab = 'connection' | 'app' | 'diagnostics' | 'advanced'
 
 const Settings: React.FC = () => {
   const { t } = useTranslation()
-  const [tab, setTab] = useState<Tab>('app')
+  const location = useLocation()
+  const requestedTab = (location.state as { tab?: Tab } | null)?.tab
+  const [tab, setTab] = useState<Tab>(
+    requestedTab === 'diagnostics' ||
+      requestedTab === 'connection' ||
+      requestedTab === 'advanced' ||
+      requestedTab === 'app'
+      ? requestedTab
+      : 'app'
+  )
   const [showHiddenSettings, setShowHiddenSettings] = useState(false)
 
   return (
@@ -40,6 +51,7 @@ const Settings: React.FC = () => {
           items={[
             { key: 'app', label: t('velumUi.settings.tabApp') },
             { key: 'connection', label: t('velumUi.settings.tabConnection') },
+            { key: 'diagnostics', label: t('velumUi.settings.tabDiagnostics') },
             { key: 'advanced', label: t('velumUi.settings.tabAdvanced') }
           ]}
         />
@@ -62,6 +74,7 @@ const Settings: React.FC = () => {
               <GeoAndTemplatesConfig />
             </>
           )}
+          {tab === 'diagnostics' && <TunHealthPanel />}
           {tab === 'app' && (
             <>
               <LanguageConfig />

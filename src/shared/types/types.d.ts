@@ -62,3 +62,75 @@ type Fingerprints =
   | 'edge'
   | '360'
   | 'qq'
+
+type TunHealthLevel = 'ok' | 'warn' | 'fail' | 'info'
+
+interface TunHealthCheck {
+  id: string
+  level: TunHealthLevel
+  detail?: string
+}
+
+interface TunHealthAdapter {
+  name: string
+  description: string
+  status: string
+  mac?: string
+  kind: 'tun' | 'vpn' | 'other'
+}
+
+interface TunHealthService {
+  id: string
+  displayName: string
+  status: string
+  required: boolean
+}
+
+interface TunHealthReport {
+  platform: NodeJS.Platform
+  checkedAt: number
+  admin: boolean
+  helperService: 'running' | 'stopped' | 'not-installed' | 'paused' | 'unknown' | 'need-init'
+  protectionOn: boolean
+  runtimeTun: boolean | null
+  aiKillSwitch: boolean
+  checks: TunHealthCheck[]
+  adapters: TunHealthAdapter[]
+  services: TunHealthService[]
+}
+
+type TunHealthLevel = 'ok' | 'warn' | 'fail' | 'info'
+
+interface TunHealthCheck {
+  id: string
+  level: TunHealthLevel
+  detail?: string
+}
+
+interface TunHealthAdapter {
+  name: string
+  description: string
+  status: string
+  mac?: string
+  kind: 'tun' | 'vpn' | 'other'
+}
+
+interface TunHealthService {
+  id: string
+  displayName: string
+  status: string
+  required: boolean
+}
+
+interface TunHealthReport {
+  platform: NodeJS.Platform
+  checkedAt: number
+  admin: boolean
+  helperService: 'running' | 'stopped' | 'not-installed' | 'paused' | 'unknown' | 'need-init'
+  protectionOn: boolean
+  runtimeTun: boolean | null
+  aiKillSwitch: boolean
+  checks: TunHealthCheck[]
+  adapters: TunHealthAdapter[]
+  services: TunHealthService[]
+}

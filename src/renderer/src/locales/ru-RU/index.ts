@@ -1214,7 +1214,93 @@ export default {
     settings: {
       tabConnection: 'Подключение',
       tabApp: 'Приложение',
+      tabDiagnostics: 'Диагностика приложения',
       tabAdvanced: 'Дополнительно'
+    },
+    health: {
+      title: 'Диагностика приложения',
+      subtitle:
+        'Проверка прав, служб Windows и сетевых адаптеров. Остановленную службу можно запустить отсюда.',
+      summaryOk: 'Всё, что нужно для туннеля, на месте',
+      summaryWarn: 'Есть замечания: {{count}}',
+      summaryFail: 'Туннель, скорее всего, не заработает: {{count}} ошибок',
+      sectionStatus: 'Состояние',
+      sectionServices: 'Службы Windows',
+      colService: 'Служба',
+      colStatus: 'Статус',
+      required: 'нужна для TUN',
+      optional: 'желательно',
+      start: 'Включить',
+      starting: 'Включение…',
+      started: 'Служба включена',
+      install: 'Установить',
+      installed: 'Служба установлена',
+      init: 'Инициализировать',
+      restartAdmin: 'Перезапустить от администратора',
+      restarting: 'Перезапуск…',
+      homeOk: 'Всё работает',
+      homeWarn: 'Замечания: {{count}}',
+      homeFail: 'Ошибки: {{count}}',
+      homeChecking: 'Проверка…',
+      layoutBlocks: 'Блоки',
+      layoutTable: 'Таблица',
+      adapters: 'Сетевые адаптеры',
+      adaptersEmpty: 'Адаптеры не найдены',
+      up: 'вкл',
+      down: 'выкл',
+      state: {
+        running: 'работает',
+        stopped: 'остановлена',
+        missing: 'нет',
+        disabled: 'откл.',
+        unknown: 'неизвестно'
+      },
+      svc: {
+        BFE: 'Базовая фильтрация (BFE)',
+        MpsSvc: 'Брандмауэр Windows',
+        nsi: 'Сетевой интерфейс (NSI)',
+        Dhcp: 'DHCP-клиент',
+        Dnscache: 'DNS-клиент',
+        PlugPlay: 'Plug and Play',
+        netman: 'Сетевые подключения'
+      },
+      kind: { tun: 'Наш TUN', vpn: 'Чужой VPN', other: 'Сеть' },
+      checks: {
+        admin: 'Права администратора',
+        service: 'Служба Windows',
+        helper: 'Служба Velum (необязательно)',
+        'runtime-tun': 'Туннель в ядре',
+        'ai-tun': 'Нейросети держат туннель',
+        'tun-adapter': 'Адаптер Wintun',
+        'competing-vpn': 'Другие VPN',
+        'tun-dev': 'Устройство /dev/net/tun',
+        'core-perm': 'Права ядра'
+      },
+      details: {
+        admin: { yes: 'Приложение запущено с правами администратора', no: 'Нет прав — TUN не поднимется' },
+        helper: {
+          running: 'Работает',
+          stopped: 'Остановлена',
+          'not-installed': 'Не установлена — туннель может работать и без неё',
+          paused: 'На паузе',
+          unknown: 'Не удалось проверить',
+          'need-init': 'Нужна инициализация'
+        },
+        'runtime-tun': {
+          offline: 'Ядро не отвечает',
+          held: 'Кнопка выкл, но ядро держит TUN',
+          missing: 'Защита включена, но TUN в ядре выключен',
+          on: 'Включён',
+          off: 'Выключен'
+        },
+        'ai-tun': {
+          vpn: 'Пресеты включены, трафик идёт через VPN',
+          reject: 'VPN выкл — сайты нейросетей блокируются, адаптер остаётся'
+        },
+        'tun-adapter': { none: 'Адаптер не найден', idle: 'Сейчас не нужен' },
+        'competing-vpn': { none: 'Конфликтующих адаптеров нет' },
+        'core-perm': { suid: 'Есть', none: 'Нет setuid' }
+      }
     }
   }
 }

@@ -96,6 +96,7 @@ import {
   forceUpdateGeodata
 } from '../core/factory'
 import { getInterfaces } from '../sys/interface'
+import { getTunHealth, startWindowsService } from '../sys/tunHealth'
 import { closeTrayIcon, copyEnv, setDockVisible, showTrayIcon, updateTrayIcon } from '../resolve/tray'
 import { registerShortcut } from '../resolve/shortcut'
 import {
@@ -274,6 +275,10 @@ ipcMain.handle('patchMihomoConfig', (_e, patch) => ipcErrorWrapper(patchMihomoCo
   ipcMain.handle('openUWPTool', ipcErrorWrapper(openUWPTool))
   ipcMain.handle('setupFirewall', ipcErrorWrapper(setupFirewall))
   ipcMain.handle('getInterfaces', getInterfaces)
+  ipcMain.handle('getTunHealth', ipcErrorWrapper(getTunHealth))
+  ipcMain.handle('startWindowsService', (_e, id: string) =>
+    ipcErrorWrapper(startWindowsService)(id)
+  )
   ipcMain.handle('registerShortcut', (_e, oldShortcut, newShortcut, action) =>
     ipcErrorWrapper(registerShortcut)(oldShortcut, newShortcut, action)
   )

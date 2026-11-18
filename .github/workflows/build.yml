@@ -201,7 +201,9 @@ jobs:
             changelog.md
 
   build-macos:
-    runs-on: macos-latest
+    # macos-latest (Darwin 25+) fails electron-builder's `security set-key-partition-list`
+    # with SecKeychainUnlock even when CSC_* secrets are present.
+    runs-on: macos-14
     strategy:
       fail-fast: false
       matrix:
