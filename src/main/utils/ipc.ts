@@ -366,20 +366,17 @@ ipcMain.handle('patchMihomoConfig', (_e, patch) => ipcErrorWrapper(patchMihomoCo
     return mainWindow?.isMaximized() ?? false
   })
   ipcMain.handle('needsFirstRunAdmin', () => needsFirstRunAdmin)
-  ipcMain.handle('restartAsAdmin', async () => {
-    if (process.platform !== 'win32') return
-    const { exec } = await import('child_process')
-    const exePath = process.execPath
-    const args = process.argv.slice(1)
-    const escapedExePath = exePath.replace(/'/g, "''")
-    const argsString = args.map((a) => a.replace(/'/g, "''")).join("' '")
-    const command = args.length > 0
-      ? `powershell -NoProfile -Command "Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs"`
-      : `powershell -NoProfile -Command "Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
-    exec(command, { windowsHide: true })
-    setNotQuitDialog()
-    app.quit()
-  })
+  ipcMain.handle(
+    'restartAsAdmin',
+    ipcErrorWrapper(async () => {
+      const { restartAsAdmin } = await import('./elevation')
+      const launched = await restartAsAdmin()
+      if (launched) {
+        setNotQuitDialog()
+        app.quit()
+      }
+    })
+  )
 
   // Route template IPC
   ipcMain.handle('getRouteTemplate', ipcErrorWrapper(async (_e: unknown, mode: string) => {

@@ -39,10 +39,16 @@ const TitleBar: React.FC = () => {
       >
         <img src={Logo} alt="" className="size-4" draggable={false} />
         <span className="text-xs font-semibold tracking-wide text-vl-muted">VelumVPN</span>
-        {IS_BETA && (
+        {import.meta.env.DEV ? (
           <span className="rounded bg-vl-accent/15 px-1.5 py-px text-[10px] font-bold uppercase tracking-wider text-vl-accent">
-            beta
+            dev
           </span>
+        ) : (
+          IS_BETA && (
+            <span className="rounded bg-vl-accent/15 px-1.5 py-px text-[10px] font-bold uppercase tracking-wider text-vl-accent">
+              beta
+            </span>
+          )
         )}
       </button>
       {!isMac && (

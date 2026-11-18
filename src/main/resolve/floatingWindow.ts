@@ -1,10 +1,10 @@
-import { is } from '@electron-toolkit/utils'
 import { BrowserWindow, ipcMain } from 'electron'
 import windowStateKeeper from 'electron-window-state'
 import { join } from 'path'
 import { getAppConfig, patchAppConfig } from '../config'
 import { applyTheme } from './theme'
 import { buildContextMenu } from './tray'
+import { IS_DEV_SHELL } from '../utils/flavor'
 
 export let floatingWindow: BrowserWindow | null = null
 let triggerTimeoutRef: NodeJS.Timeout | null = null
@@ -73,7 +73,7 @@ async function createFloatingWindow(): Promise<void> {
       floatingWindow?.webContents.send('appConfigUpdated')
     }
   })
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+  if (IS_DEV_SHELL && process.env['ELECTRON_RENDERER_URL']) {
     floatingWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/floating.html`)
   } else {
     floatingWindow.loadFile(join(__dirname, '../renderer/floating.html'))

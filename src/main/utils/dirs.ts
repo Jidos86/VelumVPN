@@ -1,5 +1,4 @@
-import { FLAVOR } from './flavor'
-import { is } from '@electron-toolkit/utils'
+import { FLAVOR, IS_DEV_SHELL } from './flavor'
 import { existsSync, mkdirSync, readdirSync, readFileSync, cpSync, writeFileSync } from 'fs'
 import { app } from 'electron'
 import os from 'os'
@@ -78,7 +77,7 @@ export function exePath(): string {
 }
 
 export function resourcesDir(): string {
-  if (is.dev) {
+  if (IS_DEV_SHELL) {
     return path.join(__dirname, '../../extra')
   } else {
     if (app.getAppPath().endsWith('asar')) {
@@ -92,7 +91,7 @@ export function resourcesDir(): string {
 // The full, multi-version changelog.md from the repo root - not the single-version excerpt
 // latest.yml carries for the update-available toast (see scripts/updater.mjs).
 export function getFullChangelog(): string {
-  const changelogPath = is.dev
+  const changelogPath = IS_DEV_SHELL
     ? path.join(__dirname, '../../changelog.md')
     : path.join(resourcesDir(), 'changelog.md')
   return readFileSync(changelogPath, 'utf-8')

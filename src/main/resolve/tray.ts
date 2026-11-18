@@ -1,4 +1,4 @@
-import { FLAVOR } from '../utils/flavor'
+import { FLAVOR, IS_DEV_SHELL } from '../utils/flavor'
 import {
   changeCurrentProfile,
   getAppConfig,
@@ -35,7 +35,6 @@ import { triggerSysProxy } from '../sys/sysproxy'
 import { quitWithoutCore } from '../core/manager'
 import { mihomoHotReloadConfig } from '../core/mihomoApi'
 import { floatingWindow } from './floatingWindow'
-import { is } from '@electron-toolkit/utils'
 import { join } from 'path'
 import { applyTheme } from './theme'
 import { t } from '../utils/i18n'
@@ -164,7 +163,7 @@ async function showCustomTray(): Promise<void> {
       applyTheme(customTheme)
     })
 
-    if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    if (IS_DEV_SHELL && process.env['ELECTRON_RENDERER_URL']) {
       await customTrayWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/traymenu.html`)
     } else {
       await customTrayWindow.loadFile(join(__dirname, '../renderer/traymenu.html'))

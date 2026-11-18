@@ -1,4 +1,4 @@
-import { FLAVOR } from './utils/flavor'
+import { FLAVOR, IS_DEV_SHELL } from './utils/flavor'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { registerIpcMainHandlers } from './utils/ipc'
 import windowStateKeeper from 'electron-window-state'
@@ -79,6 +79,7 @@ const syncConfig = getAppConfigSync()
 if (
   process.platform === 'win32' &&
   !is.dev &&
+  !IS_DEV_SHELL &&
   !process.argv.includes('noadmin') &&
   syncConfig.corePermissionMode !== 'service'
 ) {
@@ -104,13 +105,15 @@ if (
   }
 }
 
-if (process.platform === 'win32' && is.dev) {
-  // mihomo.yaml doesn't exist yet on a fresh data dir (init() creates it later).
-  patchControledMihomoConfig({ tun: { enable: false } }).catch(() => {})
+if (process.platform === 'win32' && (is.dev || IS_DEV_SHELL)) {
+  // Copied prod/beta configs reuse 7897/7899 and the installed TUN/pipe — keep DEV off those.
+  patchControledMihomoConfig({
+    tun: { enable: false },
+    'mixed-port': FLAVOR.mixedPort
+  }).catch(() => {})
 }
 
 const gotTheLock = app.requestSingleInstanceLock()
-
 if (!gotTheLock) {
   app.quit()
 }
@@ -632,7 +635,7 @@ export async function createWindow(): Promise<void> {
     })
     // HMR for renderer base on electron-vite cli.
     // Load the remote URL for development or the local html file for production.
-    if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    if (IS_DEV_SHELL && process.env['ELECTRON_RENDERER_URL']) {
       mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
     } else {
       mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
