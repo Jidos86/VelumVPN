@@ -7,6 +7,7 @@ import {
   patchAppConfig,
   patchControledMihomoConfig
 } from '../config'
+import { mihomoCloseAllConnections, mihomoHotReloadConfig } from '../core/mihomoApi'
 import { triggerSysProxy } from '../sys/sysproxy'
 import { quitWithoutCore } from '../core/manager'
 import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
@@ -77,6 +78,8 @@ export async function registerShortcut(
           } else {
             await patchControledMihomoConfig({ tun: { enable: !enable } })
           }
+          await mihomoHotReloadConfig()
+          await mihomoCloseAllConnections()
           new Notification({
             title: !enable ? t('notification.tunEnabled') : t('notification.tunDisabled')
           }).show()

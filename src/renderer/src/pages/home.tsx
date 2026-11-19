@@ -362,10 +362,12 @@ const Home: React.FC = () => {
         if (mainSwitchMode === 'tun') {
           await patchControledMihomoConfig({ tun: { enable: true }, dns: { enable: true } })
           await mihomoHotReloadConfig()
+          await mihomoCloseAllConnections()
         } else {
           if (writeSysProxy && mode == 'manual' && sysProxyDisabled) return
           await patchAppConfig({ proxyMode: true })
           await mihomoHotReloadConfig()
+          await mihomoCloseAllConnections()
           if (writeSysProxy) {
             await triggerSysProxy(true, onlyActiveDevice)
           }
@@ -384,6 +386,7 @@ const Home: React.FC = () => {
         }
         if (tunWasEnabled || proxyModeWasEnabled) {
           await mihomoHotReloadConfig()
+          await mihomoCloseAllConnections()
         }
       }
       window.electron.ipcRenderer.send('updateFloatingWindow')

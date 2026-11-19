@@ -210,6 +210,8 @@ async function toggleProtection(): Promise<void> {
       } else {
         await patchControledMihomoConfig({ tun: { enable } })
       }
+      await mihomoHotReloadConfig()
+      await mihomoCloseAllConnections()
       notifyWindows('controledMihomoConfigUpdated')
     } else {
       if (enable) {

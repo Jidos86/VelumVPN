@@ -690,11 +690,14 @@ function aiRejectOnlyEntries(ai: AiPresets): string[] {
   return entries
 }
 
-function forceMatchDirect(profile: MihomoConfig): void {
-  if (!Array.isArray(profile.rules)) return
-  profile.rules = (profile.rules as unknown as string[]).map((rule) =>
-    rule.startsWith('MATCH,') ? 'MATCH,DIRECT' : rule
-  ) as unknown as []
+// The switch is off, but an AI preset is still on. TUN has to stay so those
+// domains can be rejected instead of leaking out the real IP. Every proxy
+// rule (geosite, custom pins, the route mode) has to go: rewriting only MATCH
+// leaves YouTube and Discord on the node, so the button looks off while the
+// VPN keeps working.
+function applyVpnOffAiHold(profile: MihomoConfig, ai: AiPresets): void {
+  profile.rules = [...aiRejectOnlyEntries(ai), 'MATCH,DIRECT'] as unknown as []
+  if (profile.tun) profile.tun.enable = true
 }
 
 async function injectAiPresetRules(
@@ -983,7 +986,7 @@ async function generateFromTemplate(
   await injectCustomRules(template, customRules, routeMode, aiPresets, userWantsVpn)
   const aiKillSwitch = enabledAiPresets(aiPresets).length > 0
   if (!userWantsVpn && aiKillSwitch) {
-    forceMatchDirect(template)
+    applyVpnOffAiHold(template, aiPresets)
   }
   await ensureBittorrentSniffer(template)
 
@@ -1404,7 +1407,6 @@ async function applyRouteMode(
   const protectionOn = (profile.tun?.enable ?? false) || proxyMode
   await injectCustomRules(profile, customRules, routeMode, aiPresets, protectionOn)
   if (!protectionOn && enabledAiPresets(aiPresets).length > 0) {
-    forceMatchDirect(profile)
-    if (profile.tun) profile.tun.enable = true
+    applyVpnOffAiHold(profile, aiPresets)
   }
 }
