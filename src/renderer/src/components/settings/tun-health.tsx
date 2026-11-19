@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
+import useSWR from 'swr'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { LayoutGrid, LayoutList, RefreshCcw } from 'lucide-react'
@@ -27,6 +28,12 @@ function serviceUp(status: string): boolean {
   return /^running$/i.test(status)
 }
 
+function serviceTone(service: TunHealthService): string {
+  if (serviceUp(service.status)) return 'text-vl-accent'
+  if (service.status === 'unknown') return 'text-vl-muted'
+  return service.required ? 'text-vl-danger' : 'text-vl-warn'
+}
+
 function adapterUp(status: string): boolean {
   return /^up$/i.test(status)
 }
@@ -36,7 +43,7 @@ function statusKey(status: string): string {
   if (s === 'running' || s === 'up') return 'running'
   if (s === 'stopped' || s === 'disconnected') return 'stopped'
   if (s === 'missing') return 'missing'
-  if (s === 'disabled') return 'disabled'
+  if (s === 'disabled' || s === 'unknown') return s
   return status
 }
 
@@ -49,33 +56,17 @@ function levelDot(level: TunHealthLevel): string {
 
 function kindTone(kind: TunHealthAdapter['kind']): string {
   if (kind === 'tun') return 'text-vl-accent'
-  if (kind === 'vpn') return 'text-vl-warn'
+  if (kind === 'vpn') return 'text-sky-400'
   return 'text-vl-muted'
 }
 
 const TunHealthPanel: React.FC = () => {
   const { t } = useTranslation()
-  const [report, setReport] = useState<TunHealthReport | null>(null)
-  const [loading, setLoading] = useState(false)
   const [acting, setActing] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [layout, setLayout] = useState<Layout>(readLayout)
-
-  const run = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      setReport(await getTunHealth())
-    } catch (e) {
-      setError(String(e))
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    void run()
-  }, [run])
+  const { data: report, error, isValidating: loading, mutate } = useSWR('tunHealth', getTunHealth, {
+    refreshInterval: acting ? 0 : 30_000
+  })
 
   const changeLayout = (next: Layout): void => {
     setLayout(next)
@@ -91,7 +82,7 @@ const TunHealthPanel: React.FC = () => {
     try {
       await fn()
       toast.success(ok)
-      await run()
+      await mutate()
     } catch (e) {
       toast.error(String(e))
     } finally {
@@ -152,7 +143,7 @@ const TunHealthPanel: React.FC = () => {
   }
 
   const startSvc = (svc: TunHealthService): React.ReactNode => {
-    if (serviceUp(svc.status)) return null
+    if (statusKey(svc.status) !== 'stopped') return null
     return (
       <GhostButton
         disabled={Boolean(acting)}
@@ -190,13 +181,13 @@ const TunHealthPanel: React.FC = () => {
                 <LayoutList className="size-3.5" />
               </IconButton>
             </div>
-            <GhostButton onClick={() => void run()} disabled={loading || Boolean(acting)}>
+            <GhostButton onClick={() => void mutate()} disabled={loading || Boolean(acting)}>
               <RefreshCcw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
               {t('common.refresh')}
             </GhostButton>
           </div>
         </div>
-        {error && <p className="mt-3 text-xs text-vl-danger">{error}</p>}
+        {error && <p className="mt-3 text-xs text-vl-danger">{String(error)}</p>}
         {report && (
           <p
             className={`mt-3 text-xs font-semibold ${
@@ -252,7 +243,6 @@ const TunHealthPanel: React.FC = () => {
               </h3>
               <div className="grid grid-cols-2 gap-2">
                 {(report.services ?? []).map((svc) => {
-                  const up = serviceUp(svc.status)
                   return (
                     <div key={svc.id} className={`${panelClass} flex flex-col gap-3 p-4`}>
                       <div className="flex items-start justify-between gap-2">
@@ -267,9 +257,7 @@ const TunHealthPanel: React.FC = () => {
                           </div>
                         </div>
                         <span
-                          className={`shrink-0 text-xs font-semibold ${
-                            up ? 'text-vl-accent' : svc.required ? 'text-vl-danger' : 'text-vl-warn'
-                          }`}
+                          className={`shrink-0 text-xs font-semibold ${serviceTone(svc)}`}
                         >
                           {t(`velumUi.health.state.${statusKey(svc.status)}`, svc.status)}
                         </span>
@@ -360,7 +348,6 @@ const TunHealthPanel: React.FC = () => {
               </div>
               <div className="flex flex-col gap-1">
                 {(report.services ?? []).map((svc) => {
-                  const up = serviceUp(svc.status)
                   return (
                     <div
                       key={svc.id}
@@ -377,9 +364,7 @@ const TunHealthPanel: React.FC = () => {
                         </div>
                       </div>
                       <span
-                        className={`text-xs font-semibold ${
-                          up ? 'text-vl-accent' : svc.required ? 'text-vl-danger' : 'text-vl-warn'
-                        }`}
+                        className={`text-xs font-semibold ${serviceTone(svc)}`}
                       >
                         {t(`velumUi.health.state.${statusKey(svc.status)}`, svc.status)}
                       </span>

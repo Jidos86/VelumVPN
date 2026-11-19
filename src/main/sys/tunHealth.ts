@@ -1,4 +1,5 @@
 import { execFile } from 'child_process'
+import { randomUUID } from 'crypto'
 import { existsSync } from 'fs'
 import { readFile, rm } from 'fs/promises'
 import os from 'os'
@@ -24,21 +25,28 @@ const WIN_SERVICES: { id: string; required: boolean }[] = [
 ]
 
 const PS_PROBE = `
-$ErrorActionPreference = 'SilentlyContinue'
 $wanted = @(${WIN_SERVICES.map((s) => `'${s.id}'`).join(',')})
 $services = @()
 foreach ($id in $wanted) {
-  $s = Get-Service -Name $id
-  if ($null -eq $s) {
-    $services += @{ id = $id; status = 'missing'; displayName = $id }
-  } else {
+  try {
+    $s = Get-Service -Name $id -ErrorAction Stop
     $services += @{ id = $id; status = [string]$s.Status; displayName = [string]$s.DisplayName }
+  } catch {
+    $status = if ($_.FullyQualifiedErrorId -like 'NoServiceFoundForGivenName,*') { 'missing' } else { 'unknown' }
+    $services += @{ id = $id; status = $status; displayName = $id }
   }
 }
 $adapters = @()
-try { $nics = @(Get-NetAdapter) } catch { $nics = @() }
-if ($nics.Count -eq 0) {
-  $nics = @(Get-CimInstance Win32_NetworkAdapter | Where-Object { $_.NetConnectionID })
+$adaptersChecked = $false
+try {
+  $nics = @(Get-NetAdapter -ErrorAction Stop)
+  $adaptersChecked = $true
+} catch { $nics = @() }
+if (-not $adaptersChecked) {
+  try {
+    $nics = @(Get-CimInstance Win32_NetworkAdapter -ErrorAction Stop | Where-Object { $_.NetConnectionID })
+    $adaptersChecked = $true
+  } catch { $nics = @() }
   foreach ($n in $nics) {
     $st = switch ([int]$n.NetConnectionStatus) {
       2 { 'Up' }
@@ -62,7 +70,7 @@ if ($nics.Count -eq 0) {
     }
   }
 }
-$json = @{ services = @($services); adapters = @($adapters) } | ConvertTo-Json -Compress -Depth 6
+$json = @{ services = @($services); adapters = @($adapters); adaptersChecked = $adaptersChecked } | ConvertTo-Json -Compress -Depth 6
 [System.IO.File]::WriteAllText('__OUT__', $json, [System.Text.UTF8Encoding]::new($false))
 `
 
@@ -77,7 +85,7 @@ function classifyAdapter(name: string, description: string): TunHealthAdapter['k
   const wintun = /wintun/.test(t)
   if (ours || (wintun && !/wireguard|cloudflare|warp|tailscale/.test(t))) return 'tun'
   if (
-    /wireguard|cloudflare|warp|tap-windows|tap-win32|openvpn|nordlynx|tailscale|zerotier|hamachi|softether|anyconnect|vpnva|fortinet|outline|protonvpn|mullvad|tun2socks|ikev2|l2tp/.test(
+    /radmin vpn|wireguard|cloudflare|warp|tap-windows|tap-win32|openvpn|nordlynx|tailscale|zerotier|hamachi|softether|anyconnect|vpnva|fortinet|outline|protonvpn|mullvad|tun2socks|ikev2|l2tp/.test(
       t
     )
   ) {
@@ -99,11 +107,6 @@ export async function startWindowsService(id: string): Promise<void> {
     throw new Error(`Unknown service: ${id}`)
   }
   try {
-    await execWithElevation('sc.exe', ['config', id, 'start=', 'auto'])
-  } catch {
-    // still try to start even if the start type could not be changed
-  }
-  try {
     await execWithElevation('net.exe', ['start', id])
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -115,13 +118,15 @@ export async function startWindowsService(id: string): Promise<void> {
 async function windowsProbe(): Promise<{
   services: TunHealthService[]
   adapters: TunHealthAdapter[]
+  adaptersChecked: boolean
 }> {
-  const outFile = path.join(os.tmpdir(), `velum-health-${process.pid}-${Date.now()}.json`)
+  const outFile = path.join(os.tmpdir(), `velum-health-${randomUUID()}.json`)
   const script = PS_PROBE.replace('__OUT__', outFile.replace(/'/g, "''"))
   const encoded = Buffer.from(script, 'utf16le').toString('base64')
   let parsed: {
     services?: Array<{ id: string; status: string; displayName: string }>
     adapters?: Array<{ name: string; description: string; status: string; mac?: string }>
+    adaptersChecked?: boolean
   } = {}
   try {
     await execFilePromise(
@@ -146,7 +151,7 @@ async function windowsProbe(): Promise<{
       services.push({
         id: spec.id,
         displayName: spec.id,
-        status: 'missing',
+        status: 'unknown',
         required: spec.required
       })
     }
@@ -158,7 +163,7 @@ async function windowsProbe(): Promise<{
     mac: a.mac,
     kind: classifyAdapter(a.name || '', a.description || '')
   }))
-  return { services, adapters }
+  return { services, adapters, adaptersChecked: parsed.adaptersChecked === true }
 }
 
 function fallbackAdapters(): TunHealthAdapter[] {
@@ -183,6 +188,7 @@ export async function getTunHealth(): Promise<TunHealthReport> {
   ])
   const protectionOn = (tun?.enable ?? false) || proxyMode
   const aiKillSwitch = ai.presets.some((p) => p.enabled)
+  const expectsTun = (tun?.enable ?? false) || aiKillSwitch
   let runtimeTun: boolean | null = null
   try {
     const live = await mihomoConfig()
@@ -200,12 +206,19 @@ export async function getTunHealth(): Promise<TunHealthReport> {
 
   let services: TunHealthService[] = []
   let adapters: TunHealthAdapter[] = []
+  let adaptersChecked = false
   if (process.platform === 'win32') {
     try {
       const probed = await windowsProbe()
       services = probed.services
-      adapters = probed.adapters
+      adaptersChecked = probed.adaptersChecked
+      adapters = adaptersChecked ? probed.adapters : fallbackAdapters()
     } catch {
+      services = WIN_SERVICES.map((service) => ({
+        ...service,
+        displayName: service.id,
+        status: 'unknown'
+      }))
       adapters = fallbackAdapters()
     }
   } else {
@@ -216,14 +229,17 @@ export async function getTunHealth(): Promise<TunHealthReport> {
   if (process.platform === 'win32') {
     checks.push({
       id: 'admin',
-      level: admin ? 'ok' : 'fail',
-      detail: admin ? 'yes' : 'no'
+      level: admin ? 'ok' : expectsTun ? 'fail' : 'info',
+      detail: admin ? 'yes' : expectsTun ? 'no' : 'not-needed'
     })
+    if (services.some((svc) => svc.status === 'unknown')) {
+      checks.push({ id: 'services-probe', level: 'warn' })
+    }
     for (const svc of services) {
       const up = serviceRunning(svc.status)
       checks.push({
         id: `svc-${svc.id}`,
-        level: up ? 'ok' : svc.required ? 'fail' : 'warn',
+        level: up ? 'ok' : svc.status === 'unknown' ? 'info' : svc.required ? 'fail' : 'warn',
         detail: svc.status
       })
     }
@@ -244,13 +260,13 @@ export async function getTunHealth(): Promise<TunHealthReport> {
 
   if (runtimeTun === null) {
     checks.push({ id: 'runtime-tun', level: 'warn', detail: 'offline' })
-  } else if (runtimeTun && !protectionOn) {
+  } else if (runtimeTun && (!expectsTun || !protectionOn)) {
     checks.push({
       id: 'runtime-tun',
       level: aiKillSwitch ? 'info' : 'warn',
-      detail: 'held'
+      detail: aiKillSwitch ? 'held' : 'unexpected'
     })
-  } else if (!runtimeTun && protectionOn) {
+  } else if (!runtimeTun && expectsTun) {
     checks.push({ id: 'runtime-tun', level: 'fail', detail: 'missing' })
   } else {
     checks.push({
@@ -263,14 +279,16 @@ export async function getTunHealth(): Promise<TunHealthReport> {
   if (aiKillSwitch) {
     checks.push({
       id: 'ai-tun',
-      level: protectionOn ? 'ok' : 'info',
-      detail: protectionOn ? 'vpn' : 'reject'
+      level: runtimeTun && protectionOn ? 'ok' : 'info',
+      detail: !runtimeTun ? 'unverified' : protectionOn ? 'vpn' : 'reject'
     })
   }
 
   const tunAdapters = adapters.filter((a) => a.kind === 'tun')
   const tunUp = tunAdapters.some((a) => /^up$/i.test(a.status))
-  if (protectionOn || runtimeTun) {
+  if ((expectsTun || runtimeTun) && !tunUp && !adaptersChecked && process.platform === 'win32') {
+    checks.push({ id: 'tun-adapter', level: 'warn', detail: 'unknown' })
+  } else if (expectsTun || runtimeTun) {
     checks.push({
       id: 'tun-adapter',
       level: tunUp || process.platform !== 'win32' ? 'ok' : 'fail',
@@ -286,11 +304,14 @@ export async function getTunHealth(): Promise<TunHealthReport> {
     checks.push({ id: 'tun-adapter', level: 'ok', detail: 'idle' })
   }
 
-  const competing = adapters.filter((a) => a.kind === 'vpn' && /^up$/i.test(a.status))
+  const activeOtherVpns = adapters.filter((a) => a.kind === 'vpn' && /^up$/i.test(a.status))
+  const adapterProbeFailed = process.platform === 'win32' && !adaptersChecked
   checks.push({
     id: 'competing-vpn',
-    level: competing.length ? 'warn' : 'ok',
-    detail: competing.length ? competing.map((a) => a.name).join(', ') : 'none'
+    level: activeOtherVpns.length || adapterProbeFailed ? 'info' : 'ok',
+    detail: activeOtherVpns.length
+      ? activeOtherVpns.map((a) => a.name).join(', ')
+      : adapterProbeFailed ? 'unknown' : 'none'
   })
 
   if (process.platform === 'linux') {

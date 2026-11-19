@@ -1255,7 +1255,7 @@ export default {
         stopped: 'stopped',
         missing: 'missing',
         disabled: 'disabled',
-        unknown: 'unknown'
+        unknown: 'Could not check'
       },
       svc: {
         BFE: 'Base Filtering Engine (BFE)',
@@ -1275,13 +1275,15 @@ export default {
         'ai-tun': 'AI presets holding the tunnel',
         'tun-adapter': 'Wintun adapter',
         'competing-vpn': 'Other VPNs',
+        'services-probe': 'Some Windows services could not be checked',
         'tun-dev': '/dev/net/tun device',
         'core-perm': 'Core permissions'
       },
       details: {
         admin: {
           yes: 'The app is running as administrator',
-          no: 'No admin rights — TUN will not start'
+          no: 'Administrator rights are required to start TUN',
+          'not-needed': 'Administrator rights are unnecessary for the current mode'
         },
         helper: {
           running: 'Running',
@@ -1294,16 +1296,18 @@ export default {
         'runtime-tun': {
           offline: 'Core is not responding',
           held: 'The button is off, but the core still holds TUN',
-          missing: 'Protection is on, but TUN is off in the core',
+          missing: 'Settings require TUN, but it is off in the core',
+          unexpected: 'TUN is active outside the current mode',
           on: 'On',
           off: 'Off'
         },
         'ai-tun': {
           vpn: 'Presets are on; traffic goes through the VPN',
-          reject: 'VPN is off — AI sites are blocked and the adapter stays up'
+          reject: 'VPN is off — AI sites are blocked and the adapter stays up',
+          unverified: 'Presets are on, but TUN status could not be confirmed'
         },
-        'tun-adapter': { none: 'Adapter not found', idle: 'Not needed right now' },
-        'competing-vpn': { none: 'No conflicting adapters' },
+        'tun-adapter': { none: 'Adapter not found', idle: 'Not needed right now', unknown: 'Could not check the adapter' },
+        'competing-vpn': { none: 'No active third-party VPN adapters', unknown: 'Adapter list unavailable' },
         'core-perm': { suid: 'Present', none: 'No setuid' }
       }
     }
