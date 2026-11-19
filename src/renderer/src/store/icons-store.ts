@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { getIconDataURL, getAppName } from '@renderer/utils/ipc'
 import { cropAndPadTransparent } from '@renderer/utils/image'
 import { platform } from '@renderer/utils/init'
+import { readIconCache, writeIconCache } from './icon-cache'
 
 interface IconsStore {
   icons: Record<string, string>
@@ -22,22 +23,13 @@ const appNameQueue = new Set<string>()
 const processingAppNames = new Set<string>()
 let appNameTimer: ReturnType<typeof setTimeout> | null = null
 
-export const useIconsStore = create<IconsStore>((set, get) => ({
+export const useIconsStore = create<IconsStore>((_set, get) => ({
   icons: {},
   appNames: {},
   requestIcon: (path): void => {
     if (!path) return
     const state = get()
     if (state.icons[path] || processingIcons.has(path) || iconQueue.has(path)) return
-    try {
-      const cached = localStorage.getItem(path)
-      if (cached) {
-        set((s) => ({ icons: { ...s.icons, [path]: cached } }))
-        return
-      }
-    } catch {
-      // ignore
-    }
     iconQueue.add(path)
     scheduleIconProcess()
   },
@@ -67,6 +59,12 @@ const processIcons = async (): Promise<void> => {
   const promises = toProcess.map(async (path) => {
     processingIcons.add(path)
     try {
+      const key = `app:${path}`
+      const cached = await readIconCache(key, path)
+      if (cached) {
+        useIconsStore.setState((s) => ({ icons: { ...s.icons, [path]: cached } }))
+        return
+      }
       const rawBase64 = await getIconDataURL(path)
       if (!rawBase64) return
 
@@ -79,13 +77,8 @@ const processIcons = async (): Promise<void> => {
         processedDataURL = await cropAndPadTransparent(fullDataURL)
       }
 
-      try {
-        localStorage.setItem(path, processedDataURL)
-      } catch {
-        // ignore
-      }
-
       useIconsStore.setState((s) => ({ icons: { ...s.icons, [path]: processedDataURL } }))
+      await writeIconCache(key, processedDataURL)
     } catch {
       // ignore
     } finally {

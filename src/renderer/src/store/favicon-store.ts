@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { getImageDataURL } from '@renderer/utils/ipc'
+import { readIconCache, writeIconCache } from './icon-cache'
 
 interface FaviconStore {
   favicons: Record<string, string>
@@ -21,22 +22,13 @@ let timer: ReturnType<typeof setTimeout> | null = null
 const faviconUrl = (domain: string): string =>
   `https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(domain)}`
 
-export const useFaviconStore = create<FaviconStore>((set, get) => ({
+export const useFaviconStore = create<FaviconStore>((_set, get) => ({
   favicons: {},
   failed: new Set(),
   requestFavicon: (domain): void => {
     if (!domain) return
     const state = get()
     if (state.favicons[domain] || state.failed.has(domain) || processing.has(domain) || queue.has(domain)) return
-    try {
-      const cached = localStorage.getItem(STORAGE_PREFIX + domain)
-      if (cached) {
-        set((s) => ({ favicons: { ...s.favicons, [domain]: cached } }))
-        return
-      }
-    } catch {
-      // ignore
-    }
     queue.add(domain)
     schedule()
   }
@@ -60,6 +52,12 @@ const process = async (): Promise<void> => {
     toProcess.map(async (domain) => {
       processing.add(domain)
       try {
+        const key = STORAGE_PREFIX + domain
+        const cached = await readIconCache(key, key)
+        if (cached) {
+          useFaviconStore.setState((s) => ({ favicons: { ...s.favicons, [domain]: cached } }))
+          return
+        }
         const dataURL = await getImageDataURL(faviconUrl(domain))
         // Google's fallback favicon (the generic globe) is a tiny handful of bytes; treat it as
         // "no real icon" so the badge letter shows instead of a blank globe for every unknown domain.
@@ -67,12 +65,8 @@ const process = async (): Promise<void> => {
           useFaviconStore.setState((s) => ({ failed: new Set(s.failed).add(domain) }))
           return
         }
-        try {
-          localStorage.setItem(STORAGE_PREFIX + domain, dataURL)
-        } catch {
-          // ignore
-        }
         useFaviconStore.setState((s) => ({ favicons: { ...s.favicons, [domain]: dataURL } }))
+        await writeIconCache(key, dataURL)
       } catch {
         useFaviconStore.setState((s) => ({ failed: new Set(s.failed).add(domain) }))
       } finally {
