@@ -132,6 +132,18 @@ const Tun: React.FC = () => {
               }}
             />
           </SettingItem>
+          {(!controlTun ||
+            (platform === 'darwin' &&
+              ((values.device && !values.device.startsWith('utun')) ||
+                (values.stack !== 'gvisor' && values.stack !== 'system')))) && (
+            <p className="px-1 pb-2 text-xs text-vl-muted">
+              {!controlTun
+                ? t('pages.tun.templateOwns')
+                : values.device && !values.device.startsWith('utun')
+                  ? t('pages.tun.darwinDevice')
+                  : t('pages.tun.darwinStack')}
+            </p>
+          )}
           {platform === 'win32' && (
             <SettingItem title={t('pages.tun.resetFirewall')} divider>
               <Button

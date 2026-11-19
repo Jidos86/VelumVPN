@@ -363,6 +363,9 @@ export default {
     tun: {
       title: '虚拟网卡设置',
       takeOverTun: '接管 TUN 设置',
+      templateOwns: '关闭接管时，协议栈和网卡名来自路由模板。平台仍会写入可以启动的协议栈。',
+      darwinDevice: 'macOS 只能拉起 utun 网卡，这个名称不会写入配置。',
+      darwinStack: 'macOS 会写入 gvisor 协议栈，mixed 在那里无法启动。',
       resetFirewall: '重设防火墙',
       resetFirewallButton: '重设防火墙',
       firewallResetSuccess: '防火墙重设成功',

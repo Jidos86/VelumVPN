@@ -8,6 +8,7 @@ import BaseErrorBoundary from './components/base/base-error-boundary'
 import { AppConfigProvider } from './hooks/use-app-config'
 import { ControledMihomoConfigProvider } from './hooks/use-controled-mihomo-config'
 import { GroupsProvider } from './hooks/use-groups'
+import { Toaster } from './components/ui/sonner'
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
@@ -17,6 +18,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
           <ControledMihomoConfigProvider>
             <GroupsProvider>
               <TrayMenuApp />
+              <Toaster richColors position="top-center" />
             </GroupsProvider>
           </ControledMihomoConfigProvider>
         </AppConfigProvider>

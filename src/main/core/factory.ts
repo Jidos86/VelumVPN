@@ -28,6 +28,18 @@ import { getBrand } from '../utils/brand'
 import { t } from '../utils/i18n'
 import { mainWindow } from '..'
 import { parseYaml, stringifyYaml } from '../utils/yaml'
+import {
+  constrainTun,
+  DNS_OVERLAY_KEYS,
+  ipCidrRule,
+  overlayFields,
+  parseIpInput,
+  rulesAfterProfileEdits,
+  TUN_OVERLAY_KEYS,
+  usableProxyProvider,
+  type ProfileRuleEdits
+} from './rule-build'
+import { resolveProfileId } from './profile-switch'
 import { copyFile, mkdir, readFile, writeFile, stat } from 'fs/promises'
 import { deepMerge } from '../utils/merge'
 import { existsSync } from 'fs'
@@ -286,7 +298,7 @@ function ensureDirectNodeDns(template: MihomoConfig): void {
 
   if (!dns['proxy-server-nameserver'].length) {
     dns['proxy-server-nameserver'] = [...DIRECT_NODE_DNS]
-    dns['respect-rules'] = true
+    if (dns['respect-rules'] !== false) dns['respect-rules'] = true
   }
   if (!dns['direct-nameserver'].length) {
     dns['direct-nameserver'] = [...DIRECT_NODE_DNS]
@@ -343,12 +355,33 @@ export { ROUTE_MODE_TEMPLATES }
 
 function injectProxiesIntoTemplate(
   template: MihomoConfig,
-  proxies: Array<{ name: string }>
-): void {
+  proxies: Array<{ name: string }>,
+  providers: Record<string, unknown> | undefined
+): string[] {
+  const rejected: string[] = []
+  const usableNames: string[] = []
+  if (providers && typeof providers === 'object') {
+    const kept: Record<string, unknown> = {}
+    for (const [name, def] of Object.entries(providers)) {
+      if (usableProxyProvider(def)) {
+        kept[name] = def
+        usableNames.push(name)
+      } else {
+        rejected.push(name)
+      }
+    }
+    if (usableNames.length) {
+      template['proxy-providers'] = {
+        ...((template['proxy-providers'] as Record<string, unknown> | undefined) ?? {}),
+        ...kept
+      }
+    }
+  }
+
   const proxyNames = proxies.map((p) => p.name)
   template.proxies = proxies as unknown as []
 
-  if (!Array.isArray(template['proxy-groups'])) return
+  if (!Array.isArray(template['proxy-groups'])) return rejected
 
   for (const group of template['proxy-groups'] as Array<Record<string, unknown>>) {
     const remnawave = group.remnawave as { 'include-proxies'?: boolean } | undefined
@@ -363,17 +396,12 @@ function injectProxiesIntoTemplate(
       const existing = (group.proxies as string[]) || []
       group.proxies = [...existing, ...proxyNames]
     }
+    if (usableNames.length) {
+      const existingUse = Array.isArray(group.use) ? (group.use as string[]) : []
+      group.use = [...new Set([...existingUse, ...usableNames])]
+    }
   }
-}
-
-function ipCidrRule(ip: string, target: string): string {
-  const clean = ip.replace(/:\d+$/, '').replace(/^\[(.+)\]$/, '$1')
-  const hasMask = clean.includes('/')
-  const isV6 = clean.split('/')[0].includes(':')
-  if (hasMask) {
-    return isV6 ? `IP-CIDR6,${clean},${target},no-resolve` : `IP-CIDR,${clean},${target},no-resolve`
-  }
-  return isV6 ? `IP-CIDR6,${clean}/128,${target},no-resolve` : `IP-CIDR,${clean}/32,${target},no-resolve`
+  return rejected
 }
 
 const RULE_FALLBACK_PREFIX = '↳ '
@@ -695,9 +723,11 @@ function aiRejectOnlyEntries(ai: AiPresets): string[] {
 // rule (geosite, custom pins, the route mode) has to go: rewriting only MATCH
 // leaves YouTube and Discord on the node, so the button looks off while the
 // VPN keeps working.
-function applyVpnOffAiHold(profile: MihomoConfig, ai: AiPresets): void {
-  profile.rules = [...aiRejectOnlyEntries(ai), 'MATCH,DIRECT'] as unknown as []
+function applyVpnOffAiHold(profile: MihomoConfig, ai: AiPresets): number {
+  const rejects = aiRejectOnlyEntries(ai)
+  profile.rules = [...rejects, 'MATCH,DIRECT'] as unknown as []
   if (profile.tun) profile.tun.enable = true
+  return rejects.length
 }
 
 async function injectAiPresetRules(
@@ -784,10 +814,12 @@ async function injectCustomRules(
     ...rules.processes.map((p) => `PROCESS-NAME,${p.value},${vpnTarget(p)}`),
     ...(rules.excludedProcesses ?? []).map((p) => `PROCESS-NAME,${p.value},DIRECT`)
   ]
+  const ipRule = (ip: CustomRuleItem, target: string): string | null =>
+    parseIpInput(ip.value) ? ipCidrRule(ip.value, target) : null
   const ipEntries = [
-    ...(rules.ips ?? []).map((ip) => ipCidrRule(ip.value, vpnTarget(ip))),
-    ...(rules.excludedIPs ?? []).map((ip) => ipCidrRule(ip.value, 'DIRECT'))
-  ]
+    ...(rules.ips ?? []).map((ip) => ipRule(ip, vpnTarget(ip))),
+    ...(rules.excludedIPs ?? []).map((ip) => ipRule(ip, 'DIRECT'))
+  ].filter((rule): rule is string => rule != null)
   const rest = stripBundledGeminiRules(
     stripBundledTorrentProcessRules(template.rules as unknown as string[]),
     geminiHosts
@@ -803,37 +835,9 @@ async function injectCustomRules(
   ] as unknown as []
 }
 
-// 辅助函数：处理带偏移量的规则
-function processRulesWithOffset(ruleStrings: string[], currentRules: string[], isAppend = false) {
-  const normalRules: string[] = []
-  const rules = [...currentRules]
-
-  ruleStrings.forEach((ruleStr) => {
-    const parts = ruleStr.split(',')
-    const firstPartIsNumber =
-      !isNaN(Number(parts[0])) && parts[0].trim() !== '' && parts.length >= 3
-
-    if (firstPartIsNumber) {
-      const offset = parseInt(parts[0])
-      const rule = parts.slice(1).join(',')
-
-      if (isAppend) {
-        const insertPosition = Math.max(0, rules.length - Math.min(offset, rules.length))
-        rules.splice(insertPosition, 0, rule)
-      } else {
-        const insertPosition = Math.min(offset, rules.length)
-        rules.splice(insertPosition, 0, rule)
-      }
-    } else {
-      normalRules.push(ruleStr)
-    }
-  })
-
-  return { normalRules, insertRules: rules }
-}
-
-export async function generateProfile(): Promise<void> {
-  const { current } = await getProfileConfig()
+export async function generateProfile(profileId?: string): Promise<void> {
+  const { current: savedCurrent } = await getProfileConfig()
+  const current = resolveProfileId(profileId, savedCurrent)
   const appConfig = await getAppConfig()
   const {
     diffWorkDir = false,
@@ -855,6 +859,7 @@ export async function generateProfile(): Promise<void> {
       template,
       currentProfile,
       controledMihomoConfig,
+      controlDns,
       controlTun,
       proxyModeEnabled,
       routeMode,
@@ -878,56 +883,12 @@ export async function generateProfile(): Promise<void> {
     delete configToMerge.tun
   }
 
-  const ruleFilePath = rulePath(current || 'default')
-  if (existsSync(ruleFilePath)) {
-    const ruleFileContent = await readFile(ruleFilePath, 'utf-8')
-    const ruleData = parseYaml(ruleFileContent) as {
-      prepend?: string[]
-      append?: string[]
-      delete?: string[]
-    } | null
-
-    if (ruleData && typeof ruleData === 'object') {
-      if (!currentProfile.rules) {
-        currentProfile.rules = [] as unknown as []
-      }
-
-      let rules = [...currentProfile.rules] as unknown as string[]
-
-      if (ruleData.prepend?.length) {
-        const { normalRules: prependRules, insertRules } = processRulesWithOffset(
-          ruleData.prepend,
-          rules
-        )
-        rules = [...prependRules, ...insertRules]
-      }
-
-      if (ruleData.append?.length) {
-        const { normalRules: appendRules, insertRules } = processRulesWithOffset(
-          ruleData.append,
-          rules,
-          true
-        )
-        rules = [...insertRules, ...appendRules]
-      }
-
-      if (ruleData.delete?.length) {
-        const deleteSet = new Set(ruleData.delete)
-        rules = rules.filter((rule) => {
-          const ruleStr = Array.isArray(rule) ? rule.join(',') : rule
-          return !deleteSet.has(ruleStr)
-        })
-      }
-
-      currentProfile.rules = rules as unknown as []
-    }
-  }
-
   const profile = deepMerge(JSON.parse(JSON.stringify(currentProfile)), configToMerge)
 
   const proxyGroup =
     (profile['proxy-groups'] as Array<{ name: string }>)?.[0]?.name || '→ VelumVPN'
-  await applyRouteMode(profile, routeMode, proxyGroup)
+  const aiHoldRejects = await applyRouteMode(profile, routeMode, proxyGroup)
+  await applyStoredProfileRules(profile, current, aiHoldRejects)
   await ensureBittorrentSniffer(profile)
 
   const tunEnabled = profile.tun?.enable ?? false
@@ -952,10 +913,28 @@ export async function generateProfile(): Promise<void> {
   )
 }
 
+async function applyStoredProfileRules(
+  profile: MihomoConfig,
+  profileId: string | undefined,
+  aiHoldRejects: string[] | null
+): Promise<void> {
+  const rules = ((profile.rules as unknown as string[]) ?? []).map((rule) =>
+    Array.isArray(rule) ? (rule as string[]).join(',') : rule
+  )
+  let edits: ProfileRuleEdits = {}
+  const ruleFilePath = rulePath(profileId || 'default')
+  if (aiHoldRejects === null && existsSync(ruleFilePath)) {
+    const ruleData = parseYaml(await readFile(ruleFilePath, 'utf-8')) as ProfileRuleEdits | null
+    if (ruleData && typeof ruleData === 'object') edits = ruleData
+  }
+  profile.rules = rulesAfterProfileEdits(rules, edits, aiHoldRejects) as unknown as []
+}
+
 async function generateFromTemplate(
   template: MihomoConfig,
   userProfile: MihomoConfig,
   controledMihomoConfig: Partial<MihomoConfig>,
+  controlDns: boolean,
   controlTun: boolean,
   proxyModeEnabled: boolean,
   routeMode: string,
@@ -965,7 +944,14 @@ async function generateFromTemplate(
   const geoReady = await ensureRunetfreedomGeodata()
 
   const proxies = (userProfile.proxies as Array<{ name: string }>) || []
-  injectProxiesIntoTemplate(template, proxies)
+  const rejectedProviders = injectProxiesIntoTemplate(
+    template,
+    proxies,
+    userProfile['proxy-providers'] as Record<string, unknown> | undefined
+  )
+  if (rejectedProviders.length) {
+    throw new Error(`${t('error.proxyProviderUnsupported')}: ${rejectedProviders.join(', ')}`)
+  }
 
   if (!geoReady && Array.isArray(template.rules)) {
     // Geo files unavailable — fall back to routing all traffic through VPN
@@ -985,31 +971,52 @@ async function generateFromTemplate(
   const userWantsVpn = (controledMihomoConfig.tun?.enable ?? false) || proxyModeEnabled
   await injectCustomRules(template, customRules, routeMode, aiPresets, userWantsVpn)
   const aiKillSwitch = enabledAiPresets(aiPresets).length > 0
-  if (!userWantsVpn && aiKillSwitch) {
-    applyVpnOffAiHold(template, aiPresets)
-  }
+  const aiHoldRejects = !userWantsVpn && aiKillSwitch ? aiRejectOnlyEntries(aiPresets) : null
+  if (aiHoldRejects) applyVpnOffAiHold(template, aiPresets)
+  await applyStoredProfileRules(template, current, aiHoldRejects)
   await ensureBittorrentSniffer(template)
 
   // Google/Cloudflare DoH/DoT is blocked in RU; node hostnames must resolve
   // via system or Yandex DNS or every domain lookup fails (couldn't find ip).
+  // controlDns off: the template (bundled or the user's own file) owns DNS.
+  // controlDns on: the app's DNS fields replace the template, including false and [].
+  // ensureDirectNodeDns then refills only the resolver lists Mihomo needs to start,
+  // and it does not turn an explicit respect-rules: false back on.
+  if (controlDns) {
+    template.dns = template.dns ?? ({} as MihomoConfig['dns'])
+    overlayFields(
+      template.dns as unknown as Record<string, unknown>,
+      controledMihomoConfig.dns as Record<string, unknown> | undefined,
+      DNS_OVERLAY_KEYS
+    )
+  }
   ensureDirectNodeDns(template)
 
-  // Apply TUN enable state and platform-specific settings from controlled config
-  if (template.tun) {
-    template.tun.enable = (controledMihomoConfig.tun?.enable ?? false) || aiKillSwitch
+  // controlTun off: the template owns TUN fields. The stack is still forced,
+  // because mixed/velumvpn does not come up on macOS and gvisor is the stack
+  // that does. controlTun on: the app's fields win, then the same constraints.
+  if (controlTun) {
+    template.tun = template.tun ?? ({} as MihomoConfig['tun'])
+    overlayFields(
+      template.tun as unknown as Record<string, unknown>,
+      controledMihomoConfig.tun as Record<string, unknown> | undefined,
+      TUN_OVERLAY_KEYS
+    )
+    constrainTun(template.tun as unknown as Record<string, unknown>, process.platform)
+  } else if (template.tun) {
     if (process.platform === 'linux' || process.platform === 'darwin') {
-      // macOS rejects a TUN device that is not utunN. gvisor does not need one;
-      // the Windows "mixed" stack and the name "velumvpn" fail to come up there.
       template.tun.stack = 'gvisor'
-      if (process.platform === 'darwin') {
-        delete template.tun.device
-      }
-      if (!template.tun['inet4-address']) {
-        template.tun['inet4-address'] = ['198.18.0.1/16']
-      }
+      if (process.platform === 'darwin') delete template.tun.device
+      if (!template.tun['inet4-address']) template.tun['inet4-address'] = ['198.18.0.1/16']
     } else {
       template.tun.stack = 'mixed'
     }
+  }
+  if (template.tun) {
+    template.tun.enable = (controledMihomoConfig.tun?.enable ?? false) || aiKillSwitch
+    // The bundled templates ship the prod adapter name. Prod stays velumvpn;
+    // beta and dev get their own name so two cores do not claim one adapter.
+    if (template.tun.device === 'velumvpn') template.tun.device = FLAVOR.tunDevice
   }
 
   // Apply port and controller settings from controlled config
@@ -1031,7 +1038,7 @@ async function generateFromTemplate(
   for (const key of overrideKeys) {
     const val = controledMihomoConfig[key]
     if (val !== undefined) {
-      ;(template as Record<string, unknown>)[key] = val
+      ;(template as unknown as Record<string, unknown>)[key] = val
     }
   }
 
@@ -1204,11 +1211,6 @@ function cleanTunConfig(profile: MihomoConfig, controlTun: boolean): void {
     delete tunConfig['auto-detect-interface']
   }
 
-  const tunBooleanConfigs = ['auto-redirect', 'strict-route', 'disable-icmp-forwarding']
-  tunBooleanConfigs.forEach((key) => {
-    if (!tunConfig[key]) delete tunConfig[key]
-  })
-
   if (tunConfig.device === 'velumvpn') {
     // shipped default from the templates; map it to this flavor's adapter name
     tunConfig.device = FLAVOR.tunDevice
@@ -1224,8 +1226,6 @@ function cleanTunConfig(profile: MihomoConfig, controlTun: boolean): void {
     delete tunConfig.device
   }
 
-  if (tunConfig['dns-hijack']?.length === 0) delete tunConfig['dns-hijack']
-  if (tunConfig['route-exclude-address']?.length === 0) delete tunConfig['route-exclude-address']
 }
 
 function cleanDnsConfig(profile: MihomoConfig, controlDns: boolean): void {
@@ -1327,13 +1327,14 @@ export async function getRuntimeConfig(): Promise<MihomoConfig> {
   return runtimeConfig
 }
 
-export async function stripBittorrentSnifferIfPresent(): Promise<boolean> {
+export async function stripBittorrentSnifferIfPresent(profileId?: string): Promise<boolean> {
   const sniff = runtimeConfig?.sniffer?.sniff as Record<string, unknown> | undefined
   if (!sniff || !('BITTORRENT' in sniff)) return false
   delete sniff.BITTORRENT
   runtimeConfigStr = stringifyYaml(runtimeConfig)
   const { diffWorkDir = false } = await getAppConfig()
-  const { current } = await getProfileConfig()
+  const { current: saved } = await getProfileConfig()
+  const current = resolveProfileId(profileId, saved)
   await writeFile(
     diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work'),
     runtimeConfigStr
@@ -1341,7 +1342,7 @@ export async function stripBittorrentSnifferIfPresent(): Promise<boolean> {
   return true
 }
 
-export async function stripMissingGeositeRule(listName: string): Promise<boolean> {
+export async function stripMissingGeositeRule(listName: string, profileId?: string): Promise<boolean> {
   const name = listName.trim().toLowerCase()
   if (!name || !Array.isArray(runtimeConfig?.rules)) return false
   const before = runtimeConfig.rules.length
@@ -1351,7 +1352,8 @@ export async function stripMissingGeositeRule(listName: string): Promise<boolean
   if (runtimeConfig.rules.length === before) return false
   runtimeConfigStr = stringifyYaml(runtimeConfig)
   const { diffWorkDir = false } = await getAppConfig()
-  const { current } = await getProfileConfig()
+  const { current: saved } = await getProfileConfig()
+  const current = resolveProfileId(profileId, saved)
   await writeFile(
     diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work'),
     runtimeConfigStr
@@ -1363,7 +1365,7 @@ async function applyRouteMode(
   profile: MihomoConfig,
   routeMode: string,
   proxyGroup: string
-): Promise<void> {
+): Promise<string[] | null> {
   const base = [
     'GEOIP,private,DIRECT,no-resolve',
     'GEOSITE,private,DIRECT',
@@ -1407,6 +1409,9 @@ async function applyRouteMode(
   const protectionOn = (profile.tun?.enable ?? false) || proxyMode
   await injectCustomRules(profile, customRules, routeMode, aiPresets, protectionOn)
   if (!protectionOn && enabledAiPresets(aiPresets).length > 0) {
+    const rejects = aiRejectOnlyEntries(aiPresets)
     applyVpnOffAiHold(profile, aiPresets)
+    return rejects
   }
+  return null
 }

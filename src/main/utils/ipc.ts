@@ -60,6 +60,7 @@ import {
   checkCorePermission
 } from '../core/manager'
 import { triggerSysProxy } from '../sys/sysproxy'
+import { setProtection, setProxyModeEnabled, setRouteMode, setTunEnabled } from '../core/protection'
 import {
   autoInstallSupported,
   checkUpdate,
@@ -121,7 +122,7 @@ import { getBrand } from './brand'
 import { ROUTE_MODE_TEMPLATES } from '../core/factory'
 import path from 'path'
 import { existsSync } from 'fs'
-import { readFile, writeFile, unlink, mkdir, copyFile } from 'fs/promises'
+import { readFile, writeFile, unlink, mkdir } from 'fs/promises'
 import v8 from 'v8'
 import { getIconDataURL, getImageDataURL } from './icon'
 import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../resolve/floatingWindow'
@@ -191,7 +192,7 @@ export function registerIpcMainHandlers(): void {
       return downloadLatestAlphaCore()
     })
   )
-  ipcMain.handle('mihomoHotReloadConfig', ipcErrorWrapper(mihomoHotReloadConfig))
+  ipcMain.handle('mihomoHotReloadConfig', () => ipcErrorWrapper(mihomoHotReloadConfig)())
   ipcMain.handle('mihomoProxyDelay', (_e, proxy, url) =>
     ipcErrorWrapper(mihomoProxyDelay)(proxy, url)
   )
@@ -232,7 +233,15 @@ ipcMain.handle('patchMihomoConfig', (_e, patch) => ipcErrorWrapper(patchMihomoCo
   ipcMain.handle('changeCurrentProfile', (_e, id) => ipcErrorWrapper(changeCurrentProfile)(id))
   ipcMain.handle('addProfileItem', (_e, item) => ipcErrorWrapper(addProfileItem)(item))
   ipcMain.handle('removeProfileItem', (_e, id) => ipcErrorWrapper(removeProfileItem)(id))
-  ipcMain.handle('restartCore', ipcErrorWrapper(restartCore))
+  ipcMain.handle('restartCore', () => ipcErrorWrapper(restartCore)())
+  ipcMain.handle('setProtection', (_e, enable: boolean) => ipcErrorWrapper(setProtection)(enable))
+  ipcMain.handle('setTunEnabled', (_e, enable: boolean) => ipcErrorWrapper(setTunEnabled)(enable))
+  ipcMain.handle('setProxyModeEnabled', (_e, enable: boolean) =>
+    ipcErrorWrapper(setProxyModeEnabled)(enable)
+  )
+  ipcMain.handle('setRouteMode', (_e, mode: 'blocked' | 'all-except-ru' | 'all') =>
+    ipcErrorWrapper(setRouteMode)(mode)
+  )
   ipcMain.handle('restartMihomoConnections', ipcErrorWrapper(restartMihomoConnections))
   ipcMain.handle('setLogsForwarding', (_e, enabled: boolean) => setLogsForwarding(enabled))
   ipcMain.handle('triggerSysProxy', (_e, enable, onlyActiveDevice) =>

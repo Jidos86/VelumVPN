@@ -4,11 +4,9 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import {
-  triggerSysProxy,
-  updateTrayIcon,
-  mihomoHotReloadConfig,
+  setProtection,
+  setRouteMode,
   updateGeodata,
-  mihomoCloseAllConnections,
   getCustomRules,
   checkUpdate,
   getTunHealth
@@ -89,12 +87,11 @@ const Home: React.FC = () => {
     expertMode = false,
     sysProxy,
     proxyMode = false,
-    onlyActiveDevice = false,
     routeMode = 'blocked',
     routeModeNames = {}
   } = appConfig || {}
   const { enable: writeSysProxy = true, mode } = sysProxy || {}
-  const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
+  const { controledMihomoConfig } = useControledMihomoConfig()
   const { tun } = controledMihomoConfig || {}
   const { 'mixed-port': mixedPort } = controledMihomoConfig || {}
   const sysProxyDisabled = mixedPort == 0
@@ -191,7 +188,11 @@ const Home: React.FC = () => {
   const isDisabled =
     loading ||
     geodataProgress !== null ||
-    (mainSwitchMode === 'sysproxy' && writeSysProxy && mode == 'manual' && sysProxyDisabled)
+    (!isSelected &&
+      mainSwitchMode === 'sysproxy' &&
+      writeSysProxy &&
+      mode == 'manual' &&
+      sysProxyDisabled)
 
   const phase: Phase = loading
     ? loadingDirection === 'connecting'
@@ -287,9 +288,7 @@ const Home: React.FC = () => {
     // Highlight the new mode right away; the config round trip and the core reload take a while.
     setPendingMode(m)
     try {
-      await patchAppConfig({ routeMode: m })
-      await mihomoHotReloadConfig()
-      await mihomoCloseAllConnections()
+      await setRouteMode(m)
     } catch (e) {
       toast.error(`${e}`)
     } finally {
@@ -358,40 +357,11 @@ const Home: React.FC = () => {
     setLoading(true)
     setLoadingDirection(enable ? 'connecting' : 'disconnecting')
     try {
-      if (enable) {
-        if (mainSwitchMode === 'tun') {
-          await patchControledMihomoConfig({ tun: { enable: true }, dns: { enable: true } })
-          await mihomoHotReloadConfig()
-          await mihomoCloseAllConnections()
-        } else {
-          if (writeSysProxy && mode == 'manual' && sysProxyDisabled) return
-          await patchAppConfig({ proxyMode: true })
-          await mihomoHotReloadConfig()
-          await mihomoCloseAllConnections()
-          if (writeSysProxy) {
-            await triggerSysProxy(true, onlyActiveDevice)
-          }
-        }
-      } else {
-        const tunWasEnabled = tun?.enable ?? false
-        const proxyModeWasEnabled = proxyMode
-        if (tunWasEnabled) {
-          await patchControledMihomoConfig({ tun: { enable: false } })
-        }
-        if (proxyModeWasEnabled) {
-          if (writeSysProxy) {
-            await triggerSysProxy(false, onlyActiveDevice)
-          }
-          await patchAppConfig({ proxyMode: false })
-        }
-        if (tunWasEnabled || proxyModeWasEnabled) {
-          await mihomoHotReloadConfig()
-          await mihomoCloseAllConnections()
-        }
+      if (enable && mainSwitchMode === 'sysproxy' && writeSysProxy && mode == 'manual' && sysProxyDisabled) {
+        return
       }
+      await setProtection(enable)
       window.electron.ipcRenderer.send('updateFloatingWindow')
-      window.electron.ipcRenderer.send('updateTrayMenu')
-      await updateTrayIcon()
     } catch (e) {
       toast.error(`${e}`)
     } finally {

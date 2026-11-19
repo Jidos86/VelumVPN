@@ -4,7 +4,6 @@ import {
   getAppConfig,
   getControledMihomoConfig,
   getProfileConfig,
-  patchAppConfig,
   patchControledMihomoConfig
 } from '../config'
 import icoIcon from '../../../build/icon.ico?asset'
@@ -25,15 +24,14 @@ import {
   app,
   BrowserWindow,
   clipboard,
+  dialog,
   ipcMain,
   Menu,
   nativeImage,
   screen,
   Tray
 } from 'electron'
-import { triggerSysProxy } from '../sys/sysproxy'
 import { quitWithoutCore } from '../core/manager'
-import { mihomoHotReloadConfig } from '../core/mihomoApi'
 import { floatingWindow } from './floatingWindow'
 import { join } from 'path'
 import { applyTheme } from './theme'
@@ -195,43 +193,13 @@ async function handleTrayClick(): Promise<void> {
 // native tray menu and the tray card. Every open window is told to re-read its config afterwards.
 async function toggleProtection(): Promise<void> {
   const { tun } = await getControledMihomoConfig()
-  const {
-    sysProxy,
-    proxyMode = false,
-    onlyActiveDevice = false,
-    mainSwitchMode = 'tun'
-  } = await getAppConfig()
-  const currentEnabled = mainSwitchMode === 'tun' ? (tun?.enable ?? false) : proxyMode
-  const enable = !currentEnabled
+  const { proxyMode = false } = await getAppConfig()
+  const enable = !((tun?.enable ?? false) || proxyMode)
   try {
-    if (mainSwitchMode === 'tun') {
-      if (enable) {
-        await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
-      } else {
-        await patchControledMihomoConfig({ tun: { enable } })
-      }
-      await mihomoHotReloadConfig()
-      await mihomoCloseAllConnections()
-      notifyWindows('controledMihomoConfigUpdated')
-    } else {
-      if (enable) {
-        await patchAppConfig({ proxyMode: true })
-        await mihomoHotReloadConfig()
-        if (sysProxy.enable) {
-          await triggerSysProxy(true, onlyActiveDevice)
-        }
-      } else {
-        if (sysProxy.enable) {
-          await triggerSysProxy(false, onlyActiveDevice)
-        }
-        await patchAppConfig({ proxyMode: false })
-        await mihomoHotReloadConfig()
-      }
-      notifyWindows('appConfigUpdated')
-    }
-    await updateTrayIcon()
-  } catch {
-    // ignore: the windows re-read the real state below
+    const { setProtection } = await import('../core/protection')
+    await setProtection(enable)
+  } catch (error) {
+    dialog.showErrorBox(t('tray.coreStartError'), `${error}`)
     notifyWindows('controledMihomoConfigUpdated')
     notifyWindows('appConfigUpdated')
   }
@@ -350,9 +318,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
     { type: 'separator' },
     {
       type: 'normal',
-      label: (mainSwitchMode === 'tun' ? (tun?.enable ?? false) : proxyMode)
-        ? t('tray.disable')
-        : t('tray.enable'),
+      label: (tun?.enable ?? false) || proxyMode ? t('tray.disable') : t('tray.enable'),
       accelerator: mainSwitchMode === 'tun' ? triggerTunShortcut : triggerSysProxyShortcut,
       click: async (): Promise<void> => {
         try {

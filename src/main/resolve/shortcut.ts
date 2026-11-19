@@ -1,17 +1,10 @@
 import { app, globalShortcut, ipcMain, Notification } from 'electron'
 import { t } from '../utils/i18n'
 import { mainWindow, setNotQuitDialog, triggerMainWindow } from '..'
-import {
-  getAppConfig,
-  getControledMihomoConfig,
-  patchAppConfig,
-  patchControledMihomoConfig
-} from '../config'
-import { mihomoCloseAllConnections, mihomoHotReloadConfig } from '../core/mihomoApi'
-import { triggerSysProxy } from '../sys/sysproxy'
+import { getAppConfig, getControledMihomoConfig, patchControledMihomoConfig } from '../config'
+import { setProtection, setProxyModeEnabled, setTunEnabled } from '../core/protection'
 import { quitWithoutCore } from '../core/manager'
-import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
-import { updateTrayIcon } from './tray'
+import { triggerFloatingWindow } from './floatingWindow'
 
 export async function registerShortcut(
   oldShortcut: string,
@@ -37,32 +30,18 @@ export async function registerShortcut(
     }
     case 'triggerSysProxyShortcut': {
       return globalShortcut.register(newShortcut, async () => {
-        const {
-          proxyMode = false,
-          sysProxy: { enable: writeSysProxy = true } = { enable: true },
-          onlyActiveDevice = false
-        } = await getAppConfig()
-        const enable = !proxyMode
+        const { proxyMode = false, mainSwitchMode = 'tun' } = await getAppConfig()
+        const { tun } = await getControledMihomoConfig()
+        const active = (tun?.enable ?? false) || proxyMode
+        const enable = mainSwitchMode === 'sysproxy' ? !active : !proxyMode
         try {
-          if (enable) {
-            await patchAppConfig({ proxyMode: true })
-            if (writeSysProxy) {
-              await triggerSysProxy(true, onlyActiveDevice)
-            }
-          } else {
-            if (writeSysProxy) {
-              await triggerSysProxy(false, onlyActiveDevice)
-            }
-            await patchAppConfig({ proxyMode: false })
-          }
+          if (mainSwitchMode === 'sysproxy') await setProtection(enable)
+          else await setProxyModeEnabled(enable)
           new Notification({
             title: enable ? t('notification.sysProxyEnabled') : t('notification.sysProxyDisabled')
           }).show()
-          mainWindow?.webContents.send('appConfigUpdated')
-          floatingWindow?.webContents.send('appConfigUpdated')
-          await updateTrayIcon()
-        } catch {
-          // ignore
+        } catch (error) {
+          new Notification({ title: `${error}` }).show()
         } finally {
           ipcMain.emit('updateTrayMenu')
         }
@@ -70,24 +49,18 @@ export async function registerShortcut(
     }
     case 'triggerTunShortcut': {
       return globalShortcut.register(newShortcut, async () => {
+        const { mainSwitchMode = 'tun', proxyMode = false } = await getAppConfig()
         const { tun } = await getControledMihomoConfig()
-        const enable = tun?.enable ?? false
+        const active = (tun?.enable ?? false) || proxyMode
+        const enable = mainSwitchMode === 'tun' ? !active : !(tun?.enable ?? false)
         try {
-          if (!enable) {
-            await patchControledMihomoConfig({ tun: { enable: !enable }, dns: { enable: true } })
-          } else {
-            await patchControledMihomoConfig({ tun: { enable: !enable } })
-          }
-          await mihomoHotReloadConfig()
-          await mihomoCloseAllConnections()
+          if (mainSwitchMode === 'tun') await setProtection(enable)
+          else await setTunEnabled(enable)
           new Notification({
-            title: !enable ? t('notification.tunEnabled') : t('notification.tunDisabled')
+            title: enable ? t('notification.tunEnabled') : t('notification.tunDisabled')
           }).show()
-          mainWindow?.webContents.send('controledMihomoConfigUpdated')
-          floatingWindow?.webContents.send('appConfigUpdated')
-          await updateTrayIcon()
-        } catch {
-          // ignore
+        } catch (error) {
+          new Notification({ title: `${error}` }).show()
         } finally {
           ipcMain.emit('updateTrayMenu')
         }

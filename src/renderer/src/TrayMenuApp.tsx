@@ -4,7 +4,8 @@ import { ChevronRight, RefreshCw } from 'lucide-react'
 import { useAppConfig } from './hooks/use-app-config'
 import { useControledMihomoConfig } from './hooks/use-controled-mihomo-config'
 import { useGroups } from './hooks/use-groups'
-import { mihomoCloseAllConnections, mihomoHotReloadConfig } from './utils/ipc'
+import { toast } from 'sonner'
+import { setRouteMode } from './utils/ipc'
 import { calcTraffic } from './utils/calc'
 import { useServers } from './velum/servers/use-servers'
 import { bandColor, pingBand } from './velum/servers/server-utils'
@@ -43,17 +44,12 @@ const ipc = window.electron.ipcRenderer
 // The server list flies out next to the card while the pointer is on the server row, like a submenu.
 const TrayMenuApp: React.FC = () => {
   const { t } = useTranslation()
-  const { appConfig, mutateAppConfig, patchAppConfig } = useAppConfig()
+  const { appConfig, mutateAppConfig } = useAppConfig()
   const { controledMihomoConfig, mutateControledMihomoConfig } = useControledMihomoConfig()
   const { mutate: mutateGroups } = useGroups()
-  const {
-    mainSwitchMode = 'tun',
-    proxyMode = false,
-    routeMode = 'blocked',
-    trayServerFlyout = true
-  } = appConfig || {}
+  const { proxyMode = false, routeMode = 'blocked', trayServerFlyout = true } = appConfig || {}
 
-  const enabled = mainSwitchMode === 'tun' ? (controledMihomoConfig?.tun?.enable ?? false) : proxyMode
+  const enabled = (controledMihomoConfig?.tun?.enable ?? false) || proxyMode
   // Show the result of a click right away; the real value replaces it once the core has answered.
   const [optimisticOn, setOptimisticOn] = useState<boolean | null>(null)
   const [pendingMode, setPendingMode] = useState<RouteMode | null>(null)
@@ -150,12 +146,10 @@ const TrayMenuApp: React.FC = () => {
     if (mode === routeMode || pendingMode) return
     setPendingMode(mode)
     try {
-      await patchAppConfig({ routeMode: mode })
-      await mihomoHotReloadConfig()
-      await mihomoCloseAllConnections()
+      await setRouteMode(mode)
       ipc.send('customTray:configChanged')
-    } catch {
-      // the chips fall back to the stored mode
+    } catch (error) {
+      toast.error(`${error}`)
     } finally {
       setPendingMode(null)
     }

@@ -7,21 +7,51 @@ import { servicePath } from '../utils/dirs'
 import { net } from 'electron'
 import { disableProxy, setPac, setProxy } from '../service/api'
 import { t } from '../utils/i18n'
+import { createSerialGate } from './sysproxy-gate'
 
 let defaultBypass: string[]
 let triggerSysProxyTimer: NodeJS.Timeout | null = null
+const sysProxyGate = createSerialGate()
 
-export async function triggerSysProxy(enable: boolean, onlyActiveDevice: boolean): Promise<void> {
-  if (net.isOnline()) {
-    if (enable) {
-      await setSysProxy(onlyActiveDevice)
-    } else {
-      await disableSysProxy(onlyActiveDevice)
-    }
-  } else {
-    if (triggerSysProxyTimer) clearTimeout(triggerSysProxyTimer)
-    triggerSysProxyTimer = setTimeout(() => triggerSysProxy(enable, onlyActiveDevice), 5000)
+export type SysProxyResult = { status: 'applied' } | { status: 'deferred' } | { status: 'superseded' }
+
+export function cancelPendingSysProxy(): void {
+  sysProxyGate.bump()
+  if (triggerSysProxyTimer) {
+    clearTimeout(triggerSysProxyTimer)
+    triggerSysProxyTimer = null
   }
+}
+
+export async function triggerSysProxy(
+  enable: boolean,
+  onlyActiveDevice: boolean
+): Promise<SysProxyResult> {
+  const generation = sysProxyGate.bump()
+  if (triggerSysProxyTimer) {
+    clearTimeout(triggerSysProxyTimer)
+    triggerSysProxyTimer = null
+  }
+  const result = await sysProxyGate.run(generation, async () => {
+    if (!enable) {
+      await disableSysProxy(onlyActiveDevice)
+      return { status: 'applied' as const }
+    }
+    if (!net.isOnline()) {
+      const scheduled = generation
+      triggerSysProxyTimer = setTimeout(() => {
+        if (!sysProxyGate.isCurrent(scheduled)) return
+        void triggerSysProxy(true, onlyActiveDevice).catch((error) => {
+          console.error('[sysproxy] deferred enable failed', error)
+        })
+      }, 5000)
+      return { status: 'deferred' as const }
+    }
+    await setSysProxy(onlyActiveDevice)
+    return { status: 'applied' as const }
+  })
+  if (result === 'skipped') return { status: 'superseded' }
+  return result
 }
 
 async function setSysProxy(onlyActiveDevice: boolean): Promise<void> {

@@ -289,6 +289,10 @@ export default {
     tun: {
       title: 'Virtual Network Interface Settings',
       takeOverTun: 'Take over TUN settings',
+      templateOwns:
+        'While this is off, the route template owns the stack and adapter name. The platform still fills in a stack that can start.',
+      darwinDevice: 'macOS only brings up a utun adapter. This name will not be written.',
+      darwinStack: 'On macOS the config is written with the gvisor stack. mixed does not start there.',
       resetFirewall: 'Reset Firewall',
       resetFirewallButton: 'Reset Firewall',
       firewallResetSuccess: 'Firewall reset successfully',

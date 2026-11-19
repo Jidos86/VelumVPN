@@ -60,10 +60,7 @@ const Proxies: React.FC = () => {
   const [isOpen, setIsOpen] = useState(Array(groups.length).fill(expandProxyGroups))
   const [delaying, setDelaying] = useState(Array(groups.length).fill(false))
   const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
-  const [delayingTick, setDelayingTick] = useState(0)
   const [isSettingModalOpen, setIsSettingModalOpen] = useState(false)
-  const delayingProxiesRef = useRef<Set<string>>(new Set())
-  const completedProxiesRef = useRef<Set<string>>(new Set())
   const mutateThrottleRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const virtuosoRef = useRef<GroupedVirtuosoHandle>(null)
   const { groupCounts, allProxies } = useMemo(() => {
@@ -142,8 +139,6 @@ const Proxies: React.FC = () => {
         newDelaying[index] = true
         return newDelaying
       })
-      allProxies[index].forEach((p) => delayingProxiesRef.current.add(p.name))
-      setDelayingTick((c) => c + 1)
       const result: Promise<void>[] = []
       const runningList: Promise<void>[] = []
       for (const proxy of allProxies[index]) {
@@ -153,7 +148,6 @@ const Proxies: React.FC = () => {
           } catch {
             // ignore
           } finally {
-            completedProxiesRef.current.add(proxy.name)
             throttledMutate()
           }
         })

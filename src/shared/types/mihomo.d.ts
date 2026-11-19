@@ -73,6 +73,8 @@ interface MihomoTunConfig {
   'route-exclude-address-set'?: string[]
   'route-address'?: string[]
   'route-exclude-address'?: string[]
+  'inet4-address'?: string[]
+  'inet6-address'?: string[]
   'include-interface'?: string[]
   'exclude-interface'?: string[]
   'include-uid'?: number[]

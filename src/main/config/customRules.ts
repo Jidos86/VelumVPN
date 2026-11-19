@@ -2,6 +2,8 @@ import { readFile, writeFile } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
 import { dataDir } from '../utils/dirs'
+import { parseIpInput } from '../core/rule-build'
+import { t } from '../utils/i18n'
 
 export interface CustomRuleItem {
   value: string
@@ -73,6 +75,11 @@ export async function setCustomRules(rules: CustomRules): Promise<void> {
     excludedProcesses: parseRuleList(rules.excludedProcesses),
     ips: parseRuleList(rules.ips),
     excludedIPs: parseRuleList(rules.excludedIPs)
+  }
+  for (const item of [...normalized.ips, ...normalized.excludedIPs]) {
+    if (!parseIpInput(item.value)) {
+      throw new Error(`${t('error.invalidIp')}: ${item.value}`)
+    }
   }
   await writeFile(customRulesPath(), JSON.stringify(normalized, null, 2), 'utf-8')
 }

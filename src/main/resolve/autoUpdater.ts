@@ -13,7 +13,12 @@ import { createHash } from 'crypto'
 import { setNotQuitDialog, mainWindow } from '..'
 import { getAppConfig } from '../config'
 import { IS_BETA } from '../utils/flavor'
-import { disableSysProxy } from '../sys/sysproxy'
+async function releaseNetworkBeforeHandoff(): Promise<void> {
+  const { triggerSysProxy } = await import('../sys/sysproxy')
+  const { stopCore } = await import('../core/manager')
+  await triggerSysProxy(false, false)
+  await stopCore()
+}
 import { t } from '../utils/i18n'
 
 let downloadCancelToken: CancelTokenSource | null = null
@@ -445,6 +450,7 @@ export async function installPendingUpdateAtStartup(): Promise<boolean> {
     const usable = await usablePending()
     if (!usable) return false
     await writePending({ ...usable.pending, attempts: usable.pending.attempts + 1 })
+    await releaseNetworkBeforeHandoff()
     launchInstallerNow(usable.installerPath, usable.pending.version)
     app.exit(0)
     return true
@@ -479,7 +485,7 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
   const file = pending.file
 
   try {
-    disableSysProxy(false)
+    await releaseNetworkBeforeHandoff()
     if (file.endsWith('.exe')) {
       // the installer takes over from here: a failed attempt must not block the next automatic one
       await clearPendingMarker()

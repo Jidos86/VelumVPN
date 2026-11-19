@@ -1,8 +1,10 @@
-import { mihomoProfileWorkDir, mihomoWorkDir, profileConfigPath, profilePath, rulePath } from '../utils/dirs'
+import { mihomoProfileWorkDir, mihomoWorkConfigPath, mihomoWorkDir, profileConfigPath, profilePath, rulePath } from '../utils/dirs'
 import { mkdir, readFile, rm, writeFile } from 'fs/promises'
-import { restartCore } from '../core/manager'
-import { getRuntimeConfig } from '../core/factory'
-import { mihomoHotReloadConfig } from '../core/mihomoApi'
+import { checkProfile, didSwitchStopCore, resetSwitchStopFlag, restartCore } from '../core/manager'
+import { generateProfile, getRuntimeConfig } from '../core/factory'
+import { mihomoCloseAllConnections, mihomoHotReloadConfig } from '../core/mihomoApi'
+import { applyProfileChange } from '../core/profile-switch'
+import { usableProxyProvider } from '../core/rule-build'
 import { getAppConfig } from './app'
 import { mainWindow } from '..'
 import { existsSync } from 'fs'
@@ -38,29 +40,77 @@ export async function getProfileItem(id: string | undefined): Promise<ProfileIte
   return items?.find((item) => item.id === id)
 }
 
-export async function changeCurrentProfile(id: string): Promise<void> {
-  const config = await getProfileConfig()
+let profileSwitch: Promise<void> = Promise.resolve()
+
+export function changeCurrentProfile(id: string): Promise<void> {
+  const run = profileSwitch.then(
+    () => changeCurrentProfileNow(id),
+    () => changeCurrentProfileNow(id)
+  )
+  profileSwitch = run.then(
+    () => undefined,
+    () => undefined
+  )
+  return run
+}
+
+async function changeCurrentProfileNow(id: string): Promise<void> {
+  const config = await getProfileConfig(true)
   const previous = config.current
-  config.current = id
-  await setProfileConfig(config)
-  try {
-    const { useHotReloadProfile = true } = await getAppConfig()
-    if (useHotReloadProfile) {
-      try {
-        await mihomoHotReloadConfig()
+  const { useHotReloadProfile = true, diffWorkDir = false } = await getAppConfig()
+  resetSwitchStopFlag()
+  const workPath = mihomoWorkConfigPath('work')
+  await applyProfileChange({
+    nextId: id,
+    previousId: previous,
+    useHotReload: useHotReloadProfile,
+    readWork: async () => {
+      if (diffWorkDir || !existsSync(workPath)) return null
+      return readFile(workPath, 'utf-8')
+    },
+    writeWork: async (body) => {
+      await writeFile(workPath, body, 'utf-8')
+    },
+    commitCurrent: async (next) => {
+      const fresh = await getProfileConfig(true)
+      fresh.current = next
+      await setProfileConfig(fresh)
+    },
+    core: {
+      generate: (profileId) => generateProfile(profileId),
+      check: (profileId) => checkProfile(profileId),
+      hotReload: async (profileId) => {
+        await mihomoHotReloadConfig(profileId)
         mainWindow?.webContents.send('groupsUpdated')
-      } catch {
-        // Hot reload failed (core not running or pipe unavailable) — fall back to full restart
-        await restartCore()
-      }
-    } else {
-      await restartCore()
+      },
+      restart: (profileId) => restartCore(profileId),
+      closeConnections: () => mihomoCloseAllConnections(),
+      stoppedDuringApply: didSwitchStopCore
+    },
+    restoreFailedMessage: t('error.profileRestoreFailed')
+  })
+  mainWindow?.webContents.send('profileConfigUpdated')
+}
+
+function rejectUnsupportedProviders(yaml: string): void {
+  try {
+    assertProxyProvidersSupported(parseYaml(yaml))
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith(t('error.proxyProviderUnsupported'))) {
+      throw error
     }
-  } catch (e) {
-    // Both hot reload and restart failed — revert current profile
-    config.current = previous
-    await setProfileConfig(config)
-    throw e
+  }
+}
+
+function assertProxyProvidersSupported(parsed: unknown): void {
+  if (!parsed || typeof parsed !== 'object') return
+  const providers = (parsed as MihomoConfig)['proxy-providers']
+  if (!providers || typeof providers !== 'object') return
+  const rejected = Object.entries(providers as Record<string, unknown>)
+    .filter(([, def]) => !usableProxyProvider(def))
+    .map(([name]) => name)
+  if (rejected.length) {
+    throw new Error(`${t('error.proxyProviderUnsupported')}: ${rejected.join(', ')}`)
   }
 }
 
@@ -369,11 +419,13 @@ export async function createProfile(item: Partial<ProfileItem>): Promise<Profile
           throw new Error(t('error.subscriptionFormatError'))
         }
       }
+      rejectUnsupportedProviders(data)
       await setProfileStr(id, data)
       break
     }
     case 'local': {
       const data = item.file || ''
+      rejectUnsupportedProviders(data)
       await setProfileStr(id, data)
       break
     }

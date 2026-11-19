@@ -18,6 +18,7 @@ import {
   stripBittorrentSnifferIfPresent,
   stripMissingGeositeRule
 } from './factory'
+import { resolveProfileId } from './profile-switch'
 import {
   getAppConfig,
   getControledMihomoConfig,
@@ -42,7 +43,7 @@ import { mainWindow, showError } from '..'
 import path from 'path'
 import os from 'os'
 import { createWriteStream, existsSync } from 'fs'
-import { disableSysProxy, triggerSysProxy } from '../sys/sysproxy'
+import { triggerSysProxy } from '../sys/sysproxy'
 import { resetAppConfig } from '../sys/misc'
 import { getAxios } from './mihomoApi'
 import { setSysDns } from '../service/api'
@@ -85,9 +86,9 @@ let providerNames = new Set<string>()
 let unmatchedProviders = new Set<string>()
 
 // Serializes start/stop/restart so concurrent callers cannot overwrite `child`.
-// Overlapping restartCore() calls collapse onto the in-flight restart.
+// Each restart applies the profile id its own caller passed. They queue; they do not share a result.
 let coreOpChain: Promise<void> = Promise.resolve()
-let pendingRestart: Promise<void> | null = null
+let switchStoppedCore = false
 let pendingStartReject: ((reason: Error) => void) | null = null
 let coreCrashDialogShown = false
 let coreReadyWaiters: Array<() => void> = []
@@ -148,7 +149,7 @@ export async function resetProviderTracking(): Promise<void> {
   initialized = false
 }
 
-async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
+async function startCoreUnlocked(detached = false, profileId?: string): Promise<Promise<void>[]> {
   const {
     core = 'mihomo',
     autoSetDNSMode = 'exec',
@@ -161,7 +162,8 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
     safePaths = []
   } = await getAppConfig()
   const { 'log-level': logLevel } = await getControledMihomoConfig()
-  const { current } = await getProfileConfig()
+  const { current: savedCurrent } = await getProfileConfig()
+  const current = resolveProfileId(profileId, savedCurrent)
   const { tun } = await getControledMihomoConfig()
 
   let corePath: string
@@ -170,7 +172,7 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
   } catch (error) {
     if (core === 'system') {
       await patchAppConfig({ core: 'mihomo' })
-      return startCoreUnlocked(detached)
+      return startCoreUnlocked(detached, profileId)
     }
     throw error
   }
@@ -186,8 +188,8 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
     corePath = mihomoCorePath(core)
   }
 
-  await generateProfile()
-  await checkProfile()
+  await generateProfile(profileId)
+  await checkProfile(profileId)
   await stopCoreUnlocked()
   if (tun?.enable && autoSetDNSMode !== 'none') {
     try {
@@ -263,7 +265,13 @@ async function startCoreUnlocked(detached = false): Promise<Promise<void>[]> {
       )
       await new Promise((r) => setTimeout(r, delayMs))
       retry--
-      await withCoreLock(() => restartCoreUnlocked())
+      try {
+        await withCoreLock(() => restartCoreUnlocked())
+      } catch (error) {
+        retry = 0
+        await writeFile(logPath(), `[Manager]: Restart failed: ${error}\n`, { flag: 'a' })
+        await showCoreCrashDialog()
+      }
     } else {
       await withCoreLock(() => stopCoreUnlocked())
       await showCoreCrashDialog()
@@ -495,14 +503,20 @@ async function stopChildProcess(process: ChildProcess): Promise<void> {
   })
 }
 
-async function restartCoreUnlocked(): Promise<void> {
-  try {
-    await stopCoreUnlocked()
-    const promises = await startCoreUnlocked()
-    await Promise.all(promises)
-  } catch (e) {
-    showError(t('tray.coreStartError'), `${e}`)
-  }
+async function restartCoreUnlocked(profileId?: string): Promise<void> {
+  switchStoppedCore = true
+  await stopCoreUnlocked()
+  const promises = await startCoreUnlocked(false, profileId)
+  await Promise.all(promises)
+  switchStoppedCore = false
+}
+
+export function resetSwitchStopFlag(): void {
+  switchStoppedCore = false
+}
+
+export function didSwitchStopCore(): boolean {
+  return switchStoppedCore
 }
 
 export async function startCore(detached = false): Promise<Promise<void>[]> {
@@ -513,12 +527,13 @@ export async function stopCore(force = false): Promise<void> {
   return withCoreLock(() => stopCoreUnlocked(force))
 }
 
-export async function restartCore(): Promise<void> {
-  if (pendingRestart) return pendingRestart
-  pendingRestart = withCoreLock(() => restartCoreUnlocked()).finally(() => {
-    pendingRestart = null
-  })
-  return pendingRestart
+export async function restartCore(profileId?: string): Promise<void> {
+  switchStoppedCore = true
+  try {
+    await withCoreLock(() => restartCoreUnlocked(profileId))
+  } catch (error) {
+    throw error
+  }
 }
 
 export async function keepCoreAlive(): Promise<void> {
@@ -537,9 +552,10 @@ export async function quitWithoutCore(): Promise<void> {
   app.exit()
 }
 
-async function checkProfile(retried = 0): Promise<void> {
+export async function checkProfile(profileId?: string, retried = 0): Promise<void> {
   const { core = 'mihomo', diffWorkDir = false, safePaths = [] } = await getAppConfig()
-  const { current } = await getProfileConfig()
+  const { current: saved } = await getProfileConfig()
+  const current = resolveProfileId(profileId, saved)
   const corePath = mihomoCorePath(core)
   const execFilePromise = promisify(execFile)
   const env = {
@@ -562,14 +578,14 @@ async function checkProfile(retried = 0): Promise<void> {
     const stderr = error instanceof Error && 'stderr' in error ? String((error as { stderr: string }).stderr) : ''
     const combined = `${stdout}\n${stderr}\n${error instanceof Error ? error.message : ''}`
     if (retried < 5 && /BITTORRENT|not find the sniffer/i.test(combined)) {
-      if (await stripBittorrentSnifferIfPresent()) {
-        return checkProfile(retried + 1)
+      if (await stripBittorrentSnifferIfPresent(profileId)) {
+        return checkProfile(profileId, retried + 1)
       }
     }
     const missingGeosite = combined.match(/list ([^\s]+) not found in geosite\.dat/i)
     if (retried < 5 && missingGeosite?.[1]) {
-      if (await stripMissingGeositeRule(missingGeosite[1])) {
-        return checkProfile(retried + 1)
+      if (await stripMissingGeositeRule(missingGeosite[1], profileId)) {
+        return checkProfile(profileId, retried + 1)
       }
     }
     if (error instanceof Error && 'stdout' in error) {
@@ -760,15 +776,39 @@ async function recoverDNS(): Promise<void> {
   }
 }
 
-export async function startNetworkDetection(): Promise<void> {
+let networkTick: Promise<void> | null = null
+
+async function handleNetworkTick(extendedBypass: string[]): Promise<void> {
   const {
     onlyActiveDevice = false,
-    networkDetectionBypass = [],
-    networkDetectionInterval = 10,
-    sysProxy = { enable: false },
+    sysProxy = { enable: true },
     proxyMode = false
-  } = await getAppConfig()
-  const writeSysProxy = proxyMode && sysProxy.enable
+  } = await getAppConfig(true)
+  const writeSysProxy = Boolean(proxyMode) && sysProxy.enable !== false
+  if (isAnyNetworkInterfaceUp(extendedBypass) && net.isOnline()) {
+    if (!coreProcessAlive && (networkDownHandled || child)) {
+      const promises = await startCore()
+      await Promise.all(promises)
+      if (writeSysProxy) {
+        await triggerSysProxy(true, onlyActiveDevice).catch((error) => {
+          console.error('[network] sysproxy restore failed', error)
+        })
+      }
+      networkDownHandled = false
+    }
+  } else if (!networkDownHandled) {
+    if (writeSysProxy) {
+      await triggerSysProxy(false, onlyActiveDevice).catch((error) => {
+        console.error('[network] sysproxy clear failed', error)
+      })
+    }
+    await stopCore()
+    networkDownHandled = true
+  }
+}
+
+export async function startNetworkDetection(): Promise<void> {
+  const { networkDetectionBypass = [], networkDetectionInterval = 10 } = await getAppConfig()
   const { tun: { device = process.platform === 'darwin' ? undefined : FLAVOR.tunDevice } = {} } =
     await getControledMihomoConfig()
   if (networkDetectionTimer) {
@@ -778,21 +818,11 @@ export async function startNetworkDetection(): Promise<void> {
     [device, 'lo', 'docker0', 'utun'].filter((item): item is string => item !== undefined)
   )
 
-  networkDetectionTimer = setInterval(async () => {
-    if (isAnyNetworkInterfaceUp(extendedBypass) && net.isOnline()) {
-      if (!coreProcessAlive && (networkDownHandled || child)) {
-        const promises = await startCore()
-        await Promise.all(promises)
-        if (writeSysProxy) triggerSysProxy(true, onlyActiveDevice)
-        networkDownHandled = false
-      }
-    } else {
-      if (!networkDownHandled) {
-        if (writeSysProxy) disableSysProxy(onlyActiveDevice)
-        await stopCore()
-        networkDownHandled = true
-      }
-    }
+  networkDetectionTimer = setInterval(() => {
+    if (networkTick) return
+    networkTick = handleNetworkTick(extendedBypass).finally(() => {
+      networkTick = null
+    })
   }, networkDetectionInterval * 1000)
 }
 

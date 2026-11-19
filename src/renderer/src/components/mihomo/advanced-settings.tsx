@@ -1,7 +1,6 @@
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
-import InterfaceSelect from '../base/interface-select'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import {
@@ -25,15 +24,12 @@ const AdvancedSetting: React.FC = () => {
     'tcp-concurrent': tcpConcurrent,
     'disable-keep-alive': disableKeepAlive = false,
     'find-process-mode': findProcessMode = 'always',
-    'interface-name': interfaceName = '',
     'global-client-fingerprint': globalClientFingerprint = '',
     'keep-alive-idle': idle = 15,
     'keep-alive-interval': interval = 15,
-    profile = {},
-    tun = {}
+    profile = {}
   } = controledMihomoConfig || {}
   const { 'store-selected': storeSelected, 'store-fake-ip': storeFakeIp } = profile
-  const { device = 'mihomo' } = tun
 
   const [idleInput, setIdleInput] = useState(idle)
   const [intervalInput, setIntervalInput] = useState(interval)

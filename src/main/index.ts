@@ -231,59 +231,61 @@ app.on('window-all-closed', () => {
   // Don't quit app when all windows are closed
 })
 
-app.on('before-quit', async (e) => {
-  if (!isQuitting && !notQuitDialog) {
-    e.preventDefault()
+let shutdownStarted = false
 
-    const now = Date.now()
-    if (now - lastQuitAttempt < 500) {
-      isQuitting = true
-      if (quitTimeout) {
-        clearTimeout(quitTimeout)
-        quitTimeout = null
-      }
-      triggerSysProxy(false, false)
-      await stopCore()
-      await installPendingUpdateOnExit()
-      app.exit()
-      return
-    }
-    lastQuitAttempt = now
-
-    const confirmed = await showQuitConfirmDialog()
-
-    if (confirmed) {
-      isQuitting = true
-      if (quitTimeout) {
-        clearTimeout(quitTimeout)
-        quitTimeout = null
-      }
-      triggerSysProxy(false, false)
-      await stopCore()
-      await installPendingUpdateOnExit()
-      app.exit()
-    }
-  } else if (notQuitDialog) {
-    isQuitting = true
-    if (quitTimeout) {
-      clearTimeout(quitTimeout)
-      quitTimeout = null
-    }
-    triggerSysProxy(false, false)
-    await stopCore()
-    await installPendingUpdateOnExit()
-    app.exit()
-  }
-})
-
-powerMonitor.on('shutdown', async () => {
+async function finishQuit(): Promise<void> {
+  if (shutdownStarted) return
+  shutdownStarted = true
   if (quitTimeout) {
     clearTimeout(quitTimeout)
     quitTimeout = null
   }
-  triggerSysProxy(false, false)
-  await stopCore()
+  try {
+    await triggerSysProxy(false, false)
+  } catch (error) {
+    console.error('[shutdown] sysproxy clear failed', error)
+  }
+  try {
+    await stopCore()
+  } catch (error) {
+    console.error('[shutdown] core stop failed', error)
+  }
+  try {
+    await installPendingUpdateOnExit()
+  } catch (error) {
+    console.error('[shutdown] pending update failed', error)
+  }
+  isQuitting = true
   app.exit()
+}
+
+app.on('before-quit', (e) => {
+  if (isQuitting) return
+  e.preventDefault()
+  if (shutdownStarted) return
+
+  if (notQuitDialog) {
+    void finishQuit()
+    return
+  }
+
+  const now = Date.now()
+  if (now - lastQuitAttempt < 500) {
+    void finishQuit()
+    return
+  }
+  lastQuitAttempt = now
+  void showQuitConfirmDialog()
+    .then((confirmed) => {
+      if (confirmed) void finishQuit()
+    })
+    .catch((error) => {
+      console.error('[shutdown] quit confirm failed', error)
+    })
+})
+
+powerMonitor.on('shutdown', () => {
+  void finishQuit()
 })
 
 // This method will be called when Electron has finished
@@ -624,9 +626,8 @@ export async function createWindow(): Promise<void> {
       if (mainWindow) mainWindowState.saveState(mainWindow)
     })
 
-    mainWindow.on('session-end', async () => {
-      triggerSysProxy(false, false)
-      await stopCore()
+    mainWindow.on('session-end', () => {
+      void finishQuit()
     })
 
     mainWindow.webContents.setWindowOpenHandler((details) => {

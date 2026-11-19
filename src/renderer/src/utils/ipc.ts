@@ -217,6 +217,22 @@ export async function restartCore(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('restartCore'))
 }
 
+export async function setProtection(enable: boolean): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setProtection', enable))
+}
+
+export async function setTunEnabled(enable: boolean): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setTunEnabled', enable))
+}
+
+export async function setProxyModeEnabled(enable: boolean): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setProxyModeEnabled', enable))
+}
+
+export async function setRouteMode(mode: 'blocked' | 'all-except-ru' | 'all'): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('setRouteMode', mode))
+}
+
 export async function restartMihomoConnections(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('restartMihomoConnections'))
 }

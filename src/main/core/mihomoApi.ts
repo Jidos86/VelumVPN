@@ -245,12 +245,14 @@ export const mihomoUpgradeUI = async (): Promise<void> => {
   return await instance.post('/upgrade/ui')
 }
 
-export const mihomoHotReloadConfig = async (): Promise<void> => {
+export const mihomoHotReloadConfig = async (profileId?: string): Promise<void> => {
   const { generateProfile } = await import('./factory')
   const { getProfileConfig } = await import('../config')
   const { resetProviderTracking } = await import('./manager')
-  await generateProfile()
-  const { current } = await getProfileConfig()
+  const { resolveProfileId } = await import('./profile-switch')
+  const { current: saved } = await getProfileConfig()
+  const current = resolveProfileId(profileId, saved)
+  await generateProfile(current)
   const { diffWorkDir = false } = await getAppConfig()
   const { mihomoWorkConfigPath } = await import('../utils/dirs')
   const configPath = diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work')
