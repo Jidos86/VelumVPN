@@ -468,6 +468,17 @@ export default {
     appearance: {
       title: 'Настройки внешнего вида',
       language: 'Язык',
+      colorTheme: 'Тема',
+      colorThemeOriginal: 'Оригинальная',
+      colorThemeCabinet: 'Синяя',
+      colorThemeRed: 'Красная',
+      colorThemeOrange: 'Оранжевая',
+      colorThemeGreen: 'Зелёная',
+      colorThemePurple: 'Фиолетовая',
+      colorThemePink: 'Розовая',
+      colorThemeCustom: 'Своя',
+      colorThemeHelp:
+        'Если подписка присылает тему, приложение сразу переключается на неё. Заголовок color-profile или theme, комментарий #color-profile в теле, или параметр в ссылке. Готовые темы: original, blue, red, orange, green, purple, pink. resetcolors возвращает оригинальную. Своя палитра — строка из 9 цветов: фон, шапка, карточка, плитка, граница, основной, акцент, текст, приглушённый. Генератор: https://jidos86.github.io/VelumVPN/ Выбор в этом списке держится, пока подписка не пришлёт свою тему.',
       editTheme: 'Редактировать тему',
       showFloatingWindow: 'Показать плавающее окно',
       showFloatingWindowHelp: 'Плавающее окно может вызывать сбои при включённом ускорении GPU',

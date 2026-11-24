@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Генератор темы VelumVPN</title>
+  <meta name="description" content="Соберите палитру VelumVPN и скопируйте строку color-profile для заголовка подписки.">
+  <style>
+    :root {
+      color-scheme: dark;
+      --page: #070b12;
+      --ink: #eef3f8;
+      --muted: #8ea0b5;
+      --line: rgba(255, 255, 255, 0.08);
+      --card: #101826;
+      --accent: #55c9f4;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font: 15px/1.45 system-ui, "Segoe UI", sans-serif;
+    }
+    a { color: var(--accent); }
+    main {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 64px;
+    }
+    header h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.03em; }
+    header p { margin: 0; max-width: 68ch; color: var(--muted); }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+      gap: 24px;
+      margin-top: 28px;
+    }
+    @media (max-width: 860px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+    }
+    h2 { margin: 0 0 12px; font-size: 15px; }
+    .brand, .row, .out-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand { margin-bottom: 14px; }
+    label.field { display: block; font-size: 13px; }
+    label.field span { display: block; color: var(--muted); font-size: 12px; }
+    .rows { display: grid; gap: 8px; }
+    .row input[type="text"] {
+      width: 96px;
+      margin-left: auto;
+      background: #0b111a;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 6px 8px;
+      font: 13px ui-monospace, Consolas, monospace;
+      text-transform: uppercase;
+    }
+    input[type="color"] {
+      width: 36px;
+      height: 28px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: transparent;
+    }
+    button, .chip {
+      border: 0;
+      border-radius: 999px;
+      background: #173044;
+      color: var(--ink);
+      padding: 8px 12px;
+      font: inherit;
+      cursor: pointer;
+    }
+    button.primary { background: #2388dc; color: #fff; }
+    button:hover, .chip:hover { filter: brightness(1.08); }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+    .preview {
+      border-radius: 18px;
+      padding: 16px;
+      border: 1px solid var(--line);
+    }
+    .preview-top, .sub, .server {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .mark {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .power {
+      width: 92px;
+      height: 92px;
+      margin: 22px auto 8px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .status { text-align: center; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
+    .sub, .server {
+      margin-top: 14px;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+    .grow { flex: 1; min-width: 0; }
+    .tiny { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .name { font-weight: 700; }
+    output {
+      display: block;
+      margin: 14px 0;
+      padding: 12px;
+      border-radius: 12px;
+      background: #0b111a;
+      border: 1px solid var(--line);
+      word-break: break-all;
+      font: 13px/1.5 ui-monospace, Consolas, monospace;
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .note { margin: 18px 0 0; color: var(--muted); font-size: 13px; }
+    .names { margin-top: 22px; }
+    .names code {
+      font: 12px ui-monospace, Consolas, monospace;
+      background: #0b111a;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Генератор темы VelumVPN</h1>
+      <p>
+        Соберите палитру и скопируйте строку в заголовок ответа <code>color-profile</code>.
+        Приложение переключит тему у тех, у кого эта подписка сейчас открыта.
+        Готовые имена и остальные заголовки описаны в
+        <a href="https://github.com/Jidos86/VelumVPN/wiki">wiki</a>.
+      </p>
+    </header>
+    <div class="layout">
+      <section>
+        <h2>Цвета</h2>
+        <div class="brand">
+          <input id="brand" type="color" value="#2388dc" aria-label="Один фирменный цвет">
+          <button id="derive" type="button">Собрать палитру из одного цвета</button>
+        </div>
+        <div class="chips" id="presets"></div>
+        <div class="rows" id="fields"></div>
+      </section>
+      <section>
+        <h2>Как это выглядит</h2>
+        <div class="preview" id="preview">
+          <div class="preview-top">
+            <div class="mark" id="mark">V</div>
+            <strong>VelumVPN</strong>
+          </div>
+          <div class="power" id="power">Вкл</div>
+          <div class="status" id="status">ПОДКЛЮЧЕНО</div>
+          <div class="sub" id="sub">
+            <div class="mark" id="logo">V</div>
+            <div class="grow">
+              <div class="tiny" id="eyebrow">Подписка</div>
+              <div class="name">VelumVPN</div>
+            </div>
+          </div>
+          <div class="server" id="server">
+            <span class="name">Нидерланды</span>
+            <span class="grow"></span>
+            <span id="ping">42 мс</span>
+          </div>
+        </div>
+        <output id="line"></output>
+        <div class="actions">
+          <button class="primary" id="copy-header" type="button">Скопировать заголовок</button>
+          <button id="copy-value" type="button">Только значение</button>
+          <button id="copy-comment" type="button">Комментарий в теле</button>
+          <button id="copy-link" type="button">Параметр ссылки</button>
+        </div>
+        <p class="note">
+          Имя заголовка — <code>color-profile</code>, значение — девять цветов через дефис:
+          фон, шапка, карточка, плитка, граница, основной, акцент, текст, приглушённый.
+          «Подключено» берёт акцентный цвет. Зелёный и оранжевый статусы приложение оставляет своими.
+        </p>
+      </section>
+    </div>
+    <section class="names">
+      <h2>Готовые темы одной строкой</h2>
+      <p class="note" style="margin-top:0">
+        Если своя палитра не нужна, в тот же заголовок кладётся имя:
+        <code>original</code>, <code>blue</code>, <code>red</code>, <code>orange</code>,
+        <code>green</code>, <code>purple</code>, <code>pink</code>.
+        <code>resetcolors</code> возвращает оригинальную тему.
+      </p>
+      <div class="actions" id="named"></div>
+    </section>
+  </main>
+  <script>
+    const ORDER = [
+      ['canvas', 'Фон', 'canvas'],
+      ['titlebar', 'Шапка', 'titlebar'],
+      ['card', 'Карточка', 'card'],
+      ['card2', 'Плитка', 'card2'],
+      ['border', 'Граница', 'border'],
+      ['primary', 'Основной', 'primary'],
+      ['accent', 'Акцент', 'accent'],
+      ['text', 'Текст', 'text'],
+      ['muted', 'Приглушённый', 'muted']
+    ]
+    const PRESETS = {
+      'Синяя': ['090F1B', '070D17', '101B2B', '112038', '223A57', '2388DC', '55C9F4', 'EFF5FF', '91A7BF'],
+      'Красная': ['1B0E15', '140A10', '24131B', '301A24', '58303D', 'D9435A', 'FF8294', 'FFF0F3', 'C2A0AA'],
+      'Оранжевая': ['1D140D', '16100A', '281B12', '352419', '604127', 'E88927', 'FFBB66', 'FFF5E9', 'C6AD91'],
+      'Зелёная': ['0B1B14', '071510', '10271D', '193629', '285842', '20A774', '67E9B0', 'EAFFF4', '98BFAC'],
+      'Фиолетовая': ['171123', '110C1E', '201731', '2D2142', '47315F', '945CE3', 'C6A0FF', 'F7EFFF', 'B5A3CF'],
+      'Розовая': ['210F1C', '190D17', '2C1727', '3B2034', '62354F', 'DD579F', 'FFABD8', 'FFF0F8', 'D1A7BF']
+    }
+    const NAMED = ['original', 'blue', 'red', 'orange', 'green', 'purple', 'pink', 'resetcolors']
+    const colors = PRESETS['Синяя'].slice()
+
+    const fields = document.getElementById('fields')
+    const inputs = []
+    ORDER.forEach((spec, index) => {
+      const row = document.createElement('div')
+      row.className = 'row'
+      const label = document.createElement('label')
+      label.className = 'field'
+      label.htmlFor = spec[0]
+      label.innerHTML = spec[1] + '<span>' + spec[2] + '</span>'
+      const color = document.createElement('input')
+      color.type = 'color'
+      color.id = spec[0]
+      color.value = '#' + colors[index]
+      const text = document.createElement('input')
+      text.type = 'text'
+      text.maxLength = 6
+      text.value = colors[index]
+      text.setAttribute('aria-label', spec[1] + ', hex')
+      color.addEventListener('input', () => {
+        colors[index] = color.value.slice(1).toUpperCase()
+        text.value = colors[index]
+        paint()
+      })
+      text.addEventListener('input', () => {
+        const next = text.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6).toUpperCase()
+        text.value = next
+        if (next.length === 6) {
+          colors[index] = next
+          color.value = '#' + next
+          paint()
+        }
+      })
+      row.append(label, color, text)
+      fields.append(row)
+      inputs.push({ color, text })
+    })
+
+    const presets = document.getElementById('presets')
+    Object.keys(PRESETS).forEach((name) => {
+      const chip = document.createElement('button')
+      chip.type = 'button'
+      chip.className = 'chip'
+      chip.textContent = name
+      chip.addEventListener('click', () => apply(PRESETS[name]))
+      presets.append(chip)
+    })
+
+    document.getElementById('derive').addEventListener('click', () => {
+      apply(derive(document.getElementById('brand').value))
+    })
+
+    const named = document.getElementById('named')
+    NAMED.forEach((name) => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.textContent = name
+      button.addEventListener('click', () => copy('color-profile: ' + name, button))
+      named.append(button)
+    })
+
+    function rgb(hex) {
+      const n = parseInt(hex.replace('#', ''), 16)
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    }
+    function hex(channels) {
+      return channels
+        .map((v) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, '0'))
+        .join('')
+        .toUpperCase()
+    }
+    function mix(a, b, t) {
+      return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]
+    }
+    function derive(primaryHex) {
+      const primary = rgb(primaryHex)
+      const white = [255, 255, 255]
+      const black = [8, 10, 14]
+      return [
+        mix(black, primary, 0.12),
+        mix(black, primary, 0.06),
+        mix(black, primary, 0.18),
+        mix(black, primary, 0.26),
+        mix(black, primary, 0.4),
+        primary,
+        mix(primary, white, 0.55),
+        mix(primary, white, 0.92),
+        mix(primary, white, 0.6)
+      ].map(hex)
+    }
+    function apply(next) {
+      next.forEach((value, index) => {
+        colors[index] = value
+        inputs[index].color.value = '#' + value
+        inputs[index].text.value = value
+      })
+      paint()
+    }
+    function value() {
+      return colors.join('-')
+    }
+    function paint() {
+      const [canvas, titlebar, card, card2, border, primary, accent, text, muted] = colors
+      const preview = document.getElementById('preview')
+      preview.style.background = '#' + canvas
+      preview.style.color = '#' + text
+      preview.style.borderColor = '#' + border
+      document.getElementById('mark').style.background = '#' + primary
+      document.getElementById('mark').style.color = '#fff'
+      document.getElementById('logo').style.background = '#' + card2
+      document.getElementById('logo').style.color = '#' + accent
+      const power = document.getElementById('power')
+      power.style.background = 'radial-gradient(circle at 35% 38%, ' + mixCss(primary, card2, 0.5) + ', ' + mixCss(primary, canvas, 0.18) + ')'
+      power.style.border = '2px solid #' + primary
+      power.style.boxShadow = '0 0 26px #' + primary + '35'
+      power.style.color = '#' + text
+      document.getElementById('status').style.color = '#' + accent
+      const sub = document.getElementById('sub')
+      sub.style.background = '#' + card
+      sub.style.border = '1px solid #' + border
+      document.getElementById('eyebrow').style.color = '#' + muted
+      const server = document.getElementById('server')
+      server.style.background = '#' + card2
+      server.style.border = '1px solid #' + primary
+      document.getElementById('ping').style.color = '#' + accent
+      document.getElementById('line').textContent = 'color-profile: ' + value()
+    }
+    function mixCss(a, b, t) {
+      return '#' + hex(mix(rgb(a), rgb(b), t))
+    }
+    async function copy(text, button) {
+      try {
+        await navigator.clipboard.writeText(text)
+      } catch {
+        const area = document.createElement('textarea')
+        area.value = text
+        document.body.append(area)
+        area.select()
+        document.execCommand('copy')
+        area.remove()
+      }
+      const previous = button.textContent
+      button.textContent = 'Скопировано'
+      setTimeout(() => { button.textContent = previous }, 1400)
+    }
+    const lineOf = () => 'color-profile: ' + value()
+    document.getElementById('copy-header').addEventListener('click', (event) => copy(lineOf(), event.currentTarget))
+    document.getElementById('copy-value').addEventListener('click', (event) => copy(value(), event.currentTarget))
+    document.getElementById('copy-comment').addEventListener('click', (event) => copy('#color-profile: ' + value(), event.currentTarget))
+    document.getElementById('copy-link').addEventListener('click', (event) => copy('color-profile=' + value(), event.currentTarget))
+    paint()
+  </script>
+</body>
+</html>

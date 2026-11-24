@@ -467,6 +467,17 @@ export default {
     appearance: {
       title: 'Appearance Settings',
       language: 'Language',
+      colorTheme: 'Theme',
+      colorThemeOriginal: 'Original',
+      colorThemeCabinet: 'Blue',
+      colorThemeRed: 'Crimson',
+      colorThemeOrange: 'Amber',
+      colorThemeGreen: 'Emerald',
+      colorThemePurple: 'Purple',
+      colorThemePink: 'Sakura',
+      colorThemeCustom: 'Custom',
+      colorThemeHelp:
+        'When a subscription sends a theme, the app switches to it. Send a color-profile or theme response header, a #color-profile comment in the body, or a parameter on the link. Built-in values: original, blue, red, orange, green, purple, pink. resetcolors returns to the original. A custom palette is nine colours: canvas, title bar, card, tile, border, primary, accent, text, muted. Generator: https://jidos86.github.io/VelumVPN/ A choice in this list stays until the subscription sends its own theme.',
       editTheme: 'Edit Theme',
       showFloatingWindow: 'Show Floating Window',
       showFloatingWindowHelp:

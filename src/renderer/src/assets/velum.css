@@ -1,4 +1,5 @@
 /* New-design tokens. Imported from main.css so Tailwind picks up @theme. */
+@import './color-themes.css';
 
 @theme {
 
@@ -14,6 +15,17 @@
   --color-vl-accent: oklch(0.82 0.16 196);
   --color-vl-warn: oklch(0.8 0.14 80);
   --color-vl-danger: #e5484d;
+  /* Roles the original theme paints with the accent. Other themes override these. */
+  --color-vl-blue: oklch(0.82 0.16 196);
+  --color-vl-nav: oklch(0.82 0.16 196);
+  --color-vl-nav-bg: oklch(0.82 0.16 196 / 14%);
+  --color-vl-rail: #080b10;
+  --color-vl-on-primary: #0a0e14;
+  --color-vl-switch-off: rgb(255 255 255 / 0.12);
+  --color-vl-switch-thumb: #f2f5f8;
+  --color-vl-switch-thumb-on: #0a0e14;
+  --color-vl-radio-off: rgb(255 255 255 / 0.25);
+  --color-vl-ping-good: #10b981;
 }
 
 /*
@@ -36,6 +48,44 @@
   --sidebar: #080b10;
   --sidebar-border: rgb(255 255 255 / 0.07);
   --stroke: rgb(255 255 255 / 0.1);
+}
+
+/* Power button and selection, in the original colours. Themes replace the variables. */
+:root {
+  --vl-power-bg: radial-gradient(circle at 35% 40%, #182131, #0d121b);
+  --vl-power-bg-on: radial-gradient(circle at 35% 40%, #17232d, #0e151f);
+  --vl-power-border: rgb(255 255 255 / 0.1);
+  --vl-power-border-on: oklch(0.82 0.16 196 / 50%);
+  --vl-power-glow: 0 0 26px oklch(0.82 0.16 196 / 16%);
+  --color-vl-status: var(--color-vl-accent);
+}
+
+.vl-power {
+  background: var(--vl-power-bg);
+  border: 2px solid var(--vl-power-border);
+  box-shadow: none;
+  transition: border-color 150ms, box-shadow 150ms, background 150ms;
+}
+.vl-power.is-on {
+  background: var(--vl-power-bg-on);
+  border-color: var(--vl-power-border-on);
+  box-shadow: var(--vl-power-glow);
+}
+
+/* Flat on the original theme. The new theme adds a wash in color-themes.css. */
+.vl-panel-wash {
+  background-color: var(--color-vl-panel);
+  background-image: none;
+}
+
+.vl-route-on,
+.vl-selected {
+  border-color: color-mix(in oklab, var(--color-vl-accent) 35%, transparent);
+  background-color: color-mix(in oklab, var(--color-vl-accent) 10%, transparent);
+  background-image: none;
+}
+.vl-selected {
+  border-color: color-mix(in oklab, var(--color-vl-accent) 40%, transparent);
 }
 
 /*

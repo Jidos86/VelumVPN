@@ -58,7 +58,7 @@ export const bandColor: Record<PingBand, string> = {
   none: 'text-primary',
   timeout: 'text-destructive',
   fast: 'text-success',
-  good: 'text-emerald-500',
+  good: 'text-vl-ping-good',
   normal: 'text-warning',
   slow: 'text-destructive'
 }

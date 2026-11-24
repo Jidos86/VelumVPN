@@ -29,6 +29,7 @@ import {
   writeTheme
 } from '@renderer/utils/ipc'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import type { ColorThemeId } from '@renderer/hooks/use-color-theme'
 import { platform } from '@renderer/utils/init'
 import CSSEditorModal from './css-editor-modal'
 import { useTranslation } from 'react-i18next'
@@ -52,8 +53,26 @@ const AppearanceConfig: React.FC<AppearanceConfigProps> = (props) => {
     showFloatingWindow: showFloating = false,
     spinFloatingIcon = true,
     customTheme = 'default.css',
-    delayDisplayMode = 'text'
+    delayDisplayMode = 'text',
+    colorThemeMode = 'original',
+    colorPalette = ''
   } = appConfig || {}
+  const customActive = colorThemeMode === 'custom' && Boolean(colorPalette)
+  const themeChoices: { id: ColorThemeId; label: string }[] = [
+    { id: 'original', label: t('settings.appearance.colorThemeOriginal') },
+    { id: 'cabinet', label: t('settings.appearance.colorThemeCabinet') },
+    { id: 'red', label: t('settings.appearance.colorThemeRed') },
+    { id: 'orange', label: t('settings.appearance.colorThemeOrange') },
+    { id: 'green', label: t('settings.appearance.colorThemeGreen') },
+    { id: 'purple', label: t('settings.appearance.colorThemePurple') },
+    { id: 'pink', label: t('settings.appearance.colorThemePink') },
+    ...(customActive
+      ? [{ id: 'custom' as const, label: t('settings.appearance.colorThemeCustom') }]
+      : [])
+  ]
+  const selectedTheme = themeChoices.some((theme) => theme.id === colorThemeMode)
+    ? colorThemeMode
+    : 'original'
   const [localShowFloating, setLocalShowFloating] = useState(showFloating)
   const [onTop, setOnTop] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -91,6 +110,39 @@ const AppearanceConfig: React.FC<AppearanceConfigProps> = (props) => {
         />
       )}
       <SettingCard title={t('settings.appearance.title')}>
+        <SettingItem
+          title={t('settings.appearance.colorTheme')}
+          divider
+          actions={
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="icon-sm" variant="ghost">
+                  <MessageCircleQuestionMark className="text-lg" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">{t('settings.appearance.colorThemeHelp')}</TooltipContent>
+            </Tooltip>
+          }
+        >
+          <Select
+            value={selectedTheme}
+            onValueChange={(value) => {
+              if (value === 'custom') return
+              void patchAppConfig({ colorThemeMode: value as ColorThemeId, colorPalette: '' })
+            }}
+          >
+            <SelectTrigger size="sm" className="w-[220px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {themeChoices.map((theme) => (
+                <SelectItem key={theme.id} value={theme.id}>
+                  {theme.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingItem>
         <SettingItem
           title={t('settings.appearance.showFloatingWindow')}
           actions={

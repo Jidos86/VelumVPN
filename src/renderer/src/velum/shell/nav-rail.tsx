@@ -97,7 +97,7 @@ const NavRail: React.FC = () => {
         transition={{ type: 'spring', stiffness: 380, damping: 32 }}
         // Higher than a page's own title bar / sticky header (z-40) so the expanded rail is never
         // shown through, but still below modal dialogs (z-50) so those stay on top of everything.
-        className="absolute inset-y-0 left-0 z-[45] flex flex-col gap-1 overflow-hidden border-r border-vl-line bg-vl-chrome py-3 shadow-2xl shadow-black/40"
+        className="absolute inset-y-0 left-0 z-[45] flex flex-col gap-1 overflow-hidden border-r border-vl-line bg-vl-rail py-3 shadow-2xl shadow-black/40"
       >
         {items.map((item) => {
           const Icon = item.icon
@@ -114,7 +114,7 @@ const NavRail: React.FC = () => {
               onDoubleClick={
                 item.key === 'profile' && configViewAllowed ? () => setShowRuntimeConfig(true) : undefined
               }
-              className={`${railRow} ${active ? 'text-vl-accent' : 'text-vl-muted'}`}
+              className={`${railRow} ${active ? 'text-vl-nav' : 'text-vl-muted'}`}
             >
               {/* One highlight that glides to the selected item instead of jumping. */}
               {active && (
@@ -122,7 +122,7 @@ const NavRail: React.FC = () => {
                   layoutId="nav-rail-active"
                   aria-hidden
                   layout
-                  className="absolute inset-0 rounded-lg bg-vl-accent/14"
+                  className="absolute inset-0 rounded-lg bg-vl-nav-bg"
                   transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                 />
               )}

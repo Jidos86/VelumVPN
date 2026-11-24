@@ -5,7 +5,7 @@ import { generateProfile, getRuntimeConfig } from '../core/factory'
 import { mihomoCloseAllConnections, mihomoHotReloadConfig } from '../core/mihomoApi'
 import { applyProfileChange } from '../core/profile-switch'
 import { usableProxyProvider } from '../core/rule-build'
-import { getAppConfig } from './app'
+import { getAppConfig, patchAppConfig } from './app'
 import { mainWindow } from '..'
 import { existsSync } from 'fs'
 import axios, { AxiosResponse } from 'axios'
@@ -17,6 +17,7 @@ import { deepMerge } from '../utils/merge'
 import { getUserAgent } from '../utils/userAgent'
 import { getHWID, getDeviceOS, getOSVersion, getDeviceModel } from '../utils/deviceInfo'
 import { t } from '../utils/i18n'
+import { readSubscriptionTheme, type SubscriptionAppearance } from './color-theme'
 
 let profileConfig: ProfileConfig // profile.yaml
 
@@ -90,6 +91,21 @@ async function changeCurrentProfileNow(id: string): Promise<void> {
     restoreFailedMessage: t('error.profileRestoreFailed')
   })
   mainWindow?.webContents.send('profileConfigUpdated')
+  const applied = await getProfileItem(id)
+  if (applied?.colorPalette) {
+    await patchAppConfig({ colorThemeMode: 'custom', colorPalette: applied.colorPalette })
+  } else if (applied?.colorTheme) {
+    await patchAppConfig({ colorThemeMode: applied.colorTheme, colorPalette: '' })
+  }
+}
+
+async function applyDeliveredAppearance(delivered: SubscriptionAppearance | undefined): Promise<void> {
+  if (!delivered) return
+  if (delivered.palette) {
+    await patchAppConfig({ colorThemeMode: 'custom', colorPalette: delivered.palette })
+  } else if (delivered.theme) {
+    await patchAppConfig({ colorThemeMode: delivered.theme, colorPalette: '' })
+  }
 }
 
 function rejectUnsupportedProviders(yaml: string): void {
@@ -132,7 +148,7 @@ export async function addProfileItem(item: Partial<ProfileItem>): Promise<void> 
       throw new Error(t('error.duplicateProfile'))
     }
   }
-  const newItem = await createProfile(item)
+  const { item: newItem, delivered } = await createProfile(item)
   const config = await getProfileConfig()
   const isExisting = !!(await getProfileItem(newItem.id))
   if (isExisting) {
@@ -145,6 +161,8 @@ export async function addProfileItem(item: Partial<ProfileItem>): Promise<void> 
 
   if (!isExisting || !config.current) {
     await changeCurrentProfile(newItem.id)
+  } else if (delivered && config.current === newItem.id) {
+    await applyDeliveredAppearance(delivered)
   }
 }
 
@@ -206,7 +224,9 @@ async function downloadLogoAsBase64(
   }
 }
 
-export async function createProfile(item: Partial<ProfileItem>): Promise<ProfileItem> {
+export async function createProfile(
+  item: Partial<ProfileItem>
+): Promise<{ item: ProfileItem; delivered?: SubscriptionAppearance }> {
   const id = item.id || new Date().getTime().toString(16)
   const newItem = {
     id,
@@ -223,8 +243,11 @@ export async function createProfile(item: Partial<ProfileItem>): Promise<Profile
     // so a fallback address or a hidden config does not silently disappear just because one
     // response forgot to repeat the header (see the "new-domain"/"hide-settings" headers below).
     fallbackUrl: item.fallbackUrl,
-    hideSettings: item.hideSettings
+    hideSettings: item.hideSettings,
+    colorTheme: item.colorTheme,
+    colorPalette: item.colorPalette
   } as ProfileItem
+  let delivered: SubscriptionAppearance | undefined
   switch (newItem.type) {
     case 'remote': {
       const { 'mixed-port': mixedPort = 0 } = (await getRuntimeConfig()) ?? {}
@@ -394,6 +417,20 @@ export async function createProfile(item: Partial<ProfileItem>): Promise<Profile
       if (hideSettingsKey) {
         newItem.hideSettings = ['true', '1'].includes(headers[hideSettingsKey].trim().toLowerCase())
       }
+      // Theme from the subscription. Absent on a later update keeps the last one on the profile,
+      // but does not override a theme the user picked by hand.
+      delivered = readSubscriptionTheme({
+        url: newItem.url,
+        body: typeof data === 'string' ? data : '',
+        headers: headers as Record<string, unknown>
+      })
+      if (delivered?.theme) {
+        newItem.colorTheme = delivered.theme
+        delete newItem.colorPalette
+      } else if (delivered?.palette) {
+        newItem.colorPalette = delivered.palette
+        delete newItem.colorTheme
+      }
       if (newItem.verify) {
         let parsed: MihomoConfig
         try {
@@ -430,7 +467,7 @@ export async function createProfile(item: Partial<ProfileItem>): Promise<Profile
       break
     }
   }
-  return newItem
+  return { item: newItem, delivered }
 }
 
 export async function getProfileStr(id: string | undefined): Promise<string> {

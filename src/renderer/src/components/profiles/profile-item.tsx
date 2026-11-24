@@ -18,6 +18,7 @@ import EditInfoModal from './edit-info-modal'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { openFile } from '@renderer/utils/ipc'
+import { SubscriptionLogo } from '@renderer/velum/ui/subscription-logo'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -318,16 +319,7 @@ const ProfileItem: React.FC<Props> = (props) => {
         <div ref={setNodeRef} {...attributes} {...listeners} className="w-full h-full">
           {/* Header: logo + name + menu */}
           <div className="flex items-center gap-2">
-            {info.logo && (
-              <img
-                src={info.logo}
-                alt=""
-                className="size-7 rounded-full object-cover shrink-0"
-                onError={(e) => {
-                  ;(e.target as HTMLImageElement).style.display = 'none'
-                }}
-              />
-            )}
+            {info.logo && <SubscriptionLogo src={info.logo} className="size-7" />}
             <h3 title={info.name} className="text-sm font-semibold truncate flex-1 leading-tight">
               {info.name}
             </h3>

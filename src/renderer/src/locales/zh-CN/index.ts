@@ -529,6 +529,17 @@ export default {
     appearance: {
       title: '外观设置',
       language: '语言',
+      colorTheme: '主题',
+      colorThemeOriginal: '原始',
+      colorThemeCabinet: '蓝色',
+      colorThemeRed: '绯红',
+      colorThemeOrange: '琥珀',
+      colorThemeGreen: '翡翠',
+      colorThemePurple: '紫色',
+      colorThemePink: '樱花',
+      colorThemeCustom: '自定义',
+      colorThemeHelp:
+        '订阅下发主题后，应用会立刻切换。可通过响应头 color-profile 或 theme、正文注释 #color-profile，或链接参数传递。内置取值：original、blue、red、orange、green、purple、pink。resetcolors 恢复原始主题。自定义配色是 9 个颜色：背景、标题栏、卡片、磁贴、边框、主色、强调色、文字、次要文字。生成器：https://jidos86.github.io/VelumVPN/ 在此手动选择的主题会保留，直到订阅下发自己的主题。',
       editTheme: '编辑主题',
       showFloatingWindow: '显示悬浮窗',
       showFloatingWindowHelp: '未禁用GPU加速的情况下，悬浮窗可能会导致应用崩溃',

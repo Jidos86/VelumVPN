@@ -1,0 +1,258 @@
+/*
+ * Alternative palettes. The original theme is the default in velum.css and is left untouched:
+ * these rules apply only when html[data-color-theme] is set.
+ * "cabinet" is the blue theme. red / orange / green / purple / pink follow the theme spec.
+ */
+
+html[data-color-theme='cabinet'] {
+  --color-vl-bg: #090f1b;
+  --color-vl-chrome: #070d17;
+  --color-vl-panel: #101b2b;
+  --color-vl-tile: #112038;
+  --color-vl-line: #223a57;
+  --color-vl-line-strong: #345778;
+  --color-vl-text: #eff5ff;
+  --color-vl-muted: #91a7bf;
+  --color-vl-faint: #6d86a3;
+  --color-vl-accent: #55c9f4;
+  --color-vl-blue: #2388dc;
+  --color-vl-nav: #5ed3ff;
+  --color-vl-nav-bg: #113656;
+  --color-vl-rail: #090f1b;
+  --color-vl-on-primary: #fff;
+  --color-vl-success: #20d6a0;
+  --color-vl-warn: #f3ad35;
+  --color-vl-switch-off: #34465a;
+  --color-vl-switch-thumb: #fff;
+  --color-vl-switch-thumb-on: #fff;
+  --color-vl-radio-off: #223a57;
+  --color-vl-ping-good: #20d6a0;
+  --color-vl-status: #55c9f4;
+  --vl-glow: #2388dc3d;
+  --vl-power-bg: radial-gradient(circle at 35% 38%, #123454, #0b1929);
+  --vl-power-bg-on: radial-gradient(circle at 35% 38%, #123454, #0b1929);
+  --vl-power-border: #223a57;
+  --vl-power-border-on: #2388dc;
+  --vl-power-glow: 0 0 26px rgb(35 136 220 / 24%);
+  --vl-logo-from: #55c9f4;
+  --vl-logo-fill-to: #2388dc;
+  --vl-logo-stroke-to: #2388dc;
+  --vl-logo-check-to: #ffffff;
+}
+
+html.dark[data-color-theme='cabinet'] {
+  --background: #090f1b;
+  --foreground: #eff5ff;
+  --card: #101b2b;
+  --card-foreground: #eff5ff;
+  --popover: #112038;
+  --popover-foreground: #eff5ff;
+  --primary: #2388dc;
+  --primary-foreground: #eff5ff;
+  --secondary: #112038;
+  --secondary-foreground: #eff5ff;
+  --muted: #112038;
+  --muted-foreground: #91a7bf;
+  --border: #223a57;
+  --input: #1b304c;
+  --stroke: #223a57;
+  --success: #20d6a0;
+  --success-foreground: #090f1b;
+  --warning: #f3ad35;
+  --ring: rgb(35 136 220 / 55%);
+  --chart-1: #55c9f4;
+  --sidebar: #090f1b;
+  --sidebar-foreground: #eff5ff;
+  --sidebar-primary: #2388dc;
+  --sidebar-border: #223a57;
+  --sidebar-ring: rgb(35 136 220 / 55%);
+  --stroke-power-on: #2388dc;
+  --gradient-start-power-on: #2388dc;
+  --gradient-end-power-on: #2388dc;
+  --profile-active: rgb(35 136 220 / 18%);
+  --stroke-profile-active: #2388dc;
+}
+
+html[data-color-theme='cabinet'] .vl-panel-wash {
+  background-color: #101a2a;
+  background-image: linear-gradient(140deg, #121f32 0%, #101a2a 95%);
+}
+
+html[data-color-theme='cabinet'] .vl-route-on,
+html[data-color-theme='cabinet'] .vl-selected {
+  border-color: #2388dc;
+  background-color: #10263b;
+  background-image: linear-gradient(100deg, #112b47, #10263b);
+}
+
+/* Alternative themes and a subscription palette share this mapping. */
+html[data-color-theme='custom'],
+html[data-color-theme='red'],
+html[data-color-theme='orange'],
+html[data-color-theme='green'],
+html[data-color-theme='purple'],
+html[data-color-theme='pink'] {
+  --color-vl-faint: color-mix(in srgb, var(--color-vl-muted) 68%, var(--color-vl-bg));
+  --color-vl-nav: var(--color-vl-accent);
+  --color-vl-rail: var(--color-vl-bg);
+  --color-vl-on-primary: #fff;
+  --color-vl-switch-thumb: #fff;
+  --color-vl-switch-thumb-on: #fff;
+  --color-vl-switch-off: color-mix(in srgb, var(--color-vl-line) 70%, var(--color-vl-panel));
+  --color-vl-radio-off: var(--color-vl-line);
+  --color-vl-ping-good: var(--color-vl-success);
+  --color-vl-status: var(--color-vl-accent);
+  --vl-power-border: var(--color-vl-line);
+  --vl-power-border-on: var(--color-vl-blue);
+  --vl-power-glow: 0 0 26px var(--vl-glow);
+  --vl-power-bg: radial-gradient(
+    circle at 35% 38%,
+    color-mix(in srgb, var(--color-vl-blue) 50%, var(--color-vl-tile)),
+    color-mix(in srgb, var(--color-vl-blue) 18%, var(--color-vl-bg))
+  );
+  --vl-power-bg-on: var(--vl-power-bg);
+  --vl-logo-from: var(--color-vl-accent);
+  --vl-logo-fill-to: var(--color-vl-blue);
+  --vl-logo-stroke-to: var(--color-vl-blue);
+  --vl-logo-check-to: #ffffff;
+}
+
+html.dark[data-color-theme='custom'],
+html.dark[data-color-theme='red'],
+html.dark[data-color-theme='orange'],
+html.dark[data-color-theme='green'],
+html.dark[data-color-theme='purple'],
+html.dark[data-color-theme='pink'] {
+  --background: var(--color-vl-bg);
+  --foreground: var(--color-vl-text);
+  --card: var(--color-vl-panel);
+  --card-foreground: var(--color-vl-text);
+  --popover: var(--color-vl-tile);
+  --popover-foreground: var(--color-vl-text);
+  --primary: var(--color-vl-blue);
+  --primary-foreground: #fff;
+  --secondary: var(--color-vl-tile);
+  --secondary-foreground: var(--color-vl-text);
+  --muted: var(--color-vl-tile);
+  --muted-foreground: var(--color-vl-muted);
+  --border: var(--color-vl-line);
+  --input: var(--color-vl-tile);
+  --stroke: var(--color-vl-line);
+  --success: var(--color-vl-success);
+  --success-foreground: var(--color-vl-bg);
+  --warning: var(--color-vl-warn);
+  --ring: color-mix(in srgb, var(--color-vl-blue) 55%, transparent);
+  --chart-1: var(--color-vl-accent);
+  --sidebar: var(--color-vl-bg);
+  --sidebar-foreground: var(--color-vl-text);
+  --sidebar-primary: var(--color-vl-blue);
+  --sidebar-border: var(--color-vl-line);
+  --sidebar-ring: color-mix(in srgb, var(--color-vl-blue) 55%, transparent);
+  --stroke-power-on: var(--color-vl-blue);
+  --gradient-start-power-on: var(--color-vl-blue);
+  --gradient-end-power-on: var(--color-vl-blue);
+  --profile-active: color-mix(in srgb, var(--color-vl-blue) 18%, transparent);
+  --stroke-profile-active: var(--color-vl-blue);
+}
+
+html[data-color-theme='custom'] .vl-route-on,
+html[data-color-theme='red'] .vl-route-on,
+html[data-color-theme='orange'] .vl-route-on,
+html[data-color-theme='green'] .vl-route-on,
+html[data-color-theme='purple'] .vl-route-on,
+html[data-color-theme='pink'] .vl-route-on,
+html[data-color-theme='custom'] .vl-selected,
+html[data-color-theme='red'] .vl-selected,
+html[data-color-theme='orange'] .vl-selected,
+html[data-color-theme='green'] .vl-selected,
+html[data-color-theme='purple'] .vl-selected,
+html[data-color-theme='pink'] .vl-selected {
+  border-color: var(--color-vl-blue);
+  background-color: var(--color-vl-nav-bg);
+  background-image: none;
+}
+
+html[data-color-theme='red'] {
+  --color-vl-bg: #1b0e15;
+  --color-vl-chrome: #140a10;
+  --color-vl-panel: #24131b;
+  --color-vl-tile: #301a24;
+  --color-vl-line: #58303d;
+  --color-vl-line-strong: #58303d;
+  --color-vl-text: #fff0f3;
+  --color-vl-muted: #c2a0aa;
+  --color-vl-accent: #ff8294;
+  --color-vl-blue: #d9435a;
+  --color-vl-nav-bg: #301a24;
+  --color-vl-success: #39d0a7;
+  --color-vl-warn: #f3ab43;
+  --vl-glow: #d9435a35;
+}
+
+html[data-color-theme='orange'] {
+  --color-vl-bg: #1d140d;
+  --color-vl-chrome: #16100a;
+  --color-vl-panel: #281b12;
+  --color-vl-tile: #352419;
+  --color-vl-line: #604127;
+  --color-vl-line-strong: #604127;
+  --color-vl-text: #fff5e9;
+  --color-vl-muted: #c6ad91;
+  --color-vl-accent: #ffbb66;
+  --color-vl-blue: #e88927;
+  --color-vl-nav-bg: #352419;
+  --color-vl-success: #35cb91;
+  --color-vl-warn: #ffc36e;
+  --vl-glow: #e8892735;
+}
+
+html[data-color-theme='green'] {
+  --color-vl-bg: #0b1b14;
+  --color-vl-chrome: #071510;
+  --color-vl-panel: #10271d;
+  --color-vl-tile: #193629;
+  --color-vl-line: #285842;
+  --color-vl-line-strong: #285842;
+  --color-vl-text: #eafff4;
+  --color-vl-muted: #98bfac;
+  --color-vl-accent: #67e9b0;
+  --color-vl-blue: #20a774;
+  --color-vl-nav-bg: #193629;
+  --color-vl-success: #42db9f;
+  --color-vl-warn: #e7ab44;
+  --vl-glow: #20a77435;
+}
+
+html[data-color-theme='purple'] {
+  --color-vl-bg: #171123;
+  --color-vl-chrome: #110c1e;
+  --color-vl-panel: #201731;
+  --color-vl-tile: #2d2142;
+  --color-vl-line: #47315f;
+  --color-vl-line-strong: #47315f;
+  --color-vl-text: #f7efff;
+  --color-vl-muted: #b5a3cf;
+  --color-vl-accent: #c6a0ff;
+  --color-vl-blue: #945ce3;
+  --color-vl-nav-bg: #2d2142;
+  --color-vl-success: #36d1aa;
+  --color-vl-warn: #f0a94d;
+  --vl-glow: #945ce335;
+}
+
+html[data-color-theme='pink'] {
+  --color-vl-bg: #210f1c;
+  --color-vl-chrome: #190d17;
+  --color-vl-panel: #2c1727;
+  --color-vl-tile: #3b2034;
+  --color-vl-line: #62354f;
+  --color-vl-line-strong: #62354f;
+  --color-vl-text: #fff0f8;
+  --color-vl-muted: #d1a7bf;
+  --color-vl-accent: #ffabd8;
+  --color-vl-blue: #dd579f;
+  --color-vl-nav-bg: #3b2034;
+  --color-vl-success: #37d3a8;
+  --color-vl-warn: #f1ae54;
+  --vl-glow: #dd579f35;
+}

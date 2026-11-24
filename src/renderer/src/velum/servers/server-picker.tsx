@@ -299,7 +299,7 @@ const ServerPickerModal: React.FC<{
                 }}
                 className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
                   selected
-                    ? 'border-vl-accent/40 bg-vl-accent/10'
+                    ? 'vl-selected'
                     : pinned
                       ? 'border-amber-500/40 bg-amber-500/8'
                       : 'border-vl-line bg-vl-tile hover:border-vl-line-strong'

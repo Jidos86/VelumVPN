@@ -68,6 +68,10 @@ interface AppConfig {
   proxyInTray: boolean
   appTheme: AppTheme
   customTheme?: string
+  // A subscription that sends a theme overwrites this. `custom` uses colorPalette.
+  colorThemeMode?: 'original' | 'cabinet' | 'red' | 'orange' | 'green' | 'purple' | 'pink' | 'custom'
+  // Nine uppercase hex colours: canvas-titlebar-card-card2-border-primary-accent-text-muted.
+  colorPalette?: string
   autoCheckUpdate: boolean
   silentStart: boolean
   expertMode?: boolean
@@ -154,6 +158,10 @@ interface ProfileItem {
   // Provider ("hide-settings" header): hide the raw merged-config viewer for this profile so the
   // real server addresses in it are not exposed to the end user.
   hideSettings?: boolean
+  // Last named theme this subscription asked for ("color-profile" / "theme").
+  colorTheme?: 'original' | 'cabinet' | 'red' | 'orange' | 'green' | 'purple' | 'pink'
+  // Last custom palette this subscription asked for, nine hex colours joined by dashes.
+  colorPalette?: string
 }
 
 interface SubscriptionUserInfo {

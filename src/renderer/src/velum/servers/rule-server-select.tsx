@@ -89,7 +89,7 @@ export const RuleServerList: React.FC<{
           type="button"
           onClick={() => onChange('')}
           className={`flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors ${
-            !value ? 'bg-vl-accent/14' : 'hover:bg-white/6'
+            !value ? 'bg-vl-nav-bg' : 'hover:bg-white/6'
           }`}
         >
           <FlagMark auto />
@@ -111,7 +111,7 @@ export const RuleServerList: React.FC<{
               type="button"
               onClick={() => onChange(s.name)}
               className={`flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors ${
-                active ? 'bg-vl-accent/14' : 'hover:bg-white/6'
+                active ? 'bg-vl-nav-bg' : 'hover:bg-white/6'
               }`}
             >
               <FlagMark flag={s.flag} code={s.code} auto={s.isAuto} />

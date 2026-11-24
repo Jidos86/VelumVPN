@@ -38,6 +38,7 @@ import { useTrafficStore } from '@renderer/store/traffic-store'
 import { ServerCard } from '@renderer/velum/servers/server-picker'
 import UpdaterButton from '@renderer/components/updater/updater-button'
 import { Switch } from '@renderer/velum/ui/primitives'
+import { SubscriptionLogo } from '@renderer/velum/ui/subscription-logo'
 import { SIMULATED_UPDATE } from '@renderer/velum/dev/simulated-update'
 import { DEFAULT_SUPPORT_URL } from '@renderer/velum/shell/default-links'
 import Power from '@renderer/assets/on_icon.svg'
@@ -61,15 +62,15 @@ function formatBytes(bytes: number): string {
 // Module-level variable: persists across component mounts/unmounts
 let connectionStartTime: number | null = null
 
-const TEAL = 'var(--color-vl-accent)'
-const TEAL_GLOW = '0 0 26px oklch(0.82 0.16 196 / 16%)'
+const ACCENT = 'var(--color-vl-accent)'
+const PRIMARY = 'var(--color-vl-blue)'
 // Easter egg (rkn-peek-store.ts): forces the button's white icon glyph toward red while it fires.
 const RKN_FIRE_FILTER =
   'brightness(0) saturate(100%) invert(38%) sepia(80%) saturate(3500%) hue-rotate(-5deg) brightness(1.05)'
 
 type Phase = 'off' | 'connecting' | 'disconnecting' | 'on'
 
-const panel = 'rounded-2xl border border-vl-line bg-vl-panel'
+const panel = 'vl-panel-wash rounded-2xl border border-vl-line'
 
 // Short fade + slide used when the timer and the hint swap places under the power button.
 const fadeSwap = {
@@ -511,7 +512,7 @@ const Home: React.FC = () => {
           {/* Status label */}
           <div
             className="flex h-5 items-center justify-center transition-colors duration-300"
-            style={{ color: isSelected ? TEAL : 'var(--color-vl-muted)' }}
+            style={{ color: isSelected ? 'var(--color-vl-status)' : 'var(--color-vl-muted)' }}
           >
             <CharacterMorph
               texts={[status]}
@@ -534,7 +535,7 @@ const Home: React.FC = () => {
               <motion.span
                 aria-hidden
                 className="pointer-events-none absolute inset-0 rounded-full border-2"
-                style={{ borderColor: TEAL }}
+                style={{ borderColor: PRIMARY }}
                 initial={{ scale: 1, opacity: 0.5 }}
                 animate={{ scale: 1.4, opacity: 0 }}
                 transition={{ duration: 1.3, repeat: Infinity, ease: 'easeOut' }}
@@ -552,28 +553,19 @@ const Home: React.FC = () => {
               />
             )}
             <div
-              className="w-28 h-28 rounded-full flex items-center justify-center transition-all duration-400"
-              style={{
-                // Same shape as the original button, recoloured to the new palette
-                // (panel/tile navy when off, the accent teal when connected).
-                background: isSelected
-                  ? `radial-gradient(circle at 35% 40%, #17232d, #0e151f)`
-                  : `radial-gradient(circle at 35% 40%, #182131, #0d121b)`,
-                border: rknFiring
-                  ? '2px solid rgba(229,72,77,0.7)'
-                  : isSelected
-                    ? `2px solid oklch(0.82 0.16 196 / 50%)`
-                    : `2px solid rgb(255 255 255 / 0.1)`,
-                boxShadow: rknFiring ? '0 0 26px oklch(0.6 0.2 25 / 45%)' : isSelected ? TEAL_GLOW : 'none',
-                transition: 'border-color 150ms, box-shadow 150ms'
-              }}
+              className={`vl-power w-28 h-28 rounded-full flex items-center justify-center ${isSelected ? 'is-on' : ''}`}
+              style={
+                rknFiring
+                  ? { border: '2px solid rgba(229,72,77,0.7)', boxShadow: '0 0 26px rgb(229 72 77 / 45%)' }
+                  : undefined
+              }
             >
               <div className="relative size-14">
                 <Spinner
                   className={`absolute inset-0 m-auto size-14 transition-all duration-300 ease-out ${
                     loading ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
                   }`}
-                  style={{ color: TEAL }}
+                  style={{ color: PRIMARY }}
                 />
                 <img
                   src={Pause}
@@ -606,7 +598,7 @@ const Home: React.FC = () => {
               >
                 <div
                   className="inline-flex items-center gap-0.5 text-lg font-semibold"
-                  style={{ color: TEAL }}
+                  style={{ color: ACCENT }}
                 >
                   <NumberFlow value={elapsedHours} format={{ minimumIntegerDigits: 2, useGrouping: false }} />
                   <span>:</span>
@@ -616,12 +608,12 @@ const Home: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-4 text-xs text-vl-muted">
                   <span className="flex items-center gap-1.5">
-                    <ArrowUp className="size-3" style={{ color: TEAL }} />
+                    <ArrowUp className="size-3" style={{ color: ACCENT }} />
                     {calcTraffic(trafficInfo.upTotal)}
                   </span>
                   <span className="h-3 w-px bg-vl-line-strong" />
                   <span className="flex items-center gap-1.5">
-                    <ArrowDown className="size-3" style={{ color: TEAL }} />
+                    <ArrowDown className="size-3" style={{ color: ACCENT }} />
                     {calcTraffic(trafficInfo.downTotal)}
                   </span>
                 </div>
@@ -661,13 +653,13 @@ const Home: React.FC = () => {
                     <motion.span
                       layoutId="route-mode-highlight"
                       aria-hidden
-                      className="absolute -inset-px z-10 rounded-xl border border-vl-accent/35 bg-vl-accent/10"
+                      className="vl-route-on absolute -inset-px z-10 rounded-xl border"
                       transition={{ type: 'spring', stiffness: 420, damping: 34 }}
                     />
                   )}
                   <span
                     className={`relative z-20 flex size-4 shrink-0 items-center justify-center rounded-full border-[1.5px] ${
-                      active ? 'border-vl-accent' : 'border-white/25'
+                      active ? 'border-vl-accent' : 'border-vl-radio-off'
                     }`}
                   >
                     {active && <span className="size-2 rounded-full bg-vl-accent" />}
@@ -688,34 +680,29 @@ const Home: React.FC = () => {
         <div className="col-start-2 row-start-2 flex flex-col gap-4">
         {currentProfile && (
           <div className={`${panel} p-4`}>
-            <div data-guide="home-profile-header" className="mb-3 flex items-center gap-2">
-              {currentProfile.logo && (
-                <img
-                  src={currentProfile.logo}
-                  alt=""
-                  className="size-6 shrink-0 rounded-full"
-                  onError={(e) => {
-                    ;(e.target as HTMLImageElement).style.display = 'none'
-                  }}
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-semibold uppercase tracking-wider text-vl-faint">
-                  {t('velumUi.subscription.title')}
-                </div>
-                <div className="truncate text-sm font-bold text-vl-text">{currentProfile.name}</div>
+            <div data-guide="home-profile-header" className="mb-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-vl-faint">
+                {t('velumUi.subscription.title')}
               </div>
-              {currentProfile.type === 'remote' && (
-                <button
-                  type="button"
-                  onClick={handleUpdateProfile}
-                  disabled={updating}
-                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-vl-accent transition-colors hover:bg-white/5 disabled:opacity-50"
-                >
-                  <RefreshCcw className={`size-3 ${updating ? 'animate-spin' : ''}`} />
-                  {t('velumUi.subscription.refresh')}
-                </button>
-              )}
+              <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+                {currentProfile.logo && (
+                  <SubscriptionLogo src={currentProfile.logo} className="size-8" />
+                )}
+                <div className="min-w-0 flex-1 truncate text-sm font-bold leading-5 text-vl-text">
+                  {currentProfile.name}
+                </div>
+                {currentProfile.type === 'remote' && (
+                  <button
+                    type="button"
+                    onClick={handleUpdateProfile}
+                    disabled={updating}
+                    className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-vl-accent transition-colors hover:bg-white/5 disabled:opacity-50"
+                  >
+                    <RefreshCcw className={`size-3 ${updating ? 'animate-spin' : ''}`} />
+                    {t('velumUi.subscription.refresh')}
+                  </button>
+                )}
+              </div>
             </div>
 
             {subscription && (

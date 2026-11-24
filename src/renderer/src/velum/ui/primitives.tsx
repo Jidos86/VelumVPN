@@ -30,7 +30,7 @@ export const PrimaryButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElemen
   <button
     type="button"
     {...props}
-    className={`inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-vl-accent px-3 py-2 text-xs font-bold text-vl-bg transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-50 ${className}`}
+    className={`inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-vl-blue px-3 py-2 text-xs font-bold text-vl-on-primary transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-50 ${className}`}
   />
 )
 
@@ -122,12 +122,12 @@ export const Switch: React.FC<{
     disabled={disabled}
     onClick={() => onChange(!checked)}
     className={`relative h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors disabled:cursor-default disabled:opacity-50 ${
-      checked ? 'bg-vl-accent' : 'bg-white/12'
+      checked ? 'bg-vl-blue' : 'bg-vl-switch-off'
     }`}
   >
     <span
-      className={`absolute top-0.5 size-4 rounded-full bg-vl-text transition-all ${
-        checked ? 'left-[18px] bg-vl-bg' : 'left-0.5'
+      className={`absolute top-0.5 size-4 rounded-full transition-all ${
+        checked ? 'left-[18px] bg-vl-switch-thumb-on' : 'left-0.5 bg-vl-switch-thumb'
       }`}
     />
   </button>

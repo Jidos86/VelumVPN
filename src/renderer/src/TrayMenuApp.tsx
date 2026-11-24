@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronRight, RefreshCw } from 'lucide-react'
 import { useAppConfig } from './hooks/use-app-config'
+import { useApplyColorTheme } from './hooks/use-color-theme'
 import { useControledMihomoConfig } from './hooks/use-controled-mihomo-config'
 import { useGroups } from './hooks/use-groups'
 import { toast } from 'sonner'
@@ -44,6 +45,7 @@ const ipc = window.electron.ipcRenderer
 // The server list flies out next to the card while the pointer is on the server row, like a submenu.
 const TrayMenuApp: React.FC = () => {
   const { t } = useTranslation()
+  useApplyColorTheme()
   const { appConfig, mutateAppConfig } = useAppConfig()
   const { controledMihomoConfig, mutateControledMihomoConfig } = useControledMihomoConfig()
   const { mutate: mutateGroups } = useGroups()

@@ -3,10 +3,12 @@ import MihomoIcon from './components/base/mihomo-icon'
 import { calcTraffic } from './utils/calc'
 import { showContextMenu, triggerMainWindow } from './utils/ipc'
 import { useAppConfig } from './hooks/use-app-config'
+import { useApplyColorTheme } from './hooks/use-color-theme'
 import { useControledMihomoConfig } from './hooks/use-controled-mihomo-config'
 
 const FloatingApp: React.FC = () => {
   const { appConfig } = useAppConfig()
+  useApplyColorTheme()
   const { controledMihomoConfig } = useControledMihomoConfig()
   const { proxyMode = false, spinFloatingIcon = true } = appConfig || {}
   const { tun } = controledMihomoConfig || {}

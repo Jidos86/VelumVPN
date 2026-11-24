@@ -1,3 +1,4 @@
+import { BrowserWindow } from 'electron'
 import { readFile, writeFile, rename, copyFile, unlink } from 'fs/promises'
 import { appConfigPath } from '../utils/dirs'
 import { parseYaml, stringifyYaml } from '../utils/yaml'
@@ -102,6 +103,9 @@ export async function patchAppConfig(patch: Partial<AppConfig>): Promise<void> {
     await safeWriteConfig(stringifyYaml(encryptConfig(appConfig)))
   })()
   await writePromise
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send('appConfigUpdated')
+  }
 }
 
 export function getAppConfigSync(): AppConfig {

@@ -7,6 +7,7 @@ import './i18n'
 import { useTranslation } from 'react-i18next'
 import routes from '@renderer/routes'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { useApplyColorTheme } from '@renderer/hooks/use-color-theme'
 import {
   applyTheme,
   checkUpdate,
@@ -39,6 +40,7 @@ const RouteView: React.FC<{ location: Location }> = ({ location }) => useRoutes(
 const App: React.FC = () => {
   const { t } = useTranslation()
   const { appConfig } = useAppConfig()
+  useApplyColorTheme()
   const { customTheme, autoCheckUpdate } = appConfig || {}
   const { setTheme } = useTheme()
   navigate = useNavigate()
