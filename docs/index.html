@@ -10,15 +10,40 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      background: #070b12;
-      color: #eef3f8;
+      background:
+        radial-gradient(900px 420px at 10% -10%, rgba(35, 136, 220, .14), transparent 60%),
+        #070c14;
+      color: #e7eef6;
       font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
     }
-    a { color: #55c9f4; }
-    main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 56px; }
-    header h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.03em; }
-    header p { margin: 0; max-width: 72ch; color: #8ea0b5; }
-    .stage { margin-top: 22px; overflow: hidden; }
+    a { color: #7ec8ff; }
+    main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 64px; }
+    header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    header h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -0.03em; }
+    header p { margin: 0; max-width: 62ch; color: #8ea0b5; }
+    .badge, .live {
+      display: inline-flex; align-items: center; gap: 8px; flex: none;
+      border: 1px solid rgba(255,255,255,.08); background: #101a28;
+      border-radius: 999px; padding: 6px 12px; color: #c5d2e0; font-size: 13px;
+    }
+    .badge i, .live i { width: 8px; height: 8px; border-radius: 50%; background: #3dd68c; box-shadow: 0 0 8px #3dd68c; }
+    .board { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(340px, .92fr); gap: 16px; margin-top: 18px; align-items: start; }
+    .stack { display: flex; flex-direction: column; gap: 16px; }
+    .sheet {
+      background: linear-gradient(180deg, rgba(255,255,255,.03), transparent 80px), #0e1726;
+      border: 1px solid rgba(255,255,255,.08); border-radius: 18px; padding: 18px;
+    }
+    .sheet h2 { margin: 0; font-size: 16px; }
+    .sheet .lead { margin: 4px 0 0; color: #8ea0b5; font-size: 13px; }
+    .sheet-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .block-label { margin: 16px 0 8px; color: #8ea0b5; font-size: 12px; }
+    .sheet-foot {
+      display: flex; justify-content: space-between; gap: 12px; margin-top: 14px;
+      padding-top: 12px; border-top: 1px solid rgba(255,255,255,.06); color: #8ea0b5; font-size: 12px;
+    }
+    .slot { margin-top: 14px; overflow: hidden; border-radius: 12px; border: 1px solid rgba(255,255,255,.08); }
+    .slot .window { box-shadow: none; }
+    @media (max-width: 980px) { .board { grid-template-columns: 1fr; } header { flex-direction: column; } }
     .window {
       width: 1040px;
       transform-origin: top left;
@@ -144,52 +169,108 @@
     .updates { grid-column: 2; margin-top: 22px; display: flex; flex-direction: column; gap: 6px; }
     .upd svg, .support svg { width: 16px; height: 16px; flex: none; stroke: var(--muted); }
     .support svg { stroke: var(--accent); }
-    .tools { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr); gap: 18px; margin-top: 18px; }
-    @media (max-width: 860px) { .tools { grid-template-columns: 1fr; } }
-    section.panel {
-      background: #101826; border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 16px;
-    }
-    h3.sec { margin: 0 0 12px; font-size: 15px; }
-    .brand, .row { display: flex; align-items: center; gap: 10px; }
-    .brand { margin-bottom: 12px; }
-    label.field { display: block; font-size: 13px; }
-    label.field span { display: block; color: #8ea0b5; font-size: 12px; }
-    .rows { display: grid; gap: 8px; }
-    .row input[type="text"] {
-      width: 96px; margin-left: auto; background: #0b111a; color: #eef3f8;
+    .brand { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .base { display: inline-flex; align-items: center; gap: 8px; color: #c5d2e0; font-size: 13px; }
+    .tone { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+    .tone b { display: block; font-weight: 600; }
+    .tone span { color: #8ea0b5; font-size: 12px; }
+    .tone input[type="text"], .hex {
+      width: 92px; background: #0b121c; color: #e7eef6;
       border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: 6px 8px;
       font: 13px ui-monospace, Consolas, monospace; text-transform: uppercase;
     }
-    input[type="color"] { width: 36px; height: 28px; padding: 0; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; background: transparent; }
-    button.btn, .chip {
-      border: 0; border-radius: 999px; background: #173044; color: #eef3f8;
+    body.hex-off .hex { display: none; }
+    input[type="color"] {
+      width: 42px; height: 28px; padding: 2px; border: 1px solid rgba(255,255,255,.14);
+      border-radius: 8px; background: #0b121c; cursor: pointer;
+    }
+    button.btn, .chip, .theme-card {
+      border: 1px solid transparent; border-radius: 999px; background: #152033; color: #e7eef6;
       padding: 8px 12px; font: inherit; cursor: pointer;
     }
-    button.btn.primary { background: #2388dc; }
+    button.btn.primary { background: #2388dc; border-color: #2388dc; }
+    button.btn.ghost-btn { background: #121c2e; border-color: rgba(255,255,255,.08); }
+    button.btn.ghost-btn[aria-pressed="false"] { color: #8ea0b5; }
     .chips, .actions { display: flex; flex-wrap: wrap; gap: 8px; }
-    .chips { margin: 0 0 12px; }
+    .chip { display: inline-flex; align-items: center; gap: 8px; }
+    .chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--dot); }
+    .chip.on { background: color-mix(in srgb, var(--dot) 24%, #121c2e); border-color: color-mix(in srgb, var(--dot) 70%, transparent); }
     output {
-      display: block; margin: 0 0 12px; padding: 12px; border-radius: 12px;
-      background: #0b111a; border: 1px solid rgba(255,255,255,.08);
+      display: block; margin: 14px 0; padding: 12px 14px; border-radius: 12px;
+      background: #0b121c; border: 1px solid rgba(255,255,255,.08);
       word-break: break-all; font: 13px/1.5 ui-monospace, Consolas, monospace;
     }
     .note { margin: 12px 0 0; color: #8ea0b5; font-size: 13px; }
-    .names { margin-top: 18px; }
+    .themes-sheet { margin-top: 16px; }
+    .themes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+    .theme-card {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      width: 100%; border-radius: 14px; padding: 14px; text-align: left; background: #101a2b;
+      border-color: rgba(255,255,255,.06);
+    }
+    .theme-card.on { border-color: color-mix(in srgb, var(--dot) 70%, transparent); }
+    .theme-card b { display: block; }
+    .theme-card small { color: #8ea0b5; }
+    .swatches { display: flex; gap: 6px; }
+    .swatches i { width: 18px; height: 28px; border-radius: 5px; background: var(--c); }
+    @media (max-width: 800px) { .themes { grid-template-columns: 1fr; } }
     code { font: 12px ui-monospace, Consolas, monospace; }
   </style>
 </head>
 <body>
   <main>
     <header>
-      <h1>Генератор темы VelumVPN</h1>
-      <p>
-        Цвета сразу попадают на главный экран. Строку под окном можно скопировать в заголовок
-        <code>color-profile</code>. Остальные заголовки — в
-        <a href="https://github.com/Jidos86/VelumVPN/wiki/Для-провайдеров-VPN">wiki</a>.
-      </p>
+      <div>
+        <h1>Конструктор цветовых тем</h1>
+        <p>Создавайте палитру для VelumVPN, проверяйте её на интерфейсе и копируйте готовую строку для приложения.</p>
+      </div>
+      <div class="badge"><i></i> 9 параметров темы</div>
     </header>
-
-    <div class="stage">
+    <div class="board">
+      <section class="sheet">
+        <div class="sheet-top">
+          <div>
+            <h2>Палитра</h2>
+            <p class="lead">Изменения применяются к предпросмотру сразу</p>
+          </div>
+          <button class="btn ghost-btn" id="hex-toggle" type="button" aria-pressed="true">Все HEX</button>
+        </div>
+        <div class="block-label">Готовые сочетания</div>
+        <div class="chips" id="presets"></div>
+        <div class="block-label">Создать тему из одного цвета</div>
+        <div class="brand">
+          <label class="base">Базовый цвет <input id="brand" type="color" value="#2388dc" aria-label="Базовый цвет"></label>
+          <button class="btn primary" id="derive" type="button">Собрать палитру</button>
+        </div>
+        <div class="block-label">Тонкая настройка · HEX</div>
+        <div class="rows" id="fields"></div>
+        <div class="sheet-foot">
+          <span>Можно менять цвет через палитру или HEX-код</span>
+          <span id="theme-name">Тема: Синяя</span>
+        </div>
+      </section>
+      <div class="stack">
+        <section class="sheet">
+          <h2>Готовая строка для приложения</h2>
+          <p class="lead">Синхронизируется со всеми девятью цветами</p>
+          <output id="line"></output>
+          <div class="actions">
+            <button class="btn primary" id="copy-header" type="button">Скопировать заголовок</button>
+            <button class="btn" id="copy-value" type="button">Только значение</button>
+            <button class="btn" id="copy-comment" type="button">Комментарий в теле</button>
+            <button class="btn" id="copy-link" type="button">Параметр ссылки</button>
+          </div>
+          <p class="note">Порядок: фон, шапка, карточка, плитка, граница, основной, акцент, текст, приглушённый. «Подключено» берёт акцент, пинг остаётся зелёным.</p>
+        </section>
+        <section class="sheet">
+          <div class="sheet-top">
+            <div>
+              <h2>Предпросмотр</h2>
+              <p class="lead">Главный экран VelumVPN</p>
+            </div>
+            <span class="live"><i></i> Live</span>
+          </div>
+          <div class="slot" id="stage">
       <div class="window" id="app">
         <div class="titlebar">
           <div class="brandline">
@@ -283,35 +364,17 @@
           </div>
         </div>
       </div>
+          </div>
+          <p class="note">Предпросмотр показывает поверхности, контраст текста, статус и кнопку питания.</p>
+        </section>
+      </div>
     </div>
 
-    <div class="tools">
-      <section class="panel">
-        <h3 class="sec">Цвета</h3>
-        <div class="brand">
-          <input id="brand" type="color" value="#2388dc" aria-label="Один фирменный цвет">
-          <button class="btn" id="derive" type="button">Собрать палитру из одного цвета</button>
-        </div>
-        <div class="chips" id="presets"></div>
-        <div class="rows" id="fields"></div>
-      </section>
-      <section class="panel">
-        <h3 class="sec">Строка для панели</h3>
-        <output id="line"></output>
-        <div class="actions">
-          <button class="btn primary" id="copy-header" type="button">Скопировать заголовок</button>
-          <button class="btn" id="copy-value" type="button">Только значение</button>
-          <button class="btn" id="copy-comment" type="button">Комментарий в теле</button>
-          <button class="btn" id="copy-link" type="button">Параметр ссылки</button>
-        </div>
-        <p class="note">Девять цветов: фон, шапка, карточка, плитка, граница, основной, акцент, текст, приглушённый. «Подключено» берёт акцент. Пинг остаётся зелёным, как в приложении.</p>
-      </section>
-    </div>
-
-    <section class="panel names">
-      <h3 class="sec">Готовые темы одной строкой</h3>
-      <p class="note" style="margin-top:0">Если своя палитра не нужна, в тот же заголовок кладётся имя. <code>resetcolors</code> возвращает оригинальную тему.</p>
-      <div class="actions" id="named"></div>
+    <section class="sheet themes-sheet">
+      <h2>Готовые темы одной строкой</h2>
+      <p class="lead">Нажмите на тему, чтобы подставить её в редактор и скопировать строку.</p>
+      <div class="themes" id="themes"></div>
+      <p class="note">Также поддерживаются команды <code>original</code> и <code>resetcolors</code> — возврат к исходной палитре. Формат строки <code>color-profile: HEX-HEX-…</code>. <a href="https://github.com/Jidos86/VelumVPN/wiki/Для-провайдеров-VPN">Остальные заголовки</a>.</p>
     </section>
   </main>
   <script>
@@ -326,37 +389,38 @@
       ['text', 'Текст', 'text'],
       ['muted', 'Приглушённый', 'muted']
     ]
-    const PRESETS = {
-      'Синяя': ['090F1B', '070D17', '101B2B', '112038', '223A57', '2388DC', '55C9F4', 'EFF5FF', '91A7BF'],
-      'Красная': ['1B0E15', '140A10', '24131B', '301A24', '58303D', 'D9435A', 'FF8294', 'FFF0F3', 'C2A0AA'],
-      'Оранжевая': ['1D140D', '16100A', '281B12', '352419', '604127', 'E88927', 'FFBB66', 'FFF5E9', 'C6AD91'],
-      'Зелёная': ['0B1B14', '071510', '10271D', '193629', '285842', '20A774', '67E9B0', 'EAFFF4', '98BFAC'],
-      'Фиолетовая': ['171123', '110C1E', '201731', '2D2142', '47315F', '945CE3', 'C6A0FF', 'F7EFFF', 'B5A3CF'],
-      'Розовая': ['210F1C', '190D17', '2C1727', '3B2034', '62354F', 'DD579F', 'FFABD8', 'FFF0F8', 'D1A7BF']
-    }
-    const NAMED = ['original', 'blue', 'red', 'orange', 'green', 'purple', 'pink', 'resetcolors']
-    const colors = PRESETS['Синяя'].slice()
+    const PRESETS = [
+      { name: 'Синяя', id: 'blue', colors: ['090F1B', '070D17', '101B2B', '112038', '223A57', '2388DC', '55C9F4', 'EFF5FF', '91A7BF'] },
+      { name: 'Красная', id: 'red', colors: ['1B0E15', '140A10', '24131B', '301A24', '58303D', 'D9435A', 'FF8294', 'FFF0F3', 'C2A0AA'] },
+      { name: 'Оранжевая', id: 'orange', colors: ['1D140D', '16100A', '281B12', '352419', '604127', 'E88927', 'FFBB66', 'FFF5E9', 'C6AD91'] },
+      { name: 'Зелёная', id: 'green', colors: ['0B1B14', '071510', '10271D', '193629', '285842', '20A774', '67E9B0', 'EAFFF4', '98BFAC'] },
+      { name: 'Фиолетовая', id: 'purple', colors: ['171123', '110C1E', '201731', '2D2142', '47315F', '945CE3', 'C6A0FF', 'F7EFFF', 'B5A3CF'] },
+      { name: 'Розовая', id: 'pink', colors: ['210F1C', '190D17', '2C1727', '3B2034', '62354F', 'DD579F', 'FFABD8', 'FFF0F8', 'D1A7BF'] }
+    ]
+    const colors = PRESETS[0].colors.slice()
+    let activeName = 'Синяя'
     const fields = document.getElementById('fields')
     const inputs = []
     ORDER.forEach((spec, index) => {
       const row = document.createElement('div')
-      row.className = 'row'
+      row.className = 'tone'
       const label = document.createElement('label')
-      label.className = 'field'
       label.htmlFor = spec[0]
-      label.innerHTML = spec[1] + '<span>' + spec[2] + '</span>'
+      label.innerHTML = '<b>' + spec[1] + '</b><span>' + spec[2] + '</span>'
       const color = document.createElement('input')
       color.type = 'color'
       color.id = spec[0]
       color.value = '#' + colors[index]
       const text = document.createElement('input')
       text.type = 'text'
+      text.className = 'hex'
       text.maxLength = 6
       text.value = colors[index]
       text.setAttribute('aria-label', spec[1] + ', hex')
       color.addEventListener('input', () => {
         colors[index] = color.value.slice(1).toUpperCase()
         text.value = colors[index]
+        setActive('')
         paint()
       })
       text.addEventListener('input', () => {
@@ -365,6 +429,7 @@
         if (next.length === 6) {
           colors[index] = next
           color.value = '#' + next
+          setActive('')
           paint()
         }
       })
@@ -372,23 +437,47 @@
       fields.append(row)
       inputs.push({ color, text })
     })
-    document.getElementById('presets').append(...Object.keys(PRESETS).map((name) => {
+    function chipButton(preset) {
       const chip = document.createElement('button')
       chip.type = 'button'
       chip.className = 'chip'
-      chip.textContent = name
-      chip.addEventListener('click', () => apply(PRESETS[name]))
+      chip.dataset.preset = preset.name
+      chip.style.setProperty('--dot', '#' + preset.colors[5])
+      chip.innerHTML = '<i></i>' + preset.name
+      chip.addEventListener('click', () => {
+        apply(preset.colors, preset.name)
+      })
       return chip
+    }
+    document.getElementById('presets').append(...PRESETS.map(chipButton))
+    document.getElementById('themes').append(...PRESETS.map((preset) => {
+      const card = document.createElement('button')
+      card.type = 'button'
+      card.className = 'theme-card'
+      card.dataset.preset = preset.name
+      card.style.setProperty('--dot', '#' + preset.colors[5])
+      const dots = [0, 4, 5, 6].map((i) => '<i style="--c:#' + preset.colors[i] + '"></i>').join('')
+      card.innerHTML = '<span><b>' + preset.name + '</b><small>Готовый профиль ' + preset.id + '</small></span><span class="swatches">' + dots + '</span>'
+      card.addEventListener('click', () => {
+        apply(preset.colors, preset.name)
+        copy(lineOf(), card.querySelector('b'))
+      })
+      return card
     }))
-    document.getElementById('derive').addEventListener('click', () => apply(derive(document.getElementById('brand').value)))
-    document.getElementById('named').append(...NAMED.map((name) => {
-      const button = document.createElement('button')
-      button.type = 'button'
-      button.className = 'btn'
-      button.textContent = name
-      button.addEventListener('click', () => copy('color-profile: ' + name, button))
-      return button
-    }))
+    document.getElementById('derive').addEventListener('click', () => {
+      apply(derive(document.getElementById('brand').value), '')
+    })
+    document.getElementById('hex-toggle').addEventListener('click', (event) => {
+      const on = document.body.classList.toggle('hex-off')
+      event.currentTarget.setAttribute('aria-pressed', on ? 'false' : 'true')
+    })
+    function setActive(name) {
+      activeName = name
+      document.getElementById('theme-name').textContent = 'Тема: ' + (name || 'Своя')
+      document.querySelectorAll('[data-preset]').forEach((el) => {
+        el.classList.toggle('on', el.dataset.preset === name)
+      })
+    }
     function rgb(hex) {
       const n = parseInt(hex.replace('#', ''), 16)
       return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
@@ -406,12 +495,13 @@
       const black = [8, 10, 14]
       return [mix(black, primary, 0.12), mix(black, primary, 0.06), mix(black, primary, 0.18), mix(black, primary, 0.26), mix(black, primary, 0.4), primary, mix(primary, white, 0.55), mix(primary, white, 0.92), mix(primary, white, 0.6)].map(hex)
     }
-    function apply(next) {
+    function apply(next, name) {
       next.forEach((value, index) => {
         colors[index] = value
         inputs[index].color.value = '#' + value
         inputs[index].text.value = value
       })
+      if (name !== undefined) setActive(name)
       paint()
     }
     function value() { return colors.join('-') }
@@ -461,6 +551,7 @@
     }
     window.addEventListener('resize', fit)
     paint()
+    setActive('Синяя')
     fit()
   </script>
 </body>
