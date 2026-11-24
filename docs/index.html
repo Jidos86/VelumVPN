@@ -170,7 +170,27 @@
     .upd svg, .support svg { width: 16px; height: 16px; flex: none; stroke: var(--muted); }
     .support svg { stroke: var(--accent); }
     .brand { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .base { display: inline-flex; align-items: center; gap: 8px; color: #c5d2e0; font-size: 13px; }
+    .base { display: inline-flex; align-items: center; gap: 8px; color: #c5d2e0; font-size: 13px; background: transparent; border: 0; padding: 0; cursor: pointer; font: inherit; }
+    .base.on .swatch, .tone.on .swatch { box-shadow: 0 0 0 2px #7ec8ff; }
+    .swatch { width: 42px; height: 28px; border-radius: 8px; border: 1px solid rgba(255,255,255,.14); background: #2388dc; }
+    .picker {
+      position: fixed; z-index: 30; display: none; flex-direction: column; gap: 10px;
+      width: 244px; padding: 12px; border-radius: 16px;
+      background: #101a28; border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 18px 50px rgb(0 0 0 / 50%);
+    }
+    .picker.open { display: flex; }
+    .wheel-box { position: relative; width: 220px; height: 220px; }
+    .wheel-box canvas { width: 220px; height: 220px; border-radius: 50%; cursor: crosshair; display: block; }
+    .wheel-marker {
+      position: absolute; width: 16px; height: 16px; border-radius: 50%;
+      border: 2px solid #fff; box-shadow: 0 0 0 1px #000, inset 0 0 0 1px rgb(0 0 0 / 35%);
+      pointer-events: none; transform: translate(-50%, -50%);
+    }
+    .wheel-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+    .wheel-side label { display: flex; flex-direction: column; gap: 6px; color: #8ea0b5; font-size: 12px; }
+    #wheel-value { width: 100%; accent-color: #7ec8ff; }
+    #wheel-chip { width: 100%; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,.1); }
     .tone { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
     .tone b { display: block; font-weight: 600; }
     .tone span { color: #8ea0b5; font-size: 12px; }
@@ -239,13 +259,13 @@
         <div class="chips" id="presets"></div>
         <div class="block-label">Создать тему из одного цвета</div>
         <div class="brand">
-          <label class="base">Базовый цвет <input id="brand" type="color" value="#2388dc" aria-label="Базовый цвет"></label>
+          <button class="base" id="brand-pick" type="button">Базовый цвет <span id="brand-swatch" class="swatch"></span></button>
           <button class="btn primary" id="derive" type="button">Собрать палитру</button>
         </div>
         <div class="block-label">Тонкая настройка · HEX</div>
         <div class="rows" id="fields"></div>
         <div class="sheet-foot">
-          <span>Можно менять цвет через палитру или HEX-код</span>
+          <span>Нажмите цвет — откроется круг</span>
           <span id="theme-name">Тема: Синяя</span>
         </div>
       </section>
@@ -377,6 +397,15 @@
       <p class="note">Также поддерживаются команды <code>original</code> и <code>resetcolors</code> — возврат к исходной палитре. Формат строки <code>color-profile: HEX-HEX-…</code>. <a href="https://github.com/Jidos86/VelumVPN/wiki/Для-провайдеров-VPN">Остальные заголовки</a>.</p>
     </section>
   </main>
+  <div id="picker" class="picker">
+    <div id="wheel-target">Базовый цвет</div>
+    <div class="wheel-box">
+      <canvas id="wheel" width="400" height="400"></canvas>
+      <div id="wheel-marker" class="wheel-marker"></div>
+    </div>
+    <div id="wheel-chip"></div>
+    <label class="wheel-side">Яркость <input id="wheel-value" type="range" min="0" max="100" value="86"></label>
+  </div>
   <script>
     const ORDER = [
       ['canvas', 'Фон', 'canvas'],
@@ -399,6 +428,11 @@
     ]
     const colors = PRESETS[0].colors.slice()
     let activeName = 'Синяя'
+    let brandHex = '2388DC'
+    let wheelTarget = { kind: 'brand' }
+    let hue = 200
+    let sat = 0.8
+    let val = 0.86
     const fields = document.getElementById('fields')
     const inputs = []
     ORDER.forEach((spec, index) => {
@@ -407,35 +441,33 @@
       const label = document.createElement('label')
       label.htmlFor = spec[0]
       label.innerHTML = '<b>' + spec[1] + '</b><span>' + spec[2] + '</span>'
-      const color = document.createElement('input')
-      color.type = 'color'
+      const color = document.createElement('button')
+      color.type = 'button'
+      color.className = 'swatch'
       color.id = spec[0]
-      color.value = '#' + colors[index]
+      color.style.background = '#' + colors[index]
+      color.setAttribute('aria-label', spec[1])
+      color.addEventListener('click', () => selectSlot(index))
       const text = document.createElement('input')
       text.type = 'text'
       text.className = 'hex'
       text.maxLength = 6
       text.value = colors[index]
       text.setAttribute('aria-label', spec[1] + ', hex')
-      color.addEventListener('input', () => {
-        colors[index] = color.value.slice(1).toUpperCase()
-        text.value = colors[index]
-        setActive('')
-        paint()
-      })
       text.addEventListener('input', () => {
         const next = text.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6).toUpperCase()
         text.value = next
         if (next.length === 6) {
           colors[index] = next
-          color.value = '#' + next
+          color.style.background = '#' + next
           setActive('')
           paint()
+          if (wheelTarget.kind === 'slot' && wheelTarget.index === index) syncWheel('#' + next)
         }
       })
       row.append(label, color, text)
       fields.append(row)
-      inputs.push({ color, text })
+      inputs.push({ color, text, row })
     })
     function chipButton(preset) {
       const chip = document.createElement('button')
@@ -465,8 +497,9 @@
       return card
     }))
     document.getElementById('derive').addEventListener('click', () => {
-      apply(derive(document.getElementById('brand').value), '')
+      apply(derive('#' + brandHex), '')
     })
+    document.getElementById('brand-pick').addEventListener('click', () => selectBrand())
     document.getElementById('hex-toggle').addEventListener('click', (event) => {
       const on = document.body.classList.toggle('hex-off')
       event.currentTarget.setAttribute('aria-pressed', on ? 'false' : 'true')
@@ -498,11 +531,12 @@
     function apply(next, name) {
       next.forEach((value, index) => {
         colors[index] = value
-        inputs[index].color.value = '#' + value
+        inputs[index].color.style.background = '#' + value
         inputs[index].text.value = value
       })
       if (name !== undefined) setActive(name)
       paint()
+      if (wheelTarget.kind === 'slot') syncWheel('#' + colors[wheelTarget.index])
     }
     function value() { return colors.join('-') }
     function paint() {
@@ -549,6 +583,166 @@
       app.style.transform = 'scale(' + scale + ')'
       stage.style.height = Math.ceil(app.getBoundingClientRect().height) + 'px'
     }
+    function hsvToRgb(h, s, v) {
+      const c = v * s
+      const hh = ((h % 360) + 360) % 360 / 60
+      const x = c * (1 - Math.abs(hh % 2 - 1))
+      const m = v - c
+      const row = hh < 1 ? [c, x, 0] : hh < 2 ? [x, c, 0] : hh < 3 ? [0, c, x] : hh < 4 ? [0, x, c] : hh < 5 ? [x, 0, c] : [c, 0, x]
+      return [(row[0] + m) * 255, (row[1] + m) * 255, (row[2] + m) * 255]
+    }
+    function rgbToHsv(r, g, b) {
+      r /= 255
+      g /= 255
+      b /= 255
+      const max = Math.max(r, g, b)
+      const min = Math.min(r, g, b)
+      const d = max - min
+      let h = 0
+      if (d) {
+        if (max === r) h = ((g - b) / d) % 6
+        else if (max === g) h = (b - r) / d + 2
+        else h = (r - g) / d + 4
+        h *= 60
+        if (h < 0) h += 360
+      }
+      return [h, max === 0 ? 0 : d / max, max]
+    }
+    function drawWheel() {
+      const canvas = document.getElementById('wheel')
+      const ctx = canvas.getContext('2d')
+      const size = canvas.width
+      const radius = size / 2
+      const image = ctx.createImageData(size, size)
+      const data = image.data
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const dx = x + 0.5 - radius
+          const dy = y + 0.5 - radius
+          const dist = Math.hypot(dx, dy) / radius
+          const pixel = (y * size + x) * 4
+          if (dist > 1) continue
+          const angle = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360
+          const channels = hsvToRgb(angle, dist, val)
+          data[pixel] = channels[0]
+          data[pixel + 1] = channels[1]
+          data[pixel + 2] = channels[2]
+          data[pixel + 3] = 255
+        }
+      }
+      ctx.putImageData(image, 0, 0)
+    }
+    function placeMarker() {
+      const marker = document.getElementById('wheel-marker')
+      const angle = hue * Math.PI / 180
+      marker.style.left = (50 + Math.cos(angle) * sat * 50) + '%'
+      marker.style.top = (50 + Math.sin(angle) * sat * 50) + '%'
+    }
+    function commitWheel() {
+      const next = hex(hsvToRgb(hue, sat, val))
+      document.getElementById('wheel-chip').style.background = '#' + next
+      if (wheelTarget.kind === 'brand') {
+        brandHex = next
+        document.getElementById('brand-swatch').style.background = '#' + next
+        return
+      }
+      const index = wheelTarget.index
+      colors[index] = next
+      inputs[index].text.value = next
+      inputs[index].color.style.background = '#' + next
+      setActive('')
+      paint()
+    }
+    function syncWheel(colorHex) {
+      const channels = rgb(colorHex)
+      const hsv = rgbToHsv(channels[0], channels[1], channels[2])
+      hue = hsv[0]
+      sat = hsv[1]
+      val = hsv[2]
+      document.getElementById('wheel-value').value = String(Math.round(val * 100))
+      drawWheel()
+      placeMarker()
+      document.getElementById('wheel-chip').style.background = '#' + hex(hsvToRgb(hue, sat, val))
+    }
+    function closePicker() {
+      document.getElementById('picker').classList.remove('open')
+      document.getElementById('brand-pick').classList.remove('on')
+      inputs.forEach((item) => item.row.classList.remove('on'))
+    }
+    function openPicker(anchor) {
+      const picker = document.getElementById('picker')
+      if (picker.classList.contains('open') && picker.dataset.anchor === anchor.id) {
+        closePicker()
+        return false
+      }
+      picker.classList.add('open')
+      picker.dataset.anchor = anchor.id
+      const rect = anchor.getBoundingClientRect()
+      const width = 244
+      const height = 330
+      let left = rect.left
+      let top = rect.bottom + 8
+      if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8
+      if (left < 8) left = 8
+      if (top + height > window.innerHeight - 8) top = rect.top - height - 8
+      if (top < 8) top = 8
+      picker.style.left = left + 'px'
+      picker.style.top = top + 'px'
+      return true
+    }
+    function selectBrand() {
+      const anchor = document.getElementById('brand-pick')
+      if (!openPicker(anchor)) return
+      wheelTarget = { kind: 'brand' }
+      document.getElementById('wheel-target').textContent = 'Базовый цвет'
+      anchor.classList.add('on')
+      inputs.forEach((item) => item.row.classList.remove('on'))
+      syncWheel('#' + brandHex)
+    }
+    function selectSlot(index) {
+      const anchor = inputs[index].color
+      if (!openPicker(anchor)) return
+      wheelTarget = { kind: 'slot', index }
+      document.getElementById('wheel-target').textContent = ORDER[index][1]
+      document.getElementById('brand-pick').classList.remove('on')
+      inputs.forEach((item, i) => item.row.classList.toggle('on', i === index))
+      syncWheel('#' + colors[index])
+    }
+    document.addEventListener('pointerdown', (event) => {
+      const picker = document.getElementById('picker')
+      if (!picker.classList.contains('open')) return
+      if (picker.contains(event.target)) return
+      if (event.target.closest('.swatch, #brand-pick')) return
+      closePicker()
+    })
+    const wheel = document.getElementById('wheel')
+    let draggingWheel = false
+    function pickAt(event) {
+      const rect = wheel.getBoundingClientRect()
+      const x = ((event.clientX - rect.left) / rect.width) * wheel.width
+      const y = ((event.clientY - rect.top) / rect.height) * wheel.height
+      const dx = x - wheel.width / 2
+      const dy = y - wheel.height / 2
+      let dist = Math.hypot(dx, dy) / (wheel.width / 2)
+      if (dist > 1) dist = 1
+      hue = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360
+      sat = dist
+      placeMarker()
+      commitWheel()
+    }
+    wheel.addEventListener('pointerdown', (event) => {
+      draggingWheel = true
+      wheel.setPointerCapture(event.pointerId)
+      pickAt(event)
+    })
+    wheel.addEventListener('pointermove', (event) => { if (draggingWheel) pickAt(event) })
+    wheel.addEventListener('pointerup', () => { draggingWheel = false })
+    document.getElementById('wheel-value').addEventListener('input', (event) => {
+      val = Number(event.target.value) / 100
+      drawWheel()
+      commitWheel()
+    })
+    document.getElementById('brand-swatch').style.background = '#' + brandHex
     window.addEventListener('resize', fit)
     paint()
     setActive('Синяя')
