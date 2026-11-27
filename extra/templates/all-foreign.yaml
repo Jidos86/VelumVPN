@@ -108,8 +108,13 @@ proxy-groups:
     remnawave:
       include-proxies: true
 
-# Российские IP идут напрямую, всё остальное через VPN
+# Российские IP и выбранные российские сервисы идут напрямую
 rules:
+  # Российские банки, госорганы и магазины из geosite.dat
+  - GEOSITE,category-bank-ru,DIRECT
+  - GEOSITE,category-gov-ru,DIRECT
+  - GEOSITE,category-ecommerce-ru,DIRECT
+
   - GEOIP,private,DIRECT,no-resolve
   - GEOSITE,private,DIRECT
   # RadminVPN — виртуальная сеть напрямую

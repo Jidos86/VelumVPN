@@ -108,8 +108,13 @@ proxy-groups:
     remnawave:
       include-proxies: true
 
-# Весь трафик через VPN, кроме приватных сетей и рекламы
+# Весь трафик через VPN с исключениями для отдельных сервисов и сетей
 rules:
+  # Российские банки, госорганы и магазины из geosite.dat
+  - GEOSITE,category-bank-ru,DIRECT
+  - GEOSITE,category-gov-ru,DIRECT
+  - GEOSITE,category-ecommerce-ru,DIRECT
+
   - GEOIP,private,DIRECT,no-resolve
   - GEOSITE,private,DIRECT
   # RadminVPN — виртуальная сеть напрямую
